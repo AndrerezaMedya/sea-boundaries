@@ -45,14 +45,6 @@ const zoneColorExpression: unknown[] = [
 	'#64748b',
 ];
 
-const statusDashExpression: unknown[] = [
-	'match',
-	['coalesce', ['get', 'StatusLaut'], ''],
-	'Perlu Kesepakatan', ['literal', [2, 1]],
-	'Unilateral', ['literal', [1, 1]],
-	['literal', [1, 0]],
-];
-
 const ALL_LAYER_IDS: LayerId[] = [...LAYER_DISPLAY_ORDER, USER_LAYER_ID];
 
 const mapLayerConfigs: Record<LayerId, MapLayerConfig[]> = {
@@ -74,7 +66,7 @@ const mapLayerConfigs: Record<LayerId, MapLayerConfig[]> = {
 					'line-color': zoneColorExpression,
 					'line-width': 2.8,
 					'line-opacity': 0.85,
-					'line-dasharray': statusDashExpression,
+					'line-dasharray': [1, 0],
 				},
 				filtered: {
 					'line-color': zoneColorExpression,

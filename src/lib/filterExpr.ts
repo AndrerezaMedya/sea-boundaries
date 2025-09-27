@@ -321,8 +321,11 @@ export const featureMatchesFilter = (
 };
 
 export const buildIdMatchExpression = (ids: string[]): FilterExpression => {
-	if (!ids.length) {
-		return ['in', ['id'], ['literal', []]];
+	if (ids.length === 0) {
+		return ['==', ['id'], '__no-match__'];
 	}
-	return ['match', ['id'], ['literal', ids], true, false];
+	if (ids.length === 1) {
+		return ['==', ['id'], ids[0]];
+	}
+	return ['any', ...ids.map((id) => ['==', ['id'], id])];
 };
