@@ -354,6 +354,8 @@ interface CapturedMapState {
 interface BasemapDefinition {
 	id: string;
 	tiles: string[];
+	sourceId: string;
+	layerId: string;
 	sourceExtraParams: Partial<RasterSourceSpecification>;
 	layerExtraParams: Partial<RasterLayerSpecification>;
 }
@@ -619,6 +621,8 @@ const MapView = () => {
 			if (tiles.length === 0) {
 				console.warn(`Basemap ${basemap.id} tidak memiliki URL tile valid dan akan diabaikan.`);
 			}
+			const sourceId = `${RASTER_SOURCE_PREFIX}${basemap.id}`;
+			const layerId = `${RASTER_LAYER_PREFIX}${basemap.id}`;
 			const sourceExtraParams: Partial<RasterSourceSpecification> = {};
 			if (typeof basemap.tileSize === 'number') {
 				sourceExtraParams.tileSize = basemap.tileSize;
@@ -642,6 +646,8 @@ const MapView = () => {
 			return {
 				id: basemap.id,
 				tiles,
+				sourceId,
+				layerId,
 				sourceExtraParams,
 				layerExtraParams,
 			};
@@ -664,82 +670,110 @@ const MapView = () => {
 		map.addControl(basemapControl, 'top-left');
 
 		const basemapContainer = (basemapControl as unknown as { _container?: HTMLElement })._container;
-		const ensureBasemapLayers = () => {
-			if (!map.getStyle() || !map.isStyleLoaded()) {
+		const purgeRasterBasemapArtifacts = () => {
+			if (!map.getStyle()) {
 				return;
 			}
-			let activeId = currentBasemapIdRef.current || DEFAULT_RASTER_BASEMAP_ID;
-			const knownBasemapIds = basemapDefinitions.map((definition) => definition.id);
-			if (!knownBasemapIds.includes(activeId)) {
-				activeId = DEFAULT_RASTER_BASEMAP_ID;
-				currentBasemapIdRef.current = activeId;
+			const style = map.getStyle();
+			if (!style) {
+				return;
 			}
-			if (basemapContainer) {
-				let activeThumbnail = basemapContainer.querySelector<HTMLImageElement>(`.basemap[data-id="${activeId}"]`) ?? null;
-				if (!activeThumbnail) {
-					activeThumbnail =
-						basemapContainer.querySelector<HTMLImageElement>(`.basemap[data-id="${DEFAULT_RASTER_BASEMAP_ID}"]`) ?? null;
-					if (activeThumbnail) {
-						currentBasemapIdRef.current = DEFAULT_RASTER_BASEMAP_ID;
-						activeId = DEFAULT_RASTER_BASEMAP_ID;
+			const knownBasemapIds = basemapDefinitions.map((definition) => definition.id);
+			const knownBasemapIdSet = new Set(knownBasemapIds);
+			const existingLayers = [...(style.layers ?? [])];
+			existingLayers.forEach((layer) => {
+				const shouldRemove =
+					layer.type === 'raster' &&
+					(layer.id.startsWith(RASTER_LAYER_PREFIX) || knownBasemapIdSet.has(layer.id));
+				if (shouldRemove) {
+					try {
+						map.removeLayer(layer.id);
+					} catch (error) {
+						console.warn(`Tidak dapat menghapus layer raster ${layer.id}`, error);
 					}
 				}
-				if (activeThumbnail) {
-					basemapContainer.querySelectorAll<HTMLImageElement>('.basemap.active').forEach((img) => {
-						if (img !== activeThumbnail) {
-							img.classList.remove('active');
-						}
-					});
-					activeThumbnail.classList.add('active');
-				}
-				basemapContainer.querySelectorAll<HTMLImageElement>('img.basemap').forEach((img) => {
-					img.setAttribute('aria-pressed', img.classList.contains('active') ? 'true' : 'false');
-				});
-			}
-			const styleLayers = map.getStyle().layers ?? [];
-			const firstNonBackground = styleLayers.find((layer) => layer.type !== 'background');
-			const beforeId = firstNonBackground?.id;
-
-			basemapDefinitions.forEach((definition) => {
-				if (!map.getSource(definition.id)) {
-					map.addSource(
-						definition.id,
-						{
-							type: 'raster',
-							tiles: definition.tiles,
-							...definition.sourceExtraParams,
-						} as RasterSourceSpecification,
-					);
-				}
-				const visibility = definition.id === activeId ? 'visible' : 'none';
-				if (!map.getLayer(definition.id)) {
-					const layerConfig: LayerSpecification = {
-						id: definition.id,
-						type: 'raster',
-						source: definition.id,
-						layout: {
-							visibility,
-						},
-						...definition.layerExtraParams,
-					};
-					map.addLayer(layerConfig, beforeId ?? undefined);
-				} else {
-					map.setLayoutProperty(definition.id, 'visibility', visibility);
-					if (beforeId) {
-						try {
-							map.moveLayer(definition.id, beforeId);
-						} catch (error) {
-							console.warn(`Tidak dapat memindahkan layer basemap ${definition.id}`, error);
-						}
+			});
+			const existingSources = Object.keys(style.sources ?? {});
+			existingSources.forEach((sourceId) => {
+				const shouldRemove =
+					sourceId.startsWith(RASTER_SOURCE_PREFIX) || knownBasemapIdSet.has(sourceId);
+				if (shouldRemove) {
+					try {
+						map.removeSource(sourceId);
+					} catch (error) {
+						console.warn(`Tidak dapat menghapus source raster ${sourceId}`, error);
 					}
 				}
 			});
 		};
+		const ensureBasemapLayers = (overrideActiveId?: string) => {
+			if (styleModeRef.current !== 'raster') {
+				return;
+			}
+			if (!map.getStyle() || !map.isStyleLoaded()) {
+				return;
+			}
+			const knownBasemapIds = basemapDefinitions.map((definition) => definition.id);
+			let activeId = overrideActiveId && knownBasemapIds.includes(overrideActiveId)
+				? overrideActiveId
+				: currentBasemapIdRef.current;
+			if (!activeId || !knownBasemapIds.includes(activeId)) {
+				activeId = DEFAULT_RASTER_BASEMAP_ID;
+			}
+			currentBasemapIdRef.current = activeId;
+			purgeRasterBasemapArtifacts();
+			const style = map.getStyle();
+			if (!style) {
+				return;
+			}
+			const styleLayers = map.getStyle().layers ?? [];
+			const beforeId = styleLayers.find((layer) => layer.id !== 'background' && !layer.id.startsWith(RASTER_LAYER_PREFIX))?.id;
+			basemapDefinitions.forEach((definition) => {
+				const visibility = definition.id === activeId ? 'visible' : 'none';
+				const sourceConfig: RasterSourceSpecification = {
+					type: 'raster',
+					tiles: definition.tiles,
+					...definition.sourceExtraParams,
+				};
+				if (!map.getSource(definition.sourceId)) {
+					try {
+						map.addSource(definition.sourceId, sourceConfig);
+					} catch (error) {
+						console.warn(`Tidak dapat menambahkan source raster ${definition.sourceId}`, error);
+					}
+				}
+				const layerConfig: LayerSpecification = {
+					id: definition.layerId,
+					type: 'raster',
+					source: definition.sourceId,
+					layout: {
+						visibility,
+					},
+					...definition.layerExtraParams,
+				};
+				if (!map.getLayer(definition.layerId)) {
+					try {
+						map.addLayer(layerConfig, beforeId ?? undefined);
+					} catch (error) {
+						console.warn(`Tidak dapat menambahkan layer raster ${definition.layerId}`, error);
+					}
+				} else {
+					try {
+						map.setLayoutProperty(definition.layerId, 'visibility', visibility);
+					} catch (error) {
+						console.warn(`Tidak dapat mengatur visibilitas layer raster ${definition.layerId}`, error);
+					}
+				}
+			});
+			if (basemapContainer) {
+				const thumbnails = basemapContainer.querySelectorAll<HTMLImageElement>('img.basemap');
+				thumbnails.forEach((thumbnail) => {
+					thumbnail.classList.toggle('active', thumbnail.dataset.id === activeId);
+					thumbnail.setAttribute('aria-pressed', thumbnail.classList.contains('active') ? 'true' : 'false');
+				});
+			}
+		};
 
-		map.on('style.load', ensureBasemapLayers);
-		if (map.isStyleLoaded()) {
-			ensureBasemapLayers();
-		}
 		if (basemapContainer) {
 			const updateAriaPressed = () => {
 				basemapContainer.querySelectorAll<HTMLImageElement>('img.basemap').forEach((img) => {
@@ -1086,7 +1120,6 @@ const MapView = () => {
 			map.removeControl(basemapControl);
 			map.removeControl(styleControl);
 			map.removeControl(searchControl);
-			map.off('style.load', ensureBasemapLayers);
 			popup.remove();
 			map.remove();
 			mapReadyRef.current = false;
