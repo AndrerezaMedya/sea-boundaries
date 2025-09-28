@@ -586,9 +586,17 @@ const MapView = () => {
 		map.addControl(basemapControl, 'top-left');
 
 		const basemapContainer = (basemapControl as unknown as { _container?: HTMLElement })._container;
-		const ensureBasemapLayers = () => {
+		const ensureBasemapLayers = (requestedId?: string, forceActivate = false) => {
 			if (!map.getStyle() || !map.isStyleLoaded()) {
 				return;
+			}
+			if (requestedId && basemapContainer) {
+				const desired = basemapContainer.querySelector<HTMLImageElement>(`.basemap[data-id="${requestedId}"]`);
+				if (desired && (forceActivate || !desired.classList.contains('active'))) {
+					const currentActive = basemapContainer.querySelector<HTMLImageElement>('.basemap.active');
+					currentActive?.classList.remove('active');
+					desired.classList.add('active');
+				}
 			}
 			let activeThumbnail = basemapContainer?.querySelector<HTMLImageElement>('.basemap.active') ?? null;
 			if (!activeThumbnail) {
@@ -597,7 +605,7 @@ const MapView = () => {
 					activeThumbnail.classList.add('active');
 				}
 			}
-			const activeId = activeThumbnail?.dataset.id ?? DEFAULT_RASTER_BASEMAP_ID;
+			const activeId = activeThumbnail?.dataset.id ?? requestedId ?? DEFAULT_RASTER_BASEMAP_ID;
 			const styleLayers = map.getStyle().layers ?? [];
 			const firstNonBackground = styleLayers.find((layer) => layer.type !== 'background');
 			const beforeId = firstNonBackground?.id;
@@ -645,9 +653,9 @@ const MapView = () => {
 			});
 		};
 
-		map.on('style.load', ensureBasemapLayers);
+		map.on('style.load', () => ensureBasemapLayers(undefined, false));
 		if (map.isStyleLoaded()) {
-			ensureBasemapLayers();
+			ensureBasemapLayers(undefined, false);
 		}
 		if (basemapContainer) {
 			const basemapObserver = new MutationObserver(() => {
@@ -673,23 +681,23 @@ const MapView = () => {
 					}
 				};
 				img.addEventListener('keydown', keyHandler);
-				const ensureOnClick = () => {
+				const ensureBeforeInteraction = () => {
+					ensureBasemapLayers(undefined, false);
+				};
+				const ensureAfterInteraction = () => {
 					if (!map.isStyleLoaded()) {
 						return;
 					}
-					ensureBasemapLayers();
+					requestAnimationFrame(() => {
+						ensureBasemapLayers(identifier, true);
+					});
 				};
-				const ensureOnKey = (event: KeyboardEvent) => {
-					if (event.key === 'Enter' || event.key === ' ') {
-						ensureBasemapLayers();
-					}
-				};
-				img.addEventListener('click', ensureOnClick, true);
-				img.addEventListener('keydown', ensureOnKey, true);
+				img.addEventListener('click', ensureBeforeInteraction, true);
+				img.addEventListener('click', ensureAfterInteraction);
 				accessibilityCleanup.push(() => {
 					img.removeEventListener('keydown', keyHandler);
-					img.removeEventListener('click', ensureOnClick, true);
-					img.removeEventListener('keydown', ensureOnKey, true);
+					img.removeEventListener('click', ensureBeforeInteraction, true);
+					img.removeEventListener('click', ensureAfterInteraction);
 				});
 			});
 		}
