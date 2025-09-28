@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { bbox } from '@turf/turf';
 import maplibregl, { Map as MapLibreMap, NavigationControl, Popup, ScaleControl } from 'maplibre-gl';
+import { MapLibreSearchControl } from '@stadiamaps/maplibre-search-box';
 import type { FilterSpecification, GeoJSONSource, LayerSpecification, MapLayerMouseEvent } from 'maplibre-gl';
 import type { FeatureCollection, Geometry } from 'geojson';
 
@@ -352,6 +353,30 @@ const MapView = () => {
 		map.addControl(new NavigationControl({ visualizePitch: true }), 'top-left');
 		map.addControl(new ScaleControl({ unit: 'metric' }), 'bottom-right');
 
+		const searchControl = new MapLibreSearchControl({
+			useMapFocusPoint: true,
+			mapFocusPointMinZoom: 5,
+			maxResults: 8,
+			minWaitPeriodMs: 150,
+			onResultSelected: () => {
+				popup.remove();
+			},
+		});
+		const controlWithApi = searchControl as unknown as {
+			api?: {
+				configuration: {
+					apiKey?: (headerName?: string) => Promise<string> | string;
+				};
+			};
+		};
+		const stadiaApiKey = import.meta.env.VITE_STADIA_MAPS_API_KEY;
+		if (stadiaApiKey && controlWithApi.api?.configuration) {
+			controlWithApi.api.configuration.apiKey = async () => stadiaApiKey;
+		} else if (!stadiaApiKey) {
+			console.warn('VITE_STADIA_MAPS_API_KEY is not defined; Stadia Maps search will use anonymous access.');
+		}
+		map.addControl(searchControl, 'top-left');
+
 		const initialiseSources = () => {
 			ALL_LAYER_IDS.forEach((layerId) => {
 				const configs = mapLayerConfigs[layerId] ?? [];
@@ -525,6 +550,7 @@ const MapView = () => {
 
 		return () => {
 			window.removeEventListener('resize', resize);
+			map.removeControl(searchControl);
 			popup.remove();
 			map.remove();
 			mapReadyRef.current = false;
