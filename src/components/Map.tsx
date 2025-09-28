@@ -396,6 +396,57 @@ const captureCustomLayers = (map: MapLibreMap): CapturedMapState => {
 	return captured;
 };
 
+const RASTER_SOURCE_PREFIX = 'basemap-src-';
+const RASTER_LAYER_PREFIX = 'basemap-';
+const OVERLAY_SOURCE_PREFIXES = ['source-', 'measure-', 'user-'];
+
+const enterRasterMode = (map: MapLibreMap) => {
+	const style = map.getStyle();
+	if (!style) {
+		return;
+	}
+	const layers = [...(style.layers ?? [])];
+	layers.forEach((layer) => {
+		if (layer.id === 'background') {
+			return;
+		}
+		const candidateSource = (layer as { source?: string }).source;
+		const keep =
+			typeof candidateSource === 'string' &&
+			OVERLAY_SOURCE_PREFIXES.some((prefix) => candidateSource.startsWith(prefix));
+		if (!keep) {
+			try {
+				map.removeLayer(layer.id);
+			} catch (error) {
+				console.warn(`Tidak dapat menghapus layer ${layer.id} saat masuk mode raster`, error);
+			}
+		}
+	});
+	const sources = Object.keys(style.sources ?? {});
+	sources.forEach((sourceId) => {
+		const keep = OVERLAY_SOURCE_PREFIXES.some((prefix) => sourceId.startsWith(prefix));
+		if (!keep) {
+			try {
+				map.removeSource(sourceId);
+			} catch (error) {
+				console.warn(`Tidak dapat menghapus source ${sourceId} saat masuk mode raster`, error);
+			}
+		}
+	});
+	try {
+		map.setPaintProperty('background', 'background-color', '#ffffff');
+	} catch (error) {
+		console.warn('Gagal mengatur warna latar belakang ke putih pada mode raster', error);
+	}
+};
+
+const enterVectorDarkMode = (map: MapLibreMap, url: string, onReady?: () => void) => {
+	map.setStyle(url, { diff: false });
+	map.once('styledata', () => {
+		onReady?.();
+	});
+};
+
 const reapplyCustomLayers = (map: MapLibreMap, captured: CapturedMapState) => {
 	Object.entries(captured.sources).forEach(([sourceId, sourceSpec]) => {
 		const source = map.getSource(sourceId);
@@ -471,6 +522,7 @@ const MapView = () => {
 	const theme = useThemeStore((state) => state.theme);
 	const setTheme = useThemeStore((state) => state.setTheme);
 	const initialThemeRef = useRef<MapStyleKey>(theme);
+	const styleModeRef = useRef<'raster' | 'vector'>(initialThemeRef.current === 'dark' ? 'vector' : 'raster');
 
 	const layersState = useLayersStore((state) => state.layers);
 	const pendingZoom = useLayersStore((state) => state.pendingZoom);

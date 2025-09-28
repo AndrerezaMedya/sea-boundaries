@@ -9,9 +9,9 @@ type VectorStyleDefinition = {
 
 export const mapStyles: Record<MapStyleKey, VectorStyleDefinition> = {
 	light: {
-		name: 'Carto Positron',
+		name: 'Base Light',
 		code: 'light',
-		url: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+		url: '/styles/base.json',
 		image: '/icons/style-light.svg',
 	},
 	dark: {
