@@ -544,20 +544,34 @@ const MapView = () => {
 			}
 		}
 
-		const basemapDefinitions = rasterBasemaps.map((basemap) => ({
-			id: basemap.id,
-			tiles: basemap.tiles,
-			source: {
-				tileSize: basemap.tileSize,
-				minzoom: basemap.minZoom,
-				maxzoom: basemap.maxZoom,
-				attribution: basemap.attribution,
-			},
-			layer: {
-				minzoom: basemap.minZoom,
-				maxzoom: basemap.maxZoom,
-			},
-		}));
+		const basemapDefinitions = rasterBasemaps.map((basemap) => {
+			const source: Record<string, unknown> = {};
+			if (typeof basemap.tileSize === 'number') {
+				source.tileSize = basemap.tileSize;
+			}
+			if (typeof basemap.attribution === 'string') {
+				source.attribution = basemap.attribution;
+			}
+			if (typeof basemap.minZoom === 'number') {
+				source.minzoom = basemap.minZoom;
+			}
+			if (typeof basemap.maxZoom === 'number') {
+				source.maxzoom = basemap.maxZoom;
+			}
+			const layer: Record<string, unknown> = {};
+			if (typeof basemap.minZoom === 'number') {
+				layer.minzoom = basemap.minZoom;
+			}
+			if (typeof basemap.maxZoom === 'number') {
+				layer.maxzoom = basemap.maxZoom;
+			}
+			return {
+				id: basemap.id,
+				tiles: basemap.tiles,
+				source,
+				layer,
+			};
+		});
 
 		const basemapControl = new BasemapsControl({
 			basemaps: basemapDefinitions.map((definition) => ({
