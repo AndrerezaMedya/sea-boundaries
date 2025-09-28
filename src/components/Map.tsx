@@ -802,19 +802,28 @@ const MapView = () => {
 							}
 						};
 						img.addEventListener('keydown', keyHandler);
-						const clickHandler = () => {
+						const clickHandler = (clickEvent: MouseEvent) => {
+							clickEvent.preventDefault();
+							clickEvent.stopImmediatePropagation();
+							clickEvent.stopPropagation();
 							const id = img.dataset.id;
 							if (id) {
 								currentBasemapIdRef.current = id;
 							}
-							if (map.isStyleLoaded()) {
-								requestAnimationFrame(() => ensureBasemapLayers());
+							if (styleModeRef.current === 'raster' && map.isStyleLoaded()) {
+								requestAnimationFrame(() => ensureBasemapLayers(id ?? undefined));
+							}
+							if (basemapContainer) {
+								basemapContainer.querySelectorAll<HTMLImageElement>('img.basemap').forEach((thumb) => {
+									thumb.classList.toggle('active', thumb === img);
+									thumb.setAttribute('aria-pressed', thumb.classList.contains('active') ? 'true' : 'false');
+								});
 							}
 						};
-						img.addEventListener('click', clickHandler);
+						img.addEventListener('click', clickHandler, true);
 						accessibilityCleanup.push(() => {
 							img.removeEventListener('keydown', keyHandler);
-							img.removeEventListener('click', clickHandler);
+							img.removeEventListener('click', clickHandler, true);
 						});
 					}
 				});
@@ -866,20 +875,31 @@ const MapView = () => {
 		const styleDefinitions = Object.fromEntries(
 			Object.entries(mapStyles).map(([key, value]) => [key, { ...value }]),
 		);
+		const lightStyleUrl = mapStyles.light.url;
+		const darkStyleUrl = mapStyles.dark.url;
 		const styleControl = new StyleFlipperControl(styleDefinitions, (_styleKey, styleCode) => {
-			const nextMode: 'light' | 'dark' = styleCode.toLowerCase().includes('dark') ? 'dark' : 'light';
+			const styleKey = (styleCode as MapStyleKey) ?? DEFAULT_MAP_STYLE;
+			const nextMode: 'light' | 'dark' = styleKey === 'dark' ? 'dark' : 'light';
 			setTheme(nextMode);
-			const syncBasemapAfterStyleFlip = () => {
-				if (!map.isStyleLoaded()) {
-					return;
-				}
-				ensureBasemapLayers();
-			};
-			if (currentBasemapIdRef.current !== DEFAULT_RASTER_BASEMAP_ID) {
-				requestAnimationFrame(syncBasemapAfterStyleFlip);
+			if (styleKey === 'dark') {
+				styleModeRef.current = 'vector';
+				purgeRasterBasemapArtifacts();
+				enterVectorDarkMode(map, darkStyleUrl, () => {
+					purgeRasterBasemapArtifacts();
+					initialiseSources();
+					syncMapWithState(map, useLayersStore.getState().layers);
+				});
 				return;
 			}
-			requestAnimationFrame(syncBasemapAfterStyleFlip);
+			styleModeRef.current = 'raster';
+			const activeBasemapId = currentBasemapIdRef.current || DEFAULT_RASTER_BASEMAP_ID;
+			map.setStyle(lightStyleUrl, { diff: false });
+			map.once('styledata', () => {
+				enterRasterMode(map);
+				ensureBasemapLayers(activeBasemapId);
+				initialiseSources();
+				syncMapWithState(map, useLayersStore.getState().layers);
+			});
 		});
 		const styleControlAny = styleControl as unknown as {
 			saveCustomSourcesAndLayers?: () => void;
@@ -1106,6 +1126,12 @@ const MapView = () => {
 
 		map.on('load', () => {
 			mapReadyRef.current = true;
+			if (styleModeRef.current === 'raster') {
+				enterRasterMode(map);
+				ensureBasemapLayers(currentBasemapIdRef.current);
+			} else {
+				purgeRasterBasemapArtifacts();
+			}
 			initialiseSources();
 			syncMapWithState(map, useLayersStore.getState().layers);
 		});
