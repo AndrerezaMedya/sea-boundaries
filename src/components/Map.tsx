@@ -616,13 +616,34 @@ const MapView = () => {
 			if (!map.getStyle() || !map.isStyleLoaded()) {
 				return;
 			}
-			let activeThumbnail = basemapContainer?.querySelector<HTMLImageElement>('.basemap.active') ?? null;
-			if (!activeThumbnail && basemapContainer) {
-				activeThumbnail =
-					basemapContainer.querySelector<HTMLImageElement>(`.basemap[data-id="${DEFAULT_RASTER_BASEMAP_ID}"]`) ?? null;
-				activeThumbnail?.classList.add('active');
+			let activeId = currentBasemapIdRef.current || DEFAULT_RASTER_BASEMAP_ID;
+			const knownBasemapIds = basemapDefinitions.map((definition) => definition.id);
+			if (!knownBasemapIds.includes(activeId)) {
+				activeId = DEFAULT_RASTER_BASEMAP_ID;
+				currentBasemapIdRef.current = activeId;
 			}
-			const activeId = activeThumbnail?.dataset.id ?? DEFAULT_RASTER_BASEMAP_ID;
+			if (basemapContainer) {
+				let activeThumbnail = basemapContainer.querySelector<HTMLImageElement>(`.basemap[data-id="${activeId}"]`) ?? null;
+				if (!activeThumbnail) {
+					activeThumbnail =
+						basemapContainer.querySelector<HTMLImageElement>(`.basemap[data-id="${DEFAULT_RASTER_BASEMAP_ID}"]`) ?? null;
+					if (activeThumbnail) {
+						currentBasemapIdRef.current = DEFAULT_RASTER_BASEMAP_ID;
+						activeId = DEFAULT_RASTER_BASEMAP_ID;
+					}
+				}
+				if (activeThumbnail) {
+					basemapContainer.querySelectorAll<HTMLImageElement>('.basemap.active').forEach((img) => {
+						if (img !== activeThumbnail) {
+							img.classList.remove('active');
+						}
+					});
+					activeThumbnail.classList.add('active');
+				}
+				basemapContainer.querySelectorAll<HTMLImageElement>('img.basemap').forEach((img) => {
+					img.setAttribute('aria-pressed', img.classList.contains('active') ? 'true' : 'false');
+				});
+			}
 			const styleLayers = map.getStyle().layers ?? [];
 			const firstNonBackground = styleLayers.find((layer) => layer.type !== 'background');
 			const beforeId = firstNonBackground?.id;
