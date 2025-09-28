@@ -15,6 +15,7 @@ export const rasterBasemaps: RasterBasemap[] = [
 		tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
 		attribution: '© OpenStreetMap contributors',
 		tileSize: 256,
+		minZoom: 0,
 		maxZoom: 19,
 	},
 	{
@@ -23,6 +24,7 @@ export const rasterBasemaps: RasterBasemap[] = [
 		tiles: ['https://a.tile.opentopomap.org/{z}/{x}/{y}.png', 'https://b.tile.opentopomap.org/{z}/{x}/{y}.png', 'https://c.tile.opentopomap.org/{z}/{x}/{y}.png'],
 		attribution: '© OpenStreetMap contributors, SRTM | © OpenTopoMap (CC-BY-SA)',
 		tileSize: 256,
+		minZoom: 0,
 		maxZoom: 17,
 	},
 	{
@@ -31,6 +33,7 @@ export const rasterBasemaps: RasterBasemap[] = [
 		tiles: ['https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
 		attribution: 'Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community',
 		tileSize: 256,
+		minZoom: 0,
 		maxZoom: 22,
 	},
 ];
