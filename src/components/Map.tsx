@@ -2,9 +2,14 @@ import { useEffect, useRef } from 'react';
 import { bbox } from '@turf/turf';
 import maplibregl, { Map as MapLibreMap, NavigationControl, Popup, ScaleControl } from 'maplibre-gl';
 import { MapLibreSearchControl } from '@stadiamaps/maplibre-search-box';
-import type { FilterSpecification, GeoJSONSource, LayerSpecification, MapLayerMouseEvent } from 'maplibre-gl';
+import BasemapsControl from 'maplibre-gl-basemaps';
+import StyleFlipperControl from 'maplibre-gl-style-flipper';
+import type { FilterSpecification, GeoJSONSource, LayerSpecification, MapLayerMouseEvent, RasterSourceSpecification } from 'maplibre-gl';
 import type { FeatureCollection, Geometry } from 'geojson';
 
+import { rasterBasemaps, DEFAULT_RASTER_BASEMAP_ID } from '@/data/basemaps';
+import type { MapStyleKey } from '@/data/mapStyles';
+import { DEFAULT_MAP_STYLE, mapStyles } from '@/data/mapStyles';
 import { buildIdMatchExpression } from '@/lib/filterExpr';
 import { EMPTY_GEOJSON, MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM, buildPopupHtml, getBaseMapStyle } from '@/lib/map';
 import { LAYER_DISPLAY_ORDER } from '@/lib/schema';
@@ -12,6 +17,7 @@ import type { FeatureWithProps, LayerId, MapRenderKind } from '@/lib/types';
 import { USER_LAYER_ID } from '@/lib/types';
 import { useLayersStore } from '@/store/useLayers';
 import { useUIStore } from '@/store/useUI';
+import { useThemeStore } from '@/store/useTheme';
 
 type MapGeometryType = 'line' | 'circle' | 'fill';
 
@@ -315,6 +321,127 @@ const mapLayerConfigs: Record<LayerId, MapLayerConfig[]> = {
 	],
 };
 
+const CUSTOM_SOURCE_IDS = new Set<string>();
+const CUSTOM_LAYER_IDS = new Set<string>();
+
+Object.values(mapLayerConfigs).forEach((configs) => {
+	configs.forEach((config) => {
+		CUSTOM_SOURCE_IDS.add(config.sourceId);
+		CUSTOM_LAYER_IDS.add(config.baseLayerId);
+		CUSTOM_LAYER_IDS.add(config.filteredLayerId);
+		CUSTOM_LAYER_IDS.add(config.selectionLayerId);
+		CUSTOM_LAYER_IDS.add(config.hoverLayerId);
+	});
+});
+
+interface CapturedLayerState {
+	definition: LayerSpecification;
+	beforeId: string | null;
+}
+
+interface CapturedMapState {
+	sources: Record<string, unknown>;
+	layers: Record<string, CapturedLayerState>;
+}
+
+const captureCustomLayers = (map: MapLibreMap): CapturedMapState => {
+	const style = map.getStyle();
+	const captured: CapturedMapState = {
+		sources: {},
+		layers: {},
+	};
+
+	Object.entries(style.sources ?? {}).forEach(([sourceId, sourceSpec]) => {
+		if (!CUSTOM_SOURCE_IDS.has(sourceId)) {
+			return;
+		}
+		captured.sources[sourceId] = JSON.parse(JSON.stringify(sourceSpec));
+	});
+
+	const layers = style.layers ?? [];
+	layers.forEach((layer, index) => {
+		if (!CUSTOM_LAYER_IDS.has(layer.id)) {
+			return;
+		}
+		let beforeId: string | null = null;
+		for (let i = index + 1; i < layers.length; i += 1) {
+			const candidate = layers[i].id;
+			if (!CUSTOM_LAYER_IDS.has(candidate)) {
+				beforeId = candidate;
+				break;
+			}
+		}
+		captured.layers[layer.id] = {
+			definition: JSON.parse(JSON.stringify(layer)) as LayerSpecification,
+			beforeId,
+		};
+	});
+
+	return captured;
+};
+
+const reapplyCustomLayers = (map: MapLibreMap, captured: CapturedMapState) => {
+	Object.entries(captured.sources).forEach(([sourceId, sourceSpec]) => {
+		const source = map.getSource(sourceId);
+		if (source && 'setData' in source && sourceSpec && typeof sourceSpec === 'object' && sourceSpec !== null) {
+			const geoSpec = sourceSpec as { data?: unknown };
+			if (geoSpec.data) {
+				try {
+					(source as GeoJSONSource).setData(geoSpec.data as FeatureCollection<Geometry>);
+				} catch (error) {
+					console.warn(`Gagal mengatur ulang data untuk source ${sourceId}`, error);
+				}
+			}
+		}
+	});
+
+	Object.values(captured.layers).forEach(({ definition, beforeId }) => {
+		const layerId = definition.id;
+		const filter = (definition as unknown as { filter?: FilterSpecification }).filter;
+		const layout = (definition as unknown as { layout?: Record<string, unknown> }).layout;
+		const paint = (definition as unknown as { paint?: Record<string, unknown> }).paint;
+		if (!map.getLayer(layerId)) {
+			try {
+				map.addLayer(definition);
+			} catch (error) {
+				console.warn(`Tidak dapat menambahkan layer ${layerId} saat pemulihan`, error);
+			}
+		}
+		if (filter) {
+			try {
+				map.setFilter(layerId, filter as FilterSpecification);
+			} catch (error) {
+				console.warn(`Tidak dapat memulihkan filter untuk layer ${layerId}`, error);
+			}
+		}
+		if (layout) {
+			Object.entries(layout).forEach(([key, value]) => {
+				try {
+					map.setLayoutProperty(layerId, key, value as unknown);
+				} catch (error) {
+					console.warn(`Tidak dapat memulihkan properti layout ${key} pada layer ${layerId}`, error);
+				}
+			});
+		}
+		if (paint) {
+			Object.entries(paint).forEach(([key, value]) => {
+				try {
+					map.setPaintProperty(layerId, key, value as unknown);
+				} catch (error) {
+					console.warn(`Tidak dapat memulihkan properti paint ${key} pada layer ${layerId}`, error);
+				}
+			});
+		}
+		if (beforeId && map.getLayer(beforeId)) {
+			try {
+				map.moveLayer(layerId, beforeId);
+			} catch (error) {
+				console.warn(`Tidak dapat memindahkan layer ${layerId} sebelum ${beforeId}`, error);
+			}
+		}
+	});
+};
+
 const popupButtonClass =
 	'inline-flex min-h-[32px] items-center justify-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-sm ring-1 ring-white/70 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300';
 
@@ -323,6 +450,10 @@ const MapView = () => {
 	const mapRef = useRef<MapLibreMap | null>(null);
 	const popupRef = useRef<Popup | null>(null);
 	const mapReadyRef = useRef(false);
+	const capturedStateRef = useRef<CapturedMapState | null>(null);
+	const theme = useThemeStore((state) => state.theme);
+	const setTheme = useThemeStore((state) => state.setTheme);
+	const initialThemeRef = useRef<MapStyleKey>(theme);
 
 	const layersState = useLayersStore((state) => state.layers);
 	const pendingZoom = useLayersStore((state) => state.pendingZoom);
@@ -339,9 +470,12 @@ const MapView = () => {
 			return;
 		}
 
+		const initialTheme = initialThemeRef.current;
+		const initialStyleKey: MapStyleKey = initialTheme ?? DEFAULT_MAP_STYLE;
+		const initialStyleCandidate = mapStyles[initialStyleKey]?.url;
 		const map = new maplibregl.Map({
 			container: containerRef.current,
-			style: getBaseMapStyle(),
+			style: typeof initialStyleCandidate === 'string' ? initialStyleCandidate : getBaseMapStyle(),
 			center: MAP_DEFAULT_CENTER,
 			zoom: MAP_DEFAULT_ZOOM,
 		});
@@ -350,8 +484,11 @@ const MapView = () => {
 		const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 12, className: 'app-popup' });
 		popupRef.current = popup;
 
-		map.addControl(new NavigationControl({ visualizePitch: true }), 'top-left');
+		const navigationControl = new NavigationControl({ visualizePitch: true });
+		map.addControl(navigationControl, 'top-right');
 		map.addControl(new ScaleControl({ unit: 'metric' }), 'bottom-right');
+
+		const accessibilityCleanup: Array<() => void> = [];
 
 		const searchControl = new MapLibreSearchControl({
 			useMapFocusPoint: true,
@@ -364,18 +501,249 @@ const MapView = () => {
 		});
 		const controlWithApi = searchControl as unknown as {
 			api?: {
-				configuration: {
-					apiKey?: (headerName?: string) => Promise<string> | string;
+				configuration?: {
+					configuration?: Record<string, unknown>;
+					config?: Record<string, unknown>;
 				};
 			};
 		};
 		const stadiaApiKey = import.meta.env.VITE_STADIA_MAPS_API_KEY;
 		if (stadiaApiKey && controlWithApi.api?.configuration) {
-			controlWithApi.api.configuration.apiKey = async () => stadiaApiKey;
+			const configWrapper = controlWithApi.api.configuration;
+			const baseConfig = (configWrapper.configuration ?? {}) as Record<string, unknown>;
+			const nextConfig = {
+				...baseConfig,
+				apiKey: stadiaApiKey,
+			};
+			try {
+				// prefer setter when available to preserve internal observers
+				configWrapper.config = nextConfig;
+			} catch {
+				// fallback to direct mutation if setter is unavailable in future versions
+				configWrapper.configuration = nextConfig;
+			}
 		} else if (!stadiaApiKey) {
 			console.warn('VITE_STADIA_MAPS_API_KEY is not defined; Stadia Maps search will use anonymous access.');
 		}
 		map.addControl(searchControl, 'top-left');
+
+		const searchContainer = typeof searchControl.getContainer === 'function' ? searchControl.getContainer() : null;
+		if (searchContainer) {
+			searchContainer.setAttribute('role', 'search');
+			searchContainer.setAttribute('aria-label', 'Pencarian lokasi Stadia Maps');
+			const searchInput = searchContainer.querySelector('input');
+			if (searchInput) {
+				searchInput.setAttribute('aria-label', 'Cari lokasi di peta');
+				const keyHandler = (event: KeyboardEvent) => {
+					if (event.key === 'Escape') {
+						(event.currentTarget as HTMLInputElement).blur();
+					}
+				};
+				searchInput.addEventListener('keydown', keyHandler);
+				accessibilityCleanup.push(() => searchInput.removeEventListener('keydown', keyHandler));
+			}
+		}
+
+		const basemapDefinitions = rasterBasemaps.map((basemap) => ({
+			id: basemap.id,
+			tiles: basemap.tiles,
+			source: {
+				tileSize: basemap.tileSize,
+				minzoom: basemap.minZoom,
+				maxzoom: basemap.maxZoom,
+				attribution: basemap.attribution,
+			},
+			layer: {
+				minzoom: basemap.minZoom,
+				maxzoom: basemap.maxZoom,
+			},
+		}));
+
+		const basemapControl = new BasemapsControl({
+			basemaps: basemapDefinitions.map((definition) => ({
+				id: definition.id,
+				tiles: definition.tiles,
+				sourceExtraParams: definition.source,
+				layerExtraParams: definition.layer,
+			})),
+			initialBasemap: DEFAULT_RASTER_BASEMAP_ID,
+			expandDirection: 'down',
+		});
+		map.addControl(basemapControl, 'top-left');
+
+		const basemapContainer = (basemapControl as unknown as { _container?: HTMLElement })._container;
+		const ensureBasemapLayers = () => {
+			if (!map.getStyle() || !map.isStyleLoaded()) {
+				return;
+			}
+			let activeThumbnail = basemapContainer?.querySelector<HTMLImageElement>('.basemap.active') ?? null;
+			if (!activeThumbnail) {
+				activeThumbnail = basemapContainer?.querySelector<HTMLImageElement>(`.basemap[data-id="${DEFAULT_RASTER_BASEMAP_ID}"]`) ?? null;
+				if (activeThumbnail) {
+					activeThumbnail.classList.add('active');
+				}
+			}
+			const activeId = activeThumbnail?.dataset.id ?? DEFAULT_RASTER_BASEMAP_ID;
+			const styleLayers = map.getStyle().layers ?? [];
+			const firstNonBackground = styleLayers.find((layer) => layer.type !== 'background');
+			const beforeId = firstNonBackground?.id;
+
+			basemapDefinitions.forEach((definition) => {
+				if (!map.getSource(definition.id)) {
+					const sourceConfig: Record<string, unknown> = {
+						type: 'raster',
+						tiles: definition.tiles,
+					};
+					if (typeof definition.source.tileSize === 'number') {
+						sourceConfig.tileSize = definition.source.tileSize;
+					}
+					if (typeof definition.source.minzoom === 'number') {
+						sourceConfig.minzoom = definition.source.minzoom;
+					}
+					if (typeof definition.source.maxzoom === 'number') {
+						sourceConfig.maxzoom = definition.source.maxzoom;
+					}
+					if (typeof definition.source.attribution === 'string') {
+						sourceConfig.attribution = definition.source.attribution;
+					}
+					map.addSource(definition.id, sourceConfig as RasterSourceSpecification);
+				}
+				const visibility = definition.id === activeId ? 'visible' : 'none';
+				if (!map.getLayer(definition.id)) {
+					const layerConfig: Record<string, unknown> = {
+						id: definition.id,
+						type: 'raster',
+						source: definition.id,
+						layout: {
+							visibility,
+						},
+					};
+					if (typeof definition.layer.minzoom === 'number') {
+						layerConfig.minzoom = definition.layer.minzoom;
+					}
+					if (typeof definition.layer.maxzoom === 'number') {
+						layerConfig.maxzoom = definition.layer.maxzoom;
+					}
+					map.addLayer(layerConfig as LayerSpecification, beforeId);
+				} else {
+					map.setLayoutProperty(definition.id, 'visibility', visibility);
+				}
+			});
+		};
+
+		map.on('style.load', ensureBasemapLayers);
+		if (map.isStyleLoaded()) {
+			ensureBasemapLayers();
+		}
+		if (basemapContainer) {
+			const basemapObserver = new MutationObserver(() => {
+				basemapContainer.querySelectorAll<HTMLImageElement>('img.basemap').forEach((img) => {
+					img.setAttribute('aria-pressed', img.classList.contains('active') ? 'true' : 'false');
+				});
+			});
+			basemapObserver.observe(basemapContainer, { subtree: true, attributes: true, attributeFilter: ['class'] });
+			accessibilityCleanup.push(() => basemapObserver.disconnect());
+			basemapContainer.setAttribute('role', 'group');
+			basemapContainer.setAttribute('aria-label', 'Pemilih basemap raster');
+			basemapContainer.querySelectorAll<HTMLImageElement>('img.basemap').forEach((img) => {
+				const identifier = img.dataset.id ?? '';
+				const definition = rasterBasemaps.find((entry) => entry.id === identifier);
+				img.alt = definition?.label ?? `Basemap ${identifier}`;
+				img.setAttribute('tabindex', '0');
+				img.setAttribute('role', 'button');
+				img.setAttribute('aria-pressed', img.classList.contains('active') ? 'true' : 'false');
+				const keyHandler = (event: KeyboardEvent) => {
+					if (event.key === 'Enter' || event.key === ' ') {
+						event.preventDefault();
+						img.click();
+					}
+				};
+				img.addEventListener('keydown', keyHandler);
+				const ensureOnClick = () => {
+					if (!map.isStyleLoaded()) {
+						return;
+					}
+					ensureBasemapLayers();
+				};
+				const ensureOnKey = (event: KeyboardEvent) => {
+					if (event.key === 'Enter' || event.key === ' ') {
+						ensureBasemapLayers();
+					}
+				};
+				img.addEventListener('click', ensureOnClick, true);
+				img.addEventListener('keydown', ensureOnKey, true);
+				accessibilityCleanup.push(() => {
+					img.removeEventListener('keydown', keyHandler);
+					img.removeEventListener('click', ensureOnClick, true);
+					img.removeEventListener('keydown', ensureOnKey, true);
+				});
+			});
+		}
+
+		const styleDefinitions = Object.fromEntries(
+			Object.entries(mapStyles).map(([key, value]) => [key, { ...value }]),
+		);
+		const styleControl = new StyleFlipperControl(styleDefinitions, (_styleKey, styleCode) => {
+			const nextMode: 'light' | 'dark' = styleCode.toLowerCase().includes('dark') ? 'dark' : 'light';
+			setTheme(nextMode);
+		});
+		const styleControlAny = styleControl as unknown as {
+			saveCustomSourcesAndLayers?: () => void;
+			restoreCustomSourcesAndLayers?: () => void;
+			setCurrentStyleCode?: (code: string) => void;
+			_container?: HTMLElement;
+		};
+
+		if (styleControlAny.saveCustomSourcesAndLayers) {
+			const originalSave = styleControlAny.saveCustomSourcesAndLayers.bind(styleControlAny);
+			styleControlAny.saveCustomSourcesAndLayers = () => {
+				capturedStateRef.current = captureCustomLayers(map);
+				originalSave();
+			};
+		}
+
+		if (styleControlAny.restoreCustomSourcesAndLayers) {
+			const originalRestore = styleControlAny.restoreCustomSourcesAndLayers.bind(styleControlAny);
+			styleControlAny.restoreCustomSourcesAndLayers = () => {
+				originalRestore();
+				if (capturedStateRef.current) {
+					reapplyCustomLayers(map, capturedStateRef.current);
+					syncMapWithState(map, useLayersStore.getState().layers);
+					capturedStateRef.current = null;
+				}
+			};
+		}
+
+		map.addControl(styleControl, 'bottom-left');
+		if (styleControlAny.setCurrentStyleCode) {
+			styleControlAny.setCurrentStyleCode(mapStyles[initialStyleKey].code);
+		}
+
+		const styleContainer = styleControlAny._container;
+		if (styleContainer) {
+			const updateAriaPressed = () => {
+				styleContainer.querySelectorAll<HTMLButtonElement>('button').forEach((button) => {
+					button.setAttribute('aria-pressed', button.classList.contains('active') ? 'true' : 'false');
+				});
+			};
+			const styleObserver = new MutationObserver(updateAriaPressed);
+			styleObserver.observe(styleContainer, { subtree: true, attributes: true, attributeFilter: ['class'] });
+			accessibilityCleanup.push(() => styleObserver.disconnect());
+			styleContainer.setAttribute('role', 'group');
+			styleContainer.setAttribute('aria-label', 'Pemilih gaya peta vektor');
+			styleContainer.querySelectorAll<HTMLButtonElement>('button').forEach((button) => {
+				button.setAttribute('tabindex', '0');
+				const keyHandler = (event: KeyboardEvent) => {
+					if (event.key === 'Enter' || event.key === ' ') {
+						event.preventDefault();
+						button.click();
+					}
+				};
+				button.addEventListener('keydown', keyHandler);
+				accessibilityCleanup.push(() => button.removeEventListener('keydown', keyHandler));
+			});
+			updateAriaPressed();
+		}
 
 		const initialiseSources = () => {
 			ALL_LAYER_IDS.forEach((layerId) => {
@@ -550,14 +918,20 @@ const MapView = () => {
 
 		return () => {
 			window.removeEventListener('resize', resize);
+			accessibilityCleanup.forEach((fn) => fn());
+			map.removeControl(navigationControl);
+			map.removeControl(basemapControl);
+			map.removeControl(styleControl);
 			map.removeControl(searchControl);
+			map.off('style.load', ensureBasemapLayers);
 			popup.remove();
 			map.remove();
 			mapReadyRef.current = false;
 			mapRef.current = null;
 			popupRef.current = null;
+			capturedStateRef.current = null;
 		};
-	}, [requestZoomToIds, setActiveLayer, setActiveTab, setHoveredFeature, setSelection]);
+	}, [requestZoomToIds, setActiveLayer, setActiveTab, setHoveredFeature, setSelection, setTheme]);
 
 	useEffect(() => {
 		if (!mapReadyRef.current || !mapRef.current) {
