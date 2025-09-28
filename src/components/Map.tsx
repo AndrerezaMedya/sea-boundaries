@@ -14,7 +14,16 @@ import type {
 } from 'maplibre-gl';
 import type { FeatureCollection, Geometry } from 'geojson';
 
-import { rasterBasemaps, DEFAULT_RASTER_BASEMAP_ID } from '@/data/basemaps';
+import {
+	BASEMAPS_BY_THEME,
+	DEFAULT_BASEMAP_ID_BY_THEME,
+	getBasemapDefinition,
+	getBasemapDefinitionById,
+	getBasemapIdsForTheme,
+	isRasterBasemapDefinition,
+	mapBasemapId,
+} from '@/data/basemaps';
+import type { BasemapDefinition, BasemapTheme } from '@/data/basemaps';
 import type { MapStyleKey } from '@/data/mapStyles';
 import { DEFAULT_MAP_STYLE, mapStyles } from '@/data/mapStyles';
 import { buildIdMatchExpression } from '@/lib/filterExpr';
@@ -351,15 +360,6 @@ interface CapturedMapState {
 	layers: Record<string, CapturedLayerState>;
 }
 
-interface BasemapDefinition {
-	id: string;
-	tiles: string[];
-	sourceId: string;
-	layerId: string;
-	sourceExtraParams: Partial<RasterSourceSpecification>;
-	layerExtraParams: Partial<RasterLayerSpecification>;
-}
-
 type BasemapsControlOptionsWithCompact = MapLibreBasemapsControlOptions & { compact?: boolean };
 
 const captureCustomLayers = (map: MapLibreMap): CapturedMapState => {
@@ -442,13 +442,6 @@ const enterRasterMode = (map: MapLibreMap) => {
 	}
 };
 
-const enterVectorDarkMode = (map: MapLibreMap, url: string, onReady?: () => void) => {
-	map.setStyle(url, { diff: false });
-	map.once('styledata', () => {
-		onReady?.();
-	});
-};
-
 const reapplyCustomLayers = (map: MapLibreMap, captured: CapturedMapState) => {
 	Object.entries(captured.sources).forEach(([sourceId, sourceSpec]) => {
 		const source = map.getSource(sourceId);
@@ -520,11 +513,22 @@ const MapView = () => {
 	const popupRef = useRef<Popup | null>(null);
 	const mapReadyRef = useRef(false);
 	const capturedStateRef = useRef<CapturedMapState | null>(null);
-	const currentBasemapIdRef = useRef<string>(DEFAULT_RASTER_BASEMAP_ID);
-	const theme = useThemeStore((state) => state.theme);
+	const themeFromStore = useThemeStore((state) => state.theme);
 	const setTheme = useThemeStore((state) => state.setTheme);
-	const initialThemeRef = useRef<MapStyleKey>(theme);
-	const styleModeRef = useRef<'raster' | 'vector'>(initialThemeRef.current === 'dark' ? 'vector' : 'raster');
+	const initialThemeKey = (themeFromStore ?? DEFAULT_MAP_STYLE) as MapStyleKey;
+	const initialBasemapTheme: BasemapTheme = initialThemeKey === 'dark' ? 'dark' : 'light';
+	const initialBasemapId = DEFAULT_BASEMAP_ID_BY_THEME[initialBasemapTheme];
+	const initialBasemapDefinition = getBasemapDefinition(initialBasemapTheme, initialBasemapId);
+	const currentThemeRef = useRef<BasemapTheme>(initialBasemapTheme);
+	const currentBasemapIdRef = useRef<string>(initialBasemapDefinition.id);
+	const styleModeRef = useRef<'raster' | 'vector'>(initialBasemapDefinition.kind === 'vector' ? 'vector' : 'raster');
+	const currentBasemapKindRef = useRef<'raster' | 'vector'>(
+		initialBasemapDefinition.kind === 'vector' ? 'vector' : 'raster',
+	);
+	const currentVectorStyleRef = useRef<string | null>(
+		initialBasemapDefinition.kind === 'vector' ? initialBasemapDefinition.styleUrl : null,
+	);
+	const initialThemeRef = useRef<MapStyleKey>(themeFromStore);
 
 	const layersState = useLayersStore((state) => state.layers);
 	const pendingZoom = useLayersStore((state) => state.pendingZoom);
@@ -615,76 +619,78 @@ const MapView = () => {
 			}
 		}
 
-		const basemapDefinitions: BasemapDefinition[] = rasterBasemaps
-			.map((basemap) => {
-			const tiles = basemap.tiles.filter((tileUrl) => typeof tileUrl === 'string' && tileUrl.trim().length > 0);
-			if (tiles.length === 0) {
-				console.warn(`Basemap ${basemap.id} tidak memiliki URL tile valid dan akan diabaikan.`);
-			}
-			const sourceId = `${RASTER_SOURCE_PREFIX}${basemap.id}`;
-			const layerId = `${RASTER_LAYER_PREFIX}${basemap.id}`;
-			const sourceExtraParams: Partial<RasterSourceSpecification> = {};
-			if (typeof basemap.tileSize === 'number') {
-				sourceExtraParams.tileSize = basemap.tileSize;
-			}
-			if (typeof basemap.attribution === 'string' && basemap.attribution.trim().length > 0) {
-				sourceExtraParams.attribution = basemap.attribution;
-			}
-			if (typeof basemap.minZoom === 'number') {
-				sourceExtraParams.minzoom = basemap.minZoom;
-			}
-			if (typeof basemap.maxZoom === 'number') {
-				sourceExtraParams.maxzoom = basemap.maxZoom;
-			}
-			const layerExtraParams: Partial<RasterLayerSpecification> = {};
-			if (typeof basemap.minZoom === 'number') {
-				layerExtraParams.minzoom = basemap.minZoom;
-			}
-			if (typeof basemap.maxZoom === 'number') {
-				layerExtraParams.maxzoom = basemap.maxZoom;
-			}
-			return {
-				id: basemap.id,
-				tiles,
-				sourceId,
-				layerId,
-				sourceExtraParams,
-				layerExtraParams,
-			};
-			})
-			.filter((definition): definition is BasemapDefinition => definition.tiles.length > 0);
+		const basemapDefinitionMap = new Map<string, BasemapDefinition>();
+		Object.values(BASEMAPS_BY_THEME).forEach((entries) => {
+			Object.entries(entries).forEach(([id, definition]) => {
+				if (!basemapDefinitionMap.has(id)) {
+					basemapDefinitionMap.set(id, definition);
+				}
+			});
+		});
+
+		const rasterBasemapDefinitions = Array.from(basemapDefinitionMap.values()).filter(isRasterBasemapDefinition);
+		const rasterBasemapIdSet = new Set(rasterBasemapDefinitions.map((definition) => definition.id));
+		const basemapIdsByTheme: Record<BasemapTheme, Set<string>> = {
+			light: new Set(getBasemapIdsForTheme('light')),
+			dark: new Set(getBasemapIdsForTheme('dark')),
+		};
 
 		const basemapControlOptions: BasemapsControlOptionsWithCompact = {
-			basemaps: basemapDefinitions.map((definition) => ({
-				id: definition.id,
-				tiles: definition.tiles,
-				sourceExtraParams: definition.sourceExtraParams,
-				layerExtraParams: definition.layerExtraParams,
-			})),
-			initialBasemap: DEFAULT_RASTER_BASEMAP_ID,
+			basemaps: Array.from(basemapDefinitionMap.values()).map((definition) => {
+				const tiles =
+					definition.kind === 'raster'
+						? definition.tiles
+						: definition.previewTiles ?? [];
+				const sourceExtraParams: Partial<RasterSourceSpecification> = {};
+				if (definition.kind === 'raster') {
+					if (typeof definition.tileSize === 'number') {
+						sourceExtraParams.tileSize = definition.tileSize;
+					}
+					if (typeof definition.attribution === 'string' && definition.attribution.trim().length > 0) {
+						sourceExtraParams.attribution = definition.attribution;
+					}
+					if (typeof definition.minZoom === 'number') {
+						sourceExtraParams.minzoom = definition.minZoom;
+					}
+					if (typeof definition.maxZoom === 'number') {
+						sourceExtraParams.maxzoom = definition.maxZoom;
+					}
+				}
+				const layerExtraParams: Partial<RasterLayerSpecification> = {};
+				if (definition.kind === 'raster') {
+					if (typeof definition.minZoom === 'number') {
+						layerExtraParams.minzoom = definition.minZoom;
+					}
+					if (typeof definition.maxZoom === 'number') {
+						layerExtraParams.maxzoom = definition.maxZoom;
+					}
+				}
+				return {
+					id: definition.id,
+					tiles,
+					sourceExtraParams,
+					layerExtraParams,
+				};
+			}),
+			initialBasemap: currentBasemapIdRef.current,
 			expandDirection: 'down',
 			compact: false,
 		};
 		const basemapControl = new BasemapsControl(basemapControlOptions);
-		currentBasemapIdRef.current = DEFAULT_RASTER_BASEMAP_ID;
 		map.addControl(basemapControl, 'top-left');
 
 		const basemapContainer = (basemapControl as unknown as { _container?: HTMLElement })._container;
+
 		const purgeRasterBasemapArtifacts = () => {
-			if (!map.getStyle()) {
-				return;
-			}
 			const style = map.getStyle();
 			if (!style) {
 				return;
 			}
-			const knownBasemapIds = basemapDefinitions.map((definition) => definition.id);
-			const knownBasemapIdSet = new Set(knownBasemapIds);
 			const existingLayers = [...(style.layers ?? [])];
 			existingLayers.forEach((layer) => {
 				const shouldRemove =
 					layer.type === 'raster' &&
-					(layer.id.startsWith(RASTER_LAYER_PREFIX) || knownBasemapIdSet.has(layer.id));
+					(layer.id.startsWith(RASTER_LAYER_PREFIX) || rasterBasemapIdSet.has(layer.id));
 				if (shouldRemove) {
 					try {
 						map.removeLayer(layer.id);
@@ -696,7 +702,7 @@ const MapView = () => {
 			const existingSources = Object.keys(style.sources ?? {});
 			existingSources.forEach((sourceId) => {
 				const shouldRemove =
-					sourceId.startsWith(RASTER_SOURCE_PREFIX) || knownBasemapIdSet.has(sourceId);
+					sourceId.startsWith(RASTER_SOURCE_PREFIX) || rasterBasemapIdSet.has(sourceId);
 				if (shouldRemove) {
 					try {
 						map.removeSource(sourceId);
@@ -706,129 +712,244 @@ const MapView = () => {
 				}
 			});
 		};
-		const ensureBasemapLayers = (overrideActiveId?: string) => {
-			if (styleModeRef.current !== 'raster') {
-				return;
-			}
-			if (!map.getStyle() || !map.isStyleLoaded()) {
-				return;
-			}
-			const knownBasemapIds = basemapDefinitions.map((definition) => definition.id);
-			let activeId = overrideActiveId && knownBasemapIds.includes(overrideActiveId)
-				? overrideActiveId
-				: currentBasemapIdRef.current;
-			if (!activeId || !knownBasemapIds.includes(activeId)) {
-				activeId = DEFAULT_RASTER_BASEMAP_ID;
-			}
-			currentBasemapIdRef.current = activeId;
-			purgeRasterBasemapArtifacts();
+
+		const ensureRasterBasemapLayers = (activeId: string) => {
 			const style = map.getStyle();
 			if (!style) {
 				return;
 			}
-			const styleLayers = map.getStyle().layers ?? [];
+
+			let retryScheduled = false;
+			const scheduleRetry = () => {
+				if (retryScheduled) {
+					return;
+				}
+				retryScheduled = true;
+				map.once('styledata', () => {
+					ensureRasterBasemapLayers(activeId);
+				});
+			};
+
+			const styleLayers = style.layers ?? [];
 			const beforeId = styleLayers.find((layer) => layer.id !== 'background' && !layer.id.startsWith(RASTER_LAYER_PREFIX))?.id;
-			basemapDefinitions.forEach((definition) => {
+
+			rasterBasemapDefinitions.forEach((definition) => {
+				const sourceId = `${RASTER_SOURCE_PREFIX}${definition.id}`;
+				const layerId = `${RASTER_LAYER_PREFIX}${definition.id}`;
 				const visibility = definition.id === activeId ? 'visible' : 'none';
+
 				const sourceConfig: RasterSourceSpecification = {
 					type: 'raster',
 					tiles: definition.tiles,
-					...definition.sourceExtraParams,
 				};
-				if (!map.getSource(definition.sourceId)) {
+				if (typeof definition.tileSize === 'number') {
+					sourceConfig.tileSize = definition.tileSize;
+				}
+				if (typeof definition.attribution === 'string' && definition.attribution.trim().length > 0) {
+					sourceConfig.attribution = definition.attribution;
+				}
+				if (typeof definition.minZoom === 'number') {
+					sourceConfig.minzoom = definition.minZoom;
+				}
+				if (typeof definition.maxZoom === 'number') {
+					sourceConfig.maxzoom = definition.maxZoom;
+				}
+
+				if (!map.getSource(sourceId)) {
 					try {
-						map.addSource(definition.sourceId, sourceConfig);
+						map.addSource(sourceId, sourceConfig);
 					} catch (error) {
-						console.warn(`Tidak dapat menambahkan source raster ${definition.sourceId}`, error);
+						console.warn(`Tidak dapat menambahkan source raster ${sourceId}`, error);
+						scheduleRetry();
+						return;
 					}
 				}
+
 				const layerConfig: LayerSpecification = {
-					id: definition.layerId,
+					id: layerId,
 					type: 'raster',
-					source: definition.sourceId,
+					source: sourceId,
 					layout: {
 						visibility,
 					},
-					...definition.layerExtraParams,
 				};
-				if (!map.getLayer(definition.layerId)) {
+				if (typeof definition.minZoom === 'number') {
+					(layerConfig as RasterLayerSpecification).minzoom = definition.minZoom;
+				}
+				if (typeof definition.maxZoom === 'number') {
+					(layerConfig as RasterLayerSpecification).maxzoom = definition.maxZoom;
+				}
+
+				if (!map.getLayer(layerId)) {
 					try {
 						map.addLayer(layerConfig, beforeId ?? undefined);
 					} catch (error) {
-						console.warn(`Tidak dapat menambahkan layer raster ${definition.layerId}`, error);
+						console.warn(`Tidak dapat menambahkan layer raster ${layerId}`, error);
+						scheduleRetry();
+						return;
 					}
 				} else {
 					try {
-						map.setLayoutProperty(definition.layerId, 'visibility', visibility);
+						map.setLayoutProperty(layerId, 'visibility', visibility);
 					} catch (error) {
-						console.warn(`Tidak dapat mengatur visibilitas layer raster ${definition.layerId}`, error);
+						console.warn(`Tidak dapat mengatur visibilitas layer raster ${layerId}`, error);
+						scheduleRetry();
 					}
 				}
 			});
-			if (basemapContainer) {
-				const thumbnails = basemapContainer.querySelectorAll<HTMLImageElement>('img.basemap');
-				thumbnails.forEach((thumbnail) => {
-					thumbnail.classList.toggle('active', thumbnail.dataset.id === activeId);
-					thumbnail.setAttribute('aria-pressed', thumbnail.classList.contains('active') ? 'true' : 'false');
-				});
+		};
+
+		const updateBasemapThumbnailState = (activeId: string, theme: BasemapTheme) => {
+			if (!basemapContainer) {
+				return;
 			}
+			const allowedIds = basemapIdsByTheme[theme];
+			basemapContainer.querySelectorAll<HTMLImageElement>('img.basemap').forEach((img) => {
+				const identifier = img.dataset.id ?? '';
+				const isAllowed = allowedIds.has(identifier);
+				img.classList.toggle('hidden', !isAllowed);
+				img.setAttribute('aria-hidden', isAllowed ? 'false' : 'true');
+				img.setAttribute('tabindex', isAllowed ? '0' : '-1');
+				img.style.pointerEvents = isAllowed ? '' : 'none';
+				const isActive = isAllowed && identifier === activeId;
+				img.classList.toggle('active', isActive);
+				img.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+			});
+		};
+
+		const ensureBasemapLayers = (
+			overrideActiveId?: string,
+			options?: { theme?: BasemapTheme; forceReinitialize?: boolean },
+		) => {
+			const targetTheme = options?.theme ?? currentThemeRef.current;
+			currentThemeRef.current = targetTheme;
+
+			const fallbackId = overrideActiveId ?? currentBasemapIdRef.current;
+			const themeDefinition = getBasemapDefinition(targetTheme, fallbackId);
+			let activeId = themeDefinition.id;
+
+			if (!basemapDefinitionMap.has(activeId) && overrideActiveId) {
+				const anyDefinition = getBasemapDefinitionById(overrideActiveId);
+				if (anyDefinition) {
+					activeId = anyDefinition.id;
+				}
+			}
+
+			if (!basemapDefinitionMap.has(activeId)) {
+				activeId = DEFAULT_BASEMAP_ID_BY_THEME[targetTheme];
+			}
+
+			currentBasemapIdRef.current = activeId;
+			updateBasemapThumbnailState(activeId, targetTheme);
+
+			const definition = basemapDefinitionMap.get(activeId);
+			if (!definition) {
+				return;
+			}
+
+			const forceReinitialize = options?.forceReinitialize ?? false;
+
+			const runPostApply = (styleUpdated: boolean) => {
+				const shouldReinitialize = styleUpdated || forceReinitialize;
+				if (shouldReinitialize) {
+					initialiseSources();
+					syncMapWithState(map, useLayersStore.getState().layers);
+				}
+				updateBasemapThumbnailState(activeId, targetTheme);
+			};
+
+			if (definition.kind === 'vector') {
+				const needsStyleChange =
+					currentBasemapKindRef.current !== 'vector' || currentVectorStyleRef.current !== definition.styleUrl;
+
+				if (!needsStyleChange) {
+					runPostApply(forceReinitialize);
+					return;
+				}
+
+				map.setStyle(definition.styleUrl, { diff: false });
+				map.once('styledata', () => {
+					styleModeRef.current = 'vector';
+					currentBasemapKindRef.current = 'vector';
+					currentVectorStyleRef.current = definition.styleUrl;
+					runPostApply(true);
+				});
+				return;
+			}
+
+			const applyRaster = (styleUpdated: boolean) => {
+				styleModeRef.current = 'raster';
+				currentBasemapKindRef.current = 'raster';
+				currentVectorStyleRef.current = null;
+				purgeRasterBasemapArtifacts();
+				ensureRasterBasemapLayers(activeId);
+				runPostApply(styleUpdated);
+			};
+
+			if (currentBasemapKindRef.current === 'vector') {
+				map.setStyle(mapStyles.light.url, { diff: false });
+				map.once('styledata', () => {
+					enterRasterMode(map);
+					applyRaster(true);
+				});
+				return;
+			}
+
+			if (!map.isStyleLoaded()) {
+				map.once('styledata', () => {
+					applyRaster(false);
+				});
+				return;
+			}
+
+			applyRaster(false);
 		};
 
 		if (basemapContainer) {
-			const updateAriaPressed = () => {
-				basemapContainer.querySelectorAll<HTMLImageElement>('img.basemap').forEach((img) => {
-					img.setAttribute('aria-pressed', img.classList.contains('active') ? 'true' : 'false');
-				});
+			const getBasemapLabel = (identifier: string) => {
+				const definition = getBasemapDefinitionById(identifier);
+				return definition?.label ?? `Basemap ${identifier}`;
 			};
+
 			const decorateBasemapThumbnails = () => {
 				basemapContainer.querySelectorAll<HTMLImageElement>('img.basemap').forEach((img) => {
-					if (!img.dataset.decorated) {
-						img.dataset.decorated = 'true';
-						img.classList.remove('hidden');
-						const identifier = img.dataset.id ?? '';
-						const definition = rasterBasemaps.find((entry) => entry.id === identifier);
-						const label = definition?.label ?? `Basemap ${identifier}`;
-						img.alt = label;
-						img.title = label;
-						img.setAttribute('tabindex', '0');
-						img.setAttribute('role', 'button');
-						if (img.classList.contains('active') && identifier) {
-							currentBasemapIdRef.current = identifier;
-						}
-						const keyHandler = (event: KeyboardEvent) => {
-							if (event.key === 'Enter' || event.key === ' ') {
-								event.preventDefault();
-								img.click();
-							}
-						};
-						img.addEventListener('keydown', keyHandler);
-						const clickHandler = (clickEvent: MouseEvent) => {
-							clickEvent.preventDefault();
-							clickEvent.stopImmediatePropagation();
-							clickEvent.stopPropagation();
-							const id = img.dataset.id;
-							if (id) {
-								currentBasemapIdRef.current = id;
-							}
-							if (styleModeRef.current === 'raster' && map.isStyleLoaded()) {
-								requestAnimationFrame(() => ensureBasemapLayers(id ?? undefined));
-							}
-							if (basemapContainer) {
-								basemapContainer.querySelectorAll<HTMLImageElement>('img.basemap').forEach((thumb) => {
-									thumb.classList.toggle('active', thumb === img);
-									thumb.setAttribute('aria-pressed', thumb.classList.contains('active') ? 'true' : 'false');
-								});
-							}
-						};
-						img.addEventListener('click', clickHandler, true);
-						accessibilityCleanup.push(() => {
-							img.removeEventListener('keydown', keyHandler);
-							img.removeEventListener('click', clickHandler, true);
-						});
+					if (img.dataset.decorated) {
+						return;
 					}
+					img.dataset.decorated = 'true';
+					img.classList.remove('hidden');
+					const identifier = img.dataset.id ?? '';
+					const label = getBasemapLabel(identifier);
+					img.alt = label;
+					img.title = label;
+					img.setAttribute('role', 'button');
+					img.setAttribute('tabindex', '0');
+					const keyHandler = (event: KeyboardEvent) => {
+						if (event.key === 'Enter' || event.key === ' ') {
+							event.preventDefault();
+							img.click();
+						}
+					};
+					img.addEventListener('keydown', keyHandler);
+					const clickHandler = (clickEvent: MouseEvent) => {
+						clickEvent.preventDefault();
+						clickEvent.stopImmediatePropagation();
+						clickEvent.stopPropagation();
+						const id = img.dataset.id ?? '';
+						if (!id) {
+							return;
+						}
+						ensureBasemapLayers(id, { theme: currentThemeRef.current });
+					};
+					img.addEventListener('click', clickHandler, true);
+					accessibilityCleanup.push(() => {
+						img.removeEventListener('keydown', keyHandler);
+						img.removeEventListener('click', clickHandler, true);
+					});
 				});
-				updateAriaPressed();
+				updateBasemapThumbnailState(currentBasemapIdRef.current, currentThemeRef.current);
 			};
+
 			decorateBasemapThumbnails();
 			const basemapObserver = new MutationObserver((mutations) => {
 				let shouldDecorate = false;
@@ -840,7 +961,7 @@ const MapView = () => {
 				if (shouldDecorate) {
 					decorateBasemapThumbnails();
 				} else {
-					updateAriaPressed();
+					updateBasemapThumbnailState(currentBasemapIdRef.current, currentThemeRef.current);
 				}
 			});
 			basemapObserver.observe(basemapContainer, {
@@ -851,12 +972,7 @@ const MapView = () => {
 			});
 			accessibilityCleanup.push(() => basemapObserver.disconnect());
 			basemapContainer.setAttribute('role', 'group');
-			basemapContainer.setAttribute('aria-label', 'Pemilih basemap raster');
-			const basemapLabel = 'Ganti basemap raster';
-			const existingTitle = basemapContainer.getAttribute('title');
-			if (!existingTitle || existingTitle.trim().length === 0) {
-				basemapContainer.setAttribute('title', basemapLabel);
-			}
+			basemapContainer.setAttribute('aria-label', 'Pemilih basemap');
 			const keepPanelExpanded = () => {
 				basemapContainer.classList.remove('closed');
 			};
@@ -875,31 +991,12 @@ const MapView = () => {
 		const styleDefinitions = Object.fromEntries(
 			Object.entries(mapStyles).map(([key, value]) => [key, { ...value }]),
 		);
-		const lightStyleUrl = mapStyles.light.url;
-		const darkStyleUrl = mapStyles.dark.url;
 		const styleControl = new StyleFlipperControl(styleDefinitions, (_styleKey, styleCode) => {
 			const styleKey = (styleCode as MapStyleKey) ?? DEFAULT_MAP_STYLE;
-			const nextMode: 'light' | 'dark' = styleKey === 'dark' ? 'dark' : 'light';
-			setTheme(nextMode);
-			if (styleKey === 'dark') {
-				styleModeRef.current = 'vector';
-				purgeRasterBasemapArtifacts();
-				enterVectorDarkMode(map, darkStyleUrl, () => {
-					purgeRasterBasemapArtifacts();
-					initialiseSources();
-					syncMapWithState(map, useLayersStore.getState().layers);
-				});
-				return;
-			}
-			styleModeRef.current = 'raster';
-			const activeBasemapId = currentBasemapIdRef.current || DEFAULT_RASTER_BASEMAP_ID;
-			map.setStyle(lightStyleUrl, { diff: false });
-			map.once('styledata', () => {
-				enterRasterMode(map);
-				ensureBasemapLayers(activeBasemapId);
-				initialiseSources();
-				syncMapWithState(map, useLayersStore.getState().layers);
-			});
+			const targetTheme: BasemapTheme = styleKey === 'dark' ? 'dark' : 'light';
+			const mappedBasemapId = mapBasemapId(currentBasemapIdRef.current, targetTheme);
+			setTheme(targetTheme);
+			ensureBasemapLayers(mappedBasemapId, { theme: targetTheme, forceReinitialize: true });
 		});
 		const styleControlAny = styleControl as unknown as {
 			saveCustomSourcesAndLayers?: () => void;
@@ -1126,14 +1223,10 @@ const MapView = () => {
 
 		map.on('load', () => {
 			mapReadyRef.current = true;
-			if (styleModeRef.current === 'raster') {
-				enterRasterMode(map);
-				ensureBasemapLayers(currentBasemapIdRef.current);
-			} else {
-				purgeRasterBasemapArtifacts();
-			}
-			initialiseSources();
-			syncMapWithState(map, useLayersStore.getState().layers);
+			ensureBasemapLayers(currentBasemapIdRef.current, {
+				theme: currentThemeRef.current,
+				forceReinitialize: true,
+			});
 		});
 
 		const resize = () => map.resize();
