@@ -560,161 +560,181 @@ const MapView = () => {
 			}
 		}
 
-		const basemapDefinitions = rasterBasemaps.map((basemap) => {
-			const source: Record<string, unknown> = {};
+		const basemapDefinitions: BasemapDefinition[] = rasterBasemaps
+			.map((basemap) => {
+			const tiles = basemap.tiles.filter((tileUrl) => typeof tileUrl === 'string' && tileUrl.trim().length > 0);
+			if (tiles.length === 0) {
+				console.warn(`Basemap ${basemap.id} tidak memiliki URL tile valid dan akan diabaikan.`);
+			}
+			const sourceExtraParams: Partial<RasterSourceSpecification> = {};
 			if (typeof basemap.tileSize === 'number') {
-				source.tileSize = basemap.tileSize;
+				sourceExtraParams.tileSize = basemap.tileSize;
 			}
-			if (typeof basemap.attribution === 'string') {
-				source.attribution = basemap.attribution;
+			if (typeof basemap.attribution === 'string' && basemap.attribution.trim().length > 0) {
+				sourceExtraParams.attribution = basemap.attribution;
 			}
 			if (typeof basemap.minZoom === 'number') {
-				source.minzoom = basemap.minZoom;
+				sourceExtraParams.minzoom = basemap.minZoom;
 			}
 			if (typeof basemap.maxZoom === 'number') {
-				source.maxzoom = basemap.maxZoom;
+				sourceExtraParams.maxzoom = basemap.maxZoom;
 			}
-			const layer: Record<string, unknown> = {};
+			const layerExtraParams: Partial<RasterLayerSpecification> = {};
 			if (typeof basemap.minZoom === 'number') {
-				layer.minzoom = basemap.minZoom;
+				layerExtraParams.minzoom = basemap.minZoom;
 			}
 			if (typeof basemap.maxZoom === 'number') {
-				layer.maxzoom = basemap.maxZoom;
+				layerExtraParams.maxzoom = basemap.maxZoom;
 			}
 			return {
 				id: basemap.id,
-				tiles: basemap.tiles,
-				source,
-				layer,
+				tiles,
+				sourceExtraParams,
+				layerExtraParams,
 			};
-		});
+			})
+			.filter((definition): definition is BasemapDefinition => definition.tiles.length > 0);
 
-		const basemapControl = new BasemapsControl({
+		const basemapControlOptions: BasemapsControlOptionsWithCompact = {
 			basemaps: basemapDefinitions.map((definition) => ({
 				id: definition.id,
 				tiles: definition.tiles,
-				sourceExtraParams: definition.source,
-				layerExtraParams: definition.layer,
+				sourceExtraParams: definition.sourceExtraParams,
+				layerExtraParams: definition.layerExtraParams,
 			})),
 			initialBasemap: DEFAULT_RASTER_BASEMAP_ID,
 			expandDirection: 'down',
-		});
+			compact: false,
+		};
+		const basemapControl = new BasemapsControl(basemapControlOptions);
 		map.addControl(basemapControl, 'top-left');
 
 		const basemapContainer = (basemapControl as unknown as { _container?: HTMLElement })._container;
-		const ensureBasemapLayers = (requestedId?: string, forceActivate = false) => {
+		const ensureBasemapLayers = () => {
 			if (!map.getStyle() || !map.isStyleLoaded()) {
 				return;
 			}
-			if (requestedId && basemapContainer) {
-				const desired = basemapContainer.querySelector<HTMLImageElement>(`.basemap[data-id="${requestedId}"]`);
-				if (desired && (forceActivate || !desired.classList.contains('active'))) {
-					const currentActive = basemapContainer.querySelector<HTMLImageElement>('.basemap.active');
-					currentActive?.classList.remove('active');
-					desired.classList.add('active');
-				}
-			}
 			let activeThumbnail = basemapContainer?.querySelector<HTMLImageElement>('.basemap.active') ?? null;
-			if (!activeThumbnail) {
-				activeThumbnail = basemapContainer?.querySelector<HTMLImageElement>(`.basemap[data-id="${DEFAULT_RASTER_BASEMAP_ID}"]`) ?? null;
-				if (activeThumbnail) {
-					activeThumbnail.classList.add('active');
-				}
+			if (!activeThumbnail && basemapContainer) {
+				activeThumbnail =
+					basemapContainer.querySelector<HTMLImageElement>(`.basemap[data-id="${DEFAULT_RASTER_BASEMAP_ID}"]`) ?? null;
+				activeThumbnail?.classList.add('active');
 			}
-			const activeId = activeThumbnail?.dataset.id ?? requestedId ?? DEFAULT_RASTER_BASEMAP_ID;
+			const activeId = activeThumbnail?.dataset.id ?? DEFAULT_RASTER_BASEMAP_ID;
 			const styleLayers = map.getStyle().layers ?? [];
 			const firstNonBackground = styleLayers.find((layer) => layer.type !== 'background');
 			const beforeId = firstNonBackground?.id;
 
 			basemapDefinitions.forEach((definition) => {
 				if (!map.getSource(definition.id)) {
-					const sourceConfig: Record<string, unknown> = {
-						type: 'raster',
-						tiles: definition.tiles,
-					};
-					if (typeof definition.source.tileSize === 'number') {
-						sourceConfig.tileSize = definition.source.tileSize;
-					}
-					if (typeof definition.source.minzoom === 'number') {
-						sourceConfig.minzoom = definition.source.minzoom;
-					}
-					if (typeof definition.source.maxzoom === 'number') {
-						sourceConfig.maxzoom = definition.source.maxzoom;
-					}
-					if (typeof definition.source.attribution === 'string') {
-						sourceConfig.attribution = definition.source.attribution;
-					}
-					map.addSource(definition.id, sourceConfig as RasterSourceSpecification);
+					map.addSource(
+						definition.id,
+						{
+							type: 'raster',
+							tiles: definition.tiles,
+							...definition.sourceExtraParams,
+						} as RasterSourceSpecification,
+					);
 				}
 				const visibility = definition.id === activeId ? 'visible' : 'none';
 				if (!map.getLayer(definition.id)) {
-					const layerConfig: Record<string, unknown> = {
+					const layerConfig: LayerSpecification = {
 						id: definition.id,
 						type: 'raster',
 						source: definition.id,
 						layout: {
 							visibility,
 						},
+						...definition.layerExtraParams,
 					};
-					if (typeof definition.layer.minzoom === 'number') {
-						layerConfig.minzoom = definition.layer.minzoom;
-					}
-					if (typeof definition.layer.maxzoom === 'number') {
-						layerConfig.maxzoom = definition.layer.maxzoom;
-					}
-					map.addLayer(layerConfig as LayerSpecification, beforeId);
+					map.addLayer(layerConfig, beforeId ?? undefined);
 				} else {
 					map.setLayoutProperty(definition.id, 'visibility', visibility);
+					if (beforeId) {
+						try {
+							map.moveLayer(definition.id, beforeId);
+						} catch (error) {
+							console.warn(`Tidak dapat memindahkan layer basemap ${definition.id}`, error);
+						}
+					}
 				}
 			});
 		};
 
-		map.on('style.load', () => ensureBasemapLayers(undefined, false));
+		map.on('style.load', ensureBasemapLayers);
 		if (map.isStyleLoaded()) {
-			ensureBasemapLayers(undefined, false);
+			ensureBasemapLayers();
 		}
 		if (basemapContainer) {
-			const basemapObserver = new MutationObserver(() => {
+			const updateAriaPressed = () => {
 				basemapContainer.querySelectorAll<HTMLImageElement>('img.basemap').forEach((img) => {
 					img.setAttribute('aria-pressed', img.classList.contains('active') ? 'true' : 'false');
 				});
+			};
+			const decorateBasemapThumbnails = () => {
+				basemapContainer.querySelectorAll<HTMLImageElement>('img.basemap').forEach((img) => {
+					if (!img.dataset.decorated) {
+						img.dataset.decorated = 'true';
+						img.classList.remove('hidden');
+						const identifier = img.dataset.id ?? '';
+						const definition = rasterBasemaps.find((entry) => entry.id === identifier);
+						const label = definition?.label ?? `Basemap ${identifier}`;
+						img.alt = label;
+						img.title = label;
+						img.setAttribute('tabindex', '0');
+						img.setAttribute('role', 'button');
+						const keyHandler = (event: KeyboardEvent) => {
+							if (event.key === 'Enter' || event.key === ' ') {
+								event.preventDefault();
+								img.click();
+							}
+						};
+						img.addEventListener('keydown', keyHandler);
+						accessibilityCleanup.push(() => img.removeEventListener('keydown', keyHandler));
+					}
+				});
+				updateAriaPressed();
+			};
+			decorateBasemapThumbnails();
+			const basemapObserver = new MutationObserver((mutations) => {
+				let shouldDecorate = false;
+				mutations.forEach((mutation) => {
+					if (mutation.type === 'childList') {
+						shouldDecorate = true;
+					}
+				});
+				if (shouldDecorate) {
+					decorateBasemapThumbnails();
+				} else {
+					updateAriaPressed();
+				}
 			});
-			basemapObserver.observe(basemapContainer, { subtree: true, attributes: true, attributeFilter: ['class'] });
+			basemapObserver.observe(basemapContainer, {
+				subtree: true,
+				attributes: true,
+				attributeFilter: ['class'],
+				childList: true,
+			});
 			accessibilityCleanup.push(() => basemapObserver.disconnect());
 			basemapContainer.setAttribute('role', 'group');
 			basemapContainer.setAttribute('aria-label', 'Pemilih basemap raster');
-			basemapContainer.querySelectorAll<HTMLImageElement>('img.basemap').forEach((img) => {
-				const identifier = img.dataset.id ?? '';
-				const definition = rasterBasemaps.find((entry) => entry.id === identifier);
-				img.alt = definition?.label ?? `Basemap ${identifier}`;
-				img.setAttribute('tabindex', '0');
-				img.setAttribute('role', 'button');
-				img.setAttribute('aria-pressed', img.classList.contains('active') ? 'true' : 'false');
-				const keyHandler = (event: KeyboardEvent) => {
-					if (event.key === 'Enter' || event.key === ' ') {
-						event.preventDefault();
-						img.click();
-					}
-				};
-				img.addEventListener('keydown', keyHandler);
-				const ensureBeforeInteraction = () => {
-					ensureBasemapLayers(undefined, false);
-				};
-				const ensureAfterInteraction = () => {
-					if (!map.isStyleLoaded()) {
-						return;
-					}
-					requestAnimationFrame(() => {
-						ensureBasemapLayers(identifier, true);
-					});
-				};
-				img.addEventListener('click', ensureBeforeInteraction, true);
-				img.addEventListener('click', ensureAfterInteraction);
-				accessibilityCleanup.push(() => {
-					img.removeEventListener('keydown', keyHandler);
-					img.removeEventListener('click', ensureBeforeInteraction, true);
-					img.removeEventListener('click', ensureAfterInteraction);
-				});
+			const basemapLabel = 'Ganti basemap raster';
+			const existingTitle = basemapContainer.getAttribute('title');
+			if (!existingTitle || existingTitle.trim().length === 0) {
+				basemapContainer.setAttribute('title', basemapLabel);
+			}
+			const keepPanelExpanded = () => {
+				basemapContainer.classList.remove('closed');
+			};
+			keepPanelExpanded();
+			const keepPanelExpandedDeferred = () => {
+				requestAnimationFrame(keepPanelExpanded);
+			};
+			basemapContainer.addEventListener('mouseenter', keepPanelExpanded);
+			basemapContainer.addEventListener('mouseleave', keepPanelExpandedDeferred);
+			accessibilityCleanup.push(() => {
+				basemapContainer.removeEventListener('mouseenter', keepPanelExpanded);
+				basemapContainer.removeEventListener('mouseleave', keepPanelExpandedDeferred);
 			});
 		}
 
