@@ -783,6 +783,17 @@ const MapView = () => {
 		const styleControl = new StyleFlipperControl(styleDefinitions, (_styleKey, styleCode) => {
 			const nextMode: 'light' | 'dark' = styleCode.toLowerCase().includes('dark') ? 'dark' : 'light';
 			setTheme(nextMode);
+			const syncBasemapAfterStyleFlip = () => {
+				if (!map.isStyleLoaded()) {
+					return;
+				}
+				ensureBasemapLayers();
+			};
+			if (currentBasemapIdRef.current !== DEFAULT_RASTER_BASEMAP_ID) {
+				requestAnimationFrame(syncBasemapAfterStyleFlip);
+				return;
+			}
+			requestAnimationFrame(syncBasemapAfterStyleFlip);
 		});
 		const styleControlAny = styleControl as unknown as {
 			saveCustomSourcesAndLayers?: () => void;
