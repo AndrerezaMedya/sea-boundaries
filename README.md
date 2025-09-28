@@ -7,6 +7,7 @@ A client-side WebGIS built with Vite, React, and MapLibre GL JS to explore Indon
 - MapLibre map with automatic MapTiler vector basemap or OSM raster fallback.
 - Layer controls for baseline, basepoints, batas maritim, and titik perjanjian data.
 - GeoJSON uploader with validation and intersection analysis against the selected maritime zone.
+- Stadia Maps powered search/autocomplete control for quick place lookups and map fly-to.
 - Results table with area metrics (m², hectares, percentage) and CSV export via PapaParse.
 - Two-point geodesic measurement tool displaying distance and initial bearing.
 - Toast notifications for success and error states, plus state persistence with Zustand/localStorage.
@@ -48,6 +49,7 @@ Bundled GeoJSON datasets intentionally ship as empty FeatureCollections for each
 ## Environment configuration
 
 - MapLibre defaults to OpenStreetMap raster tiles. Provide a MapTiler key via VITE_MAPTILER_TOKEN (or MAPTILER_TOKEN) to switch to the vector basemap.
+- Stadia Maps geocoding is anonymous by default. Set `VITE_STADIA_MAPS_API_KEY` for higher limits and authenticated usage of the search box.
 
 ## Firebase Hosting
 
