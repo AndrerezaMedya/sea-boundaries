@@ -7,6 +7,7 @@ import LayerToggles from '@/components/LayerToggles';
 import Legend from '@/components/Legend';
 import QueryBuilder from '@/components/QueryBuilder';
 import UserLayerPanel from '@/components/UserLayerPanel';
+import { useReadableColor } from '@/hooks/useReadableColor';
 import { getLayerSchema } from '@/lib/schema';
 import { useLayersStore } from '@/store/useLayers';
 import { useUIStore } from '@/store/useUI';
@@ -38,6 +39,9 @@ const ActiveLayerSummary = () => {
 	const totalFeatures = layerState?.data.features.length ?? 0;
 	const filteredCount = layerState?.filteredIds.length ?? 0;
 	const selectionCount = layerState?.selectionIds.length ?? 0;
+	const badgeTextColor = useReadableColor('--color-panel-muted');
+	const statTextColor = useReadableColor('--color-panel');
+	const statLabelColor = useReadableColor('--color-panel', '--color-muted');
 
 	const stats: Array<{ label: string; value: string }> = [
 		{
@@ -63,12 +67,37 @@ const ActiveLayerSummary = () => {
 			</div>
 			<div className='grid gap-2 sm:grid-cols-3'>
 				{stats.map((stat) => (
-					<div key={stat.label} className='rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 shadow-inner'>
-						<p className='uppercase tracking-[0.16em] text-slate-400'>{stat.label}</p>
-						<p className='mt-1 text-sm font-semibold text-slate-900'>{stat.value}</p>
+					<div
+						key={stat.label}
+						className='rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium shadow-inner'
+						style={{
+							backgroundColor: 'var(--color-panel)',
+							color: statTextColor,
+						}}
+					>
+						<p
+							className='uppercase tracking-[0.16em]'
+							style={{
+								color: statLabelColor,
+							}}
+						>
+							{stat.label}
+						</p>
+						<p className='mt-1 text-sm font-semibold text-[color:var(--color-text)]'>{stat.value}</p>
 					</div>
 				))}
 			</div>
+			{activeLayerId && (
+				<div
+					className='inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium'
+					style={{
+						backgroundColor: 'var(--color-panel-muted)',
+						color: badgeTextColor,
+					}}
+				>
+					Layer ID aktif: <span className='font-semibold text-[color:var(--color-text)]'>{activeLayerId}</span>
+				</div>
+			)}
 		</div>
 	);
 };
