@@ -14,15 +14,11 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantStyles: Record<ButtonVariant, string> = {
-	default:
-		'bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:shadow-outline',
-	secondary:
-		'bg-secondary text-secondary-foreground hover:bg-secondary/90 focus-visible:shadow-outline',
-	outline:
-		'border border-input bg-background hover:bg-muted/70 focus-visible:shadow-outline',
-	ghost: 'hover:bg-muted hover:text-foreground focus-visible:shadow-outline',
-	destructive:
-		'bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:shadow-outline',
+	default: 'btn-default',
+	secondary: 'btn-secondary',
+	outline: 'btn-outline',
+	ghost: 'btn-ghost',
+	destructive: 'btn-destructive',
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
@@ -38,7 +34,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 		return (
 			<Comp
 				className={cn(
-					'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-80',
+					'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--color-bg)] disabled:pointer-events-none disabled:opacity-80',
 					variantStyles[variant],
 					sizeStyles[size],
 					className,

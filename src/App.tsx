@@ -16,7 +16,7 @@ const App = () => {
 	}, [loadInitialFilters]);
 
 	return (
-		<div className='flex h-screen flex-col overflow-hidden bg-slate-100'>
+		<div className='app-theme flex h-screen flex-col overflow-hidden'>
 			<TopBar onOpenSidebar={() => setSidebarOpen(true)} />
 			<div className='flex flex-1 overflow-hidden'>
 				<Sidebar open={sidebarOpen} onOpenChange={setSidebarOpen} />
