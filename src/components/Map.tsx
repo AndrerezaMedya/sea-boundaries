@@ -789,6 +789,9 @@ const MapView = () => {
 			accessibilityCleanup.push(() => styleObserver.disconnect());
 			styleContainer.setAttribute('role', 'group');
 			styleContainer.setAttribute('aria-label', 'Pemilih gaya peta vektor');
+			if (!styleContainer.getAttribute('title')) {
+				styleContainer.setAttribute('title', 'Ganti gaya vektor (terang/gelap)');
+			}
 			styleContainer.querySelectorAll<HTMLButtonElement>('button').forEach((button) => {
 				button.setAttribute('tabindex', '0');
 				const keyHandler = (event: KeyboardEvent) => {
