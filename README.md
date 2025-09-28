@@ -58,6 +58,7 @@ Bundled GeoJSON datasets intentionally ship as empty FeatureCollections for each
     npm run build
     ```
 2. Initialize hosting (one time):
+
     ```bash
     firebase init hosting
     ```
@@ -65,6 +66,7 @@ Bundled GeoJSON datasets intentionally ship as empty FeatureCollections for each
     - Use existing project or create one
     - Public directory: dist
     - Configure as single-page app: **No**
+
 3. Deploy:
     ```bash
     firebase deploy
