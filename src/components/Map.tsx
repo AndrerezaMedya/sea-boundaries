@@ -2,9 +2,16 @@ import { useEffect, useRef } from 'react';
 import { bbox } from '@turf/turf';
 import maplibregl, { Map as MapLibreMap, NavigationControl, Popup, ScaleControl } from 'maplibre-gl';
 import { MapLibreSearchControl } from '@stadiamaps/maplibre-search-box';
-import BasemapsControl from 'maplibre-gl-basemaps';
+import BasemapsControl, { type MapLibreBasemapsControlOptions } from 'maplibre-gl-basemaps';
 import StyleFlipperControl from 'maplibre-gl-style-flipper';
-import type { FilterSpecification, GeoJSONSource, LayerSpecification, MapLayerMouseEvent, RasterSourceSpecification } from 'maplibre-gl';
+import type {
+	FilterSpecification,
+	GeoJSONSource,
+	LayerSpecification,
+	MapLayerMouseEvent,
+	RasterLayerSpecification,
+	RasterSourceSpecification,
+} from 'maplibre-gl';
 import type { FeatureCollection, Geometry } from 'geojson';
 
 import { rasterBasemaps, DEFAULT_RASTER_BASEMAP_ID } from '@/data/basemaps';
@@ -343,6 +350,15 @@ interface CapturedMapState {
 	sources: Record<string, unknown>;
 	layers: Record<string, CapturedLayerState>;
 }
+
+interface BasemapDefinition {
+	id: string;
+	tiles: string[];
+	sourceExtraParams: Partial<RasterSourceSpecification>;
+	layerExtraParams: Partial<RasterLayerSpecification>;
+}
+
+type BasemapsControlOptionsWithCompact = MapLibreBasemapsControlOptions & { compact?: boolean };
 
 const captureCustomLayers = (map: MapLibreMap): CapturedMapState => {
 	const style = map.getStyle();
