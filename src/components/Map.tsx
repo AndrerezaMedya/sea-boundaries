@@ -467,6 +467,7 @@ const MapView = () => {
 	const popupRef = useRef<Popup | null>(null);
 	const mapReadyRef = useRef(false);
 	const capturedStateRef = useRef<CapturedMapState | null>(null);
+	const currentBasemapIdRef = useRef<string>(DEFAULT_RASTER_BASEMAP_ID);
 	const theme = useThemeStore((state) => state.theme);
 	const setTheme = useThemeStore((state) => state.setTheme);
 	const initialThemeRef = useRef<MapStyleKey>(theme);
@@ -607,6 +608,7 @@ const MapView = () => {
 			compact: false,
 		};
 		const basemapControl = new BasemapsControl(basemapControlOptions);
+		currentBasemapIdRef.current = DEFAULT_RASTER_BASEMAP_ID;
 		map.addControl(basemapControl, 'top-left');
 
 		const basemapContainer = (basemapControl as unknown as { _container?: HTMLElement })._container;
@@ -683,6 +685,9 @@ const MapView = () => {
 						img.title = label;
 						img.setAttribute('tabindex', '0');
 						img.setAttribute('role', 'button');
+						if (img.classList.contains('active') && identifier) {
+							currentBasemapIdRef.current = identifier;
+						}
 						const keyHandler = (event: KeyboardEvent) => {
 							if (event.key === 'Enter' || event.key === ' ') {
 								event.preventDefault();
@@ -690,7 +695,20 @@ const MapView = () => {
 							}
 						};
 						img.addEventListener('keydown', keyHandler);
-						accessibilityCleanup.push(() => img.removeEventListener('keydown', keyHandler));
+						const clickHandler = () => {
+							const id = img.dataset.id;
+							if (id) {
+								currentBasemapIdRef.current = id;
+							}
+							if (map.isStyleLoaded()) {
+								requestAnimationFrame(() => ensureBasemapLayers());
+							}
+						};
+						img.addEventListener('click', clickHandler);
+						accessibilityCleanup.push(() => {
+							img.removeEventListener('keydown', keyHandler);
+							img.removeEventListener('click', clickHandler);
+						});
 					}
 				});
 				updateAriaPressed();
