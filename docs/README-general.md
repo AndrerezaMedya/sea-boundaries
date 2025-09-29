@@ -60,13 +60,25 @@ graph TD
 - Map mengikat event `mousemove`, `mouseleave`, `click` untuk memanggil update store (hover/selection) dan membuka popup (`buildPopupHtml`).
 - Sidebar komponen seperti `AttributeTable`, `LayerToggle`, `Legend`, `QueryBuilder` memonitor store menggunakan selectors ringan agar re-render minimal.
 
-## 6. Persistensi & Preferensi
+## 6. Manajemen Basemap & Tema
+
+Pengaturan basemap kini terbagi per mode tema untuk menjamin pengalaman konsisten saat pengguna berpindah antara tampilan terang dan gelap.
+
+- **Mapping per mode** — `lightBasemaps` (OSM, OpenTopoMap, Esri) dan `darkBasemaps` (Carto Dark Matter, OpenTopoMap, Esri) didefinisikan di `src/data/basemaps.ts`.
+- **Sinkronisasi ID** — helper `mapBasemapId(currentId, targetTheme)` memastikan tipe basemap tetap sepadan ketika tema berubah (OSM ↔ Carto, lainnya tetap).
+- **Kontrol MapLibre** — `BasemapsControl` hanya menampilkan tiga opsi yang relevan untuk tema aktif; opsi lain disembunyikan dan tidak interaktif.
+- **Transisi tema** — `ensureBasemapLayers()` menyesuaikan sumber & layer raster, atau memuat style vector khusus (Carto) hanya bila diperlukan, lalu mengembalikan overlay tanpa kehilangan state.
+- **Fallback aman** — jika basemap tersimpan tidak tersedia pada tema tujuan, otomatis diganti dengan default (`osm` untuk light, `darkMatter` untuk dark).
+
+Pengetahuan ini penting saat menambahkan basemap baru atau menyesuaikan perilaku tema, karena semua logika berpangkal pada berkas `basemaps.ts` dan fungsi `ensureBasemapLayers()` di `Map.tsx`.
+
+## 7. Persistensi & Preferensi
 
 - Filter layer inti diserialisasi ke `localStorage` (`LAST_FILTER_KEY`).
 - URL layer pengguna terakhir disimpan di `LAST_USER_URL_KEY`.
 - Builder Query disimpan per layer di `useUIStore`, termasuk preset kustom.
 
-## 7. Error Handling & Feedback
+## 8. Error Handling & Feedback
 
 - Semua operasi pengguna kritis (import, fetch URL, apply filter) membungkus eksekusi dalam `try/catch` dan menampilkan toast.
 - Map memvalidasi dukungan geometri; jika campuran geometry family ditemukan saat import, proses dibatalkan dengan pesan.
