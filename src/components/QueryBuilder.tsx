@@ -1,16 +1,14 @@
 import { useMemo, useRef, useState } from 'react';
-import { Filter, MinusCircle, PlusCircle, Sparkles, Trash2 } from 'lucide-react';
+import { Filter, MinusCircle, PlusCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
 import { getFieldSchema, getLayerSchema } from '@/lib/schema';
-import { toMapLibreFilter } from '@/lib/filterExpr';
 import type {
 	FieldType,
 	FilterCondition,
 	FilterDefinition,
-	FilterGroup,
 	FilterJoin,
 	Operator,
 	PresetDefinition,
@@ -65,8 +63,7 @@ const conditionIsComplete = (condition: FilterCondition): boolean => {
 };
 
 const cloneDefinition = (definition: FilterDefinition): FilterDefinition => ({
-	join: definition.join,
-	groups: definition.groups.map((group) => ({ ...group })),
+	join: definition.join ?? 'all',
 	conditions: definition.conditions.map((condition) => ({
 		...condition,
 		value: Array.isArray(condition.value)
@@ -105,36 +102,39 @@ const QueryBuilder = () => {
 		() => allPresets.filter((preset: PresetDefinition) => preset.layerId === activeLayerId),
 		[allPresets, activeLayerId],
 	);
-	const emptyDefinitionRef = useRef<FilterDefinition>({ conditions: [], join: 'all', groups: [] });
+	const emptyDefinitionRef = useRef<FilterDefinition>({ conditions: [], join: 'all' });
 	const builderState = builderStateMap[activeLayerId];
 
-	const [preview, setPreview] = useState<string | null>(null);
 	const [valuesPanel, setValuesPanel] = useState<{ conditionId: string; field: string } | null>(null);
 	const [uniqueValues, setUniqueValues] = useState<(string | number)[]>([]);
 	const [selectedPresetId, setSelectedPresetId] = useState<string>('');
 
 	const schema = useMemo(() => getLayerSchema(activeLayerId), [activeLayerId]);
+	const quickFields = useMemo(
+		() => schema.fields.filter((field) => field.type === 'string').slice(0, 4),
+		[schema.fields],
+	);
 	const builder = builderState ?? emptyDefinitionRef.current;
 	const conditions: FilterCondition[] = builder.conditions ?? [];
-	const groups: FilterGroup[] = builder.groups ?? [];
 	const layerVisible = layerState?.visible ?? false;
 	const filteredIds = layerState?.filteredIds ?? [];
 
 	const isDisabled = !layerVisible;
 	const canApply = conditions.length > 0 && conditions.every((condition) => conditionIsComplete(condition));
 
-	const addCondition = () => {
-		const firstField = schema.fields[0];
-		if (!firstField) {
+	const addCondition = (fieldName?: string) => {
+		const fallbackField = schema.fields[0];
+		const fieldToUse = fieldName ? schema.fields.find((field) => field.name === fieldName) ?? fallbackField : fallbackField;
+		if (!fieldToUse) {
 			toast({ title: 'Skema belum tersedia', description: 'Tambahkan definisi field terlebih dahulu.', variant: 'destructive' });
 			return;
 		}
 		const newCondition: FilterCondition = {
 			id: makeId('cond'),
-			field: firstField.name,
-			operator: getDefaultOperator(firstField.type),
-			value: firstField.type === 'number' ? '' : '',
-			type: firstField.type,
+			field: fieldToUse.name,
+			operator: getDefaultOperator(fieldToUse.type),
+			value: '',
+			type: fieldToUse.type,
 		};
 		updateBuilderState(activeLayerId, (previous) => ({
 			...previous,
@@ -169,7 +169,6 @@ const QueryBuilder = () => {
 			operator: getDefaultOperator(fieldSchema.type),
 			value: '',
 			value2: undefined,
-			groupId: condition.groupId,
 		}));
 	};
 
@@ -220,53 +219,8 @@ const QueryBuilder = () => {
 		});
 	};
 
-	const handleGroupChange = (conditionId: string, groupId: string | null) => {
-		updateCondition(conditionId, (condition) => ({ ...condition, groupId: groupId || undefined }));
-	};
-
 	const setJoin = (join: FilterJoin) => {
 		setBuilderState(activeLayerId, { ...builder, join });
-	};
-
-	const updateGroup = (groupId: string, updater: (group: FilterGroup) => FilterGroup) => {
-		updateBuilderState(activeLayerId, (previous) => ({
-			...previous,
-			groups: previous.groups.map((group) => (group.id === groupId ? updater(group) : group)),
-		}));
-	};
-
-	const addGroup = () => {
-		const group: FilterGroup = {
-			id: makeId('group'),
-			label: `Group ${builder.groups.length + 1}`,
-			join: 'all',
-		};
-		updateBuilderState(activeLayerId, (previous) => ({
-			...previous,
-			groups: [...previous.groups, group],
-		}));
-	};
-
-	const removeGroup = (groupId: string) => {
-		updateBuilderState(activeLayerId, (previous) => ({
-			...previous,
-			groups: previous.groups.filter((group) => group.id !== groupId),
-			conditions: previous.conditions.map((condition) => (condition.groupId === groupId ? { ...condition, groupId: undefined } : condition)),
-		}));
-	};
-
-	const handlePreview = () => {
-		if (conditions.length === 0) {
-			toast({ title: 'Belum ada kondisi', description: 'Tambahkan minimal satu kondisi filter.', variant: 'destructive' });
-			return;
-		}
-		try {
-			const expression = toMapLibreFilter(activeLayerId, builder);
-			setPreview(JSON.stringify(expression, null, 2));
-			toast({ title: 'Preview siap', description: 'Ekspresi MapLibre dapat dilihat di bawah.' });
-		} catch (error) {
-			toast({ title: 'Gagal membangun ekspresi', description: error instanceof Error ? error.message : 'Periksa konfigurasi filter.', variant: 'destructive' });
-		}
 	};
 
 	const handleApply = () => {
@@ -275,7 +229,6 @@ const QueryBuilder = () => {
 			return;
 		}
 		applyFilter(activeLayerId, cloneDefinition(builder));
-		setPreview(null);
 		toast({ title: 'Filter diterapkan', description: `${filteredIds.length} fitur terpilih.` });
 		setActiveTab('table');
 	};
@@ -283,7 +236,6 @@ const QueryBuilder = () => {
 	const handleClear = () => {
 		resetBuilderState(activeLayerId);
 		clearFilter(activeLayerId);
-		setPreview(null);
 		setValuesPanel(null);
 		setUniqueValues([]);
 		toast({ title: 'Filter dibersihkan', description: 'Semua fitur akan ditampilkan kembali.' });
@@ -367,11 +319,10 @@ const QueryBuilder = () => {
 
 	return (
 		<div className='space-y-5'>
-			<div className='space-y-2 rounded-xl border border-slate-200/70 bg-white p-4 shadow-sm'>
+			<div className='space-y-3 rounded-xl border border-slate-200/70 bg-white p-4 shadow-sm'>
 				<div className='flex items-center justify-between gap-3'>
 					<div>
-						<h3 className='text-sm font-semibold text-slate-900'>Query Builder</h3>
-						<p className='text-xs text-slate-500'>Bangun ekspresi filter ala QGIS dengan kombinasi kondisi.</p>
+						<h3 className='text-sm font-semibold text-slate-900'>Query</h3>
 					</div>
 					<span className='inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-500'>
 						<Filter className='h-3.5 w-3.5' />
@@ -403,87 +354,18 @@ const QueryBuilder = () => {
 
 				<div className='space-y-3'>
 					{conditions.length === 0 ? (
-						<div className='rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-xs text-slate-500'>Belum ada kondisi. Klik "Tambah kondisi" untuk memulai.</div>
+						<div className='rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-xs text-slate-500'>
+							Belum ada kondisi. Pilih salah satu tombol cepat atau klik "Tambah kondisi".
+						</div>
 					) : (
-						conditions.map((condition) => {
+						conditions.map((condition, index) => {
 							const fieldSchema = getFieldSchema(activeLayerId, condition.field) ?? schema.fields[0];
 							const operators = getOperatorOptions(fieldSchema.type);
-							const groupId = condition.groupId ?? '';
 							const valuesText = Array.isArray(condition.value) ? condition.value.join(', ') : condition.value;
 							return (
-								<div key={condition.id} className='rounded-lg border border-slate-200 bg-slate-50 p-3 shadow-inner'>
-									<div className='flex flex-wrap items-center gap-2 text-xs text-slate-600'>
-										<select
-											value={condition.field}
-											onChange={(event) => handleFieldChange(condition.id, event.target.value)}
-											className='min-w-[140px] rounded-md border border-slate-200 bg-white px-2 py-1'
-											disabled={isDisabled}
-										>
-											{schema.fields.map((field) => (
-												<option key={field.name} value={field.name}>
-													{field.label}
-												</option>
-											))}
-										</select>
-										<select
-											value={condition.operator}
-											onChange={(event) => handleOperatorChange(condition.id, event.target.value as Operator)}
-											className='rounded-md border border-slate-200 bg-white px-2 py-1'
-											disabled={isDisabled}
-										>
-											{operators.map((operator) => (
-												<option key={operator} value={operator}>
-													{operator}
-												</option>
-											))}
-										</select>
-										{condition.operator === 'in' ? (
-											<textarea
-												value={Array.isArray(condition.value) ? condition.value.join(', ') : ''}
-												onChange={(event) => handleValueChange(condition.id, event.target.value)}
-												className='min-h-[60px] flex-1 rounded-md border border-slate-200 bg-white px-3 py-2'
-												placeholder='Pisahkan dengan koma'
-												disabled={isDisabled}
-											/>
-										) : (
-											<Input
-												value={valuesText as string}
-												onChange={(event) => handleValueChange(condition.id, event.target.value)}
-												placeholder='Nilai'
-												className='flex-1'
-												disabled={isDisabled}
-											/>
-										)}
-										{condition.operator === 'between' ? (
-											<Input
-												value={(condition.value2 as string) ?? ''}
-												onChange={(event) => handleSecondValueChange(condition.id, event.target.value)}
-												placeholder='Nilai akhir'
-												className='flex-1'
-												disabled={isDisabled}
-											/>
-										) : null}
-										<select
-											value={groupId}
-											onChange={(event) => handleGroupChange(condition.id, event.target.value || null)}
-											className='min-w-[120px] rounded-md border border-slate-200 bg-white px-2 py-1'
-											disabled={isDisabled || groups.length === 0}
-										>
-											<option value=''>Tanpa group</option>
-											{groups.map((group) => (
-												<option key={group.id} value={group.id}>
-													{group.label}
-												</option>
-											))}
-										</select>
-										<Button
-											onClick={() => handleShowValues(condition.id, condition.field)}
-											variant='secondary'
-											size='sm'
-											disabled={isDisabled}
-										>
-											Daftar nilai
-										</Button>
+								<div key={condition.id} className='space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3 shadow-inner'>
+									<div className='flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500'>
+										<span>Kondisi {index + 1}</span>
 										<Button
 											onClick={() => removeCondition(condition.id)}
 											variant='ghost'
@@ -494,86 +376,128 @@ const QueryBuilder = () => {
 											<MinusCircle className='h-4 w-4' />
 										</Button>
 									</div>
+									<div className='flex flex-col gap-3'>
+										<label className='text-[11px] font-medium text-slate-600'>
+											<span className='block pb-1'>Field</span>
+											<select
+												value={condition.field}
+												onChange={(event) => handleFieldChange(condition.id, event.target.value)}
+												className='w-full rounded-md border border-slate-200 bg-white px-2 py-2 text-xs'
+												disabled={isDisabled}
+											>
+												{schema.fields.map((field) => (
+													<option key={field.name} value={field.name}>
+														{field.label}
+													</option>
+												))}
+											</select>
+										</label>
+										<label className='text-[11px] font-medium text-slate-600'>
+											<span className='block pb-1'>Operator</span>
+											<select
+												value={condition.operator}
+												onChange={(event) => handleOperatorChange(condition.id, event.target.value as Operator)}
+												className='w-full rounded-md border border-slate-200 bg-white px-2 py-2 text-xs'
+												disabled={isDisabled}
+											>
+												{operators.map((operator) => (
+													<option key={operator} value={operator}>
+														{operator}
+													</option>
+												))}
+											</select>
+										</label>
+										<label className='text-[11px] font-medium text-slate-600'>
+											<span className='block pb-1'>Nilai</span>
+											{condition.operator === 'in' ? (
+												<textarea
+													value={Array.isArray(condition.value) ? condition.value.join(', ') : ''}
+													onChange={(event) => handleValueChange(condition.id, event.target.value)}
+													className='min-h-[60px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs'
+													placeholder='Pisahkan dengan koma'
+													disabled={isDisabled}
+												/>
+											) : (
+												<Input
+													value={valuesText as string}
+													onChange={(event) => handleValueChange(condition.id, event.target.value)}
+													placeholder='Isi nilai atau kata kunci'
+													className='w-full text-sm'
+													disabled={isDisabled}
+												/>
+											)}
+										</label>
+										{condition.operator === 'between' ? (
+											<label className='text-[11px] font-medium text-slate-600'>
+												<span className='block pb-1'>Nilai akhir</span>
+												<Input
+													value={(condition.value2 as string) ?? ''}
+													onChange={(event) => handleSecondValueChange(condition.id, event.target.value)}
+													placeholder='Sampai'
+													className='w-full text-sm'
+													disabled={isDisabled}
+												/>
+											</label>
+										) : null}
+										<div className='flex flex-wrap items-center gap-2 pt-1 text-xs text-slate-600'>
+											<Button
+												onClick={() => handleShowValues(condition.id, condition.field)}
+												variant='secondary'
+												size='sm'
+												className='w-full sm:w-auto'
+												disabled={isDisabled}
+											>
+												Daftar nilai
+											</Button>
+											{fieldSchema?.description ? <span className='text-[11px] text-slate-500'>Catatan: {fieldSchema.description}</span> : null}
+										</div>
+									</div>
 								</div>
 							);
 						})
 					)}
 				</div>
-				<Button
-					onClick={addCondition}
-					variant='outline'
-					size='sm'
-					className='inline-flex items-center gap-2 text-slate-600'
-					disabled={isDisabled}
-				>
-					<PlusCircle className='h-4 w-4' />
-					Tambah kondisi
-				</Button>
-			</div>
-
-			<div className='rounded-xl border border-slate-200/70 bg-white p-4 shadow-sm'>
-				<div className='mb-3 flex items-center justify-between text-sm font-semibold text-slate-900'>
-					<span>Grouping sederhana "( )"</span>
-					<Button onClick={addGroup} size='sm' variant='outline' disabled={isDisabled}>
-						Tambah group
+				<div className='flex flex-wrap items-center gap-2'>
+					<Button
+						onClick={() => addCondition()}
+						variant='outline'
+						size='sm'
+						className='inline-flex items-center gap-2 text-slate-600'
+						disabled={isDisabled}
+					>
+						<PlusCircle className='h-4 w-4' />
+						Tambah kondisi
 					</Button>
+					{quickFields.map((field) => (
+						<Button
+							key={field.name}
+							onClick={() => addCondition(field.name)}
+							variant='secondary'
+							size='sm'
+							className='text-slate-700 min-w-[120px]'
+							disabled={isDisabled}
+						>
+							{field.label}
+						</Button>
+					))}
 				</div>
-				{groups.length === 0 ? (
-					<p className='text-xs text-slate-500'>Gunakan group untuk membuat kombinasi AND/OR bersarang satu level.</p>
-				) : (
-					<div className='space-y-2'>
-						{groups.map((group) => (
-							<div key={group.id} className='flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2'>
-								<Input
-									value={group.label}
-									onChange={(event) => updateGroup(group.id, (current) => ({ ...current, label: event.target.value }))}
-									placeholder='Nama group'
-									className='max-w-[180px]'
-									disabled={isDisabled}
-								/>
-								<select
-									value={group.join}
-									onChange={(event) => updateGroup(group.id, (current) => ({ ...current, join: event.target.value as FilterJoin }))}
-									className='rounded-md border border-slate-200 bg-white px-2 py-1'
-									disabled={isDisabled}
-								>
-									<option value='all'>AND</option>
-									<option value='any'>OR</option>
-								</select>
-								<Button
-									onClick={() => removeGroup(group.id)}
-									variant='ghost'
-									size='icon'
-									className='text-slate-400 hover:text-red-500'
-									disabled={isDisabled}
-								>
-									<Trash2 className='h-4 w-4' />
-								</Button>
-							</div>
-						))}
-					</div>
-				)}
 			</div>
 
-			<div className='grid gap-3 sm:grid-cols-2'>
-				<Button onClick={handlePreview} variant='outline' className='justify-start gap-2 text-slate-700' disabled={conditions.length === 0}>
-					<Sparkles className='h-4 w-4' />
-					Preview ekspresi
-				</Button>
-				<Button onClick={handleZoomToFiltered} variant='outline' className='justify-start gap-2 text-slate-700' disabled={filteredIds.length === 0}>
-					Zoom ke hasil filter
-				</Button>
-				<Button onClick={handleApply} className='justify-center gap-2 bg-slate-900 text-white hover:bg-slate-800' disabled={!canApply || isDisabled}>
+			<div className='space-y-2'>
+				<Button onClick={handleApply} className='w-full justify-center gap-2 bg-slate-900 text-white hover:bg-slate-800' disabled={!canApply || isDisabled}>
 					Terapkan filter
 				</Button>
-				<Button onClick={handleClear} variant='secondary' className='justify-center gap-2 text-slate-700'>
+				<Button onClick={handleZoomToFiltered} variant='outline' className='w-full justify-center gap-2 text-slate-700' disabled={filteredIds.length === 0}>
+					Zoom ke hasil filter
+				</Button>
+				<Button onClick={handleClear} variant='secondary' className='w-full justify-center gap-2 text-slate-700'>
 					Reset
 				</Button>
 			</div>
 
 			<div className='rounded-xl border border-slate-200/70 bg-white p-4 shadow-sm'>
 				<div className='mb-2 flex items-center justify-between text-sm font-semibold text-slate-900'>
-					<span>Preset kueri</span>
+					<span>Preset filter</span>
 					<Button onClick={handleSavePreset} size='sm' variant='outline' disabled={!canApply}>
 						Simpan sebagai preset
 					</Button>
@@ -651,12 +575,6 @@ const QueryBuilder = () => {
 				</div>
 			) : null}
 
-			{preview ? (
-				<div className='rounded-xl border border-slate-200/70 bg-slate-900/95 p-4 text-xs text-slate-100 shadow-inner'>
-					<p className='mb-3 font-semibold text-slate-100'>Preview MapLibre expression</p>
-					<pre className='max-h-64 overflow-auto whitespace-pre-wrap break-all text-[11px] leading-relaxed text-emerald-200'>{preview}</pre>
-				</div>
-			) : null}
 		</div>
 	);
 };
