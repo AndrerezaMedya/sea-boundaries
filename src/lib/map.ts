@@ -116,23 +116,28 @@ export const buildPopupHtml = (layerId: LayerId, properties: Record<string, unkn
 			};
 		})
 		.filter((row): row is { label: string; value: string } => row !== null);
+	
+	const primaryValue = String(properties[schema.primaryKey] ?? '—');
 	const rowsHtml = rows
 		.map(
 			(row) => `
-				<li class="flex justify-between gap-4 text-sm">
-					<span class="font-medium text-slate-200">${row.label}</span>
-					<span class="text-right text-slate-100">${row.value}</span>
-				</li>
+				<tr>
+					<td class="py-1.5 pr-3 text-xs font-medium text-slate-600 align-top">${row.label}</td>
+					<td class="py-1.5 text-xs font-semibold text-slate-900">${row.value}</td>
+				</tr>
 			`,
 		)
 		.join('');
+	
 	return `
-		<div class="space-y-3">
-			<div class="space-y-1">
-				<p class="text-[0.65rem] uppercase tracking-[0.3em] text-slate-300">${schema.label}</p>
-				<h3 class="text-base font-semibold text-white">${String(properties[schema.primaryKey] ?? '—')}</h3>
+		<div class="min-w-[280px]">
+			<div class="mb-3 pb-3 border-b border-slate-200">
+				<div class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">${schema.label}</div>
+				<div class="text-sm font-bold text-slate-900">${primaryValue}</div>
 			</div>
-			<ul class="space-y-2">${rowsHtml}</ul>
+			<table class="w-full">
+				<tbody>${rowsHtml}</tbody>
+			</table>
 		</div>
 	`;
 };
