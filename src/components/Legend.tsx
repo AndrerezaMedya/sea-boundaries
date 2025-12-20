@@ -1,4 +1,4 @@
-import { ZONA_COLOR_MAPPING, STATUS_LAUT_DASH } from '@/lib/schema';
+import { STATUS_LAUT_DASH } from '@/lib/schema';
 
 const dashClassName = (dash?: number[]) => {
 	if (!dash || dash.length === 0) {
@@ -10,20 +10,25 @@ const dashClassName = (dash?: number[]) => {
 	return 'border-dotted border-slate-500';
 };
 
+const ZONE_LAYER_COLORS = [
+	{ label: 'Zona Laut Teritorial', color: '#2563eb' },
+	{ label: 'Zona Ekonomi Eksklusif (ZEE)', color: '#16a34a' },
+	{ label: 'Landas Kontinen', color: '#f59e0b' },
+];
+
 const Legend = () => {
-	const zonaEntries = Object.entries(ZONA_COLOR_MAPPING).filter(([key]) => key !== 'default');
 	const statusEntries = Object.entries(STATUS_LAUT_DASH);
 
 	return (
 		<div className='space-y-4 rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm'>
 			<div>
-				<h3 className='text-sm font-semibold text-slate-800'>Warna garis berdasarkan TipeZona</h3>
-				<p className='text-xs text-slate-500'>Warna menandai kategori hukum batas maritim.</p>
+				<h3 className='text-sm font-semibold text-slate-800'>Warna garis per layer zona</h3>
+				<p className='text-xs text-slate-500'>Tiap layer zona punya warna tetap.</p>
 				<ul className='mt-3 space-y-2'>
-					{zonaEntries.map(([zona, color]) => (
-						<li key={zona} className='flex items-center gap-3 text-sm text-slate-700'>
-							<span className='h-3 w-3 rounded-full' style={{ backgroundColor: color }} />
-							<span>{zona}</span>
+					{ZONE_LAYER_COLORS.map((item) => (
+						<li key={item.label} className='flex items-center gap-3 text-sm text-slate-700'>
+							<span className='h-3 w-3 rounded-full' style={{ backgroundColor: item.color }} />
+							<span>{item.label}</span>
 						</li>
 					))}
 				</ul>
