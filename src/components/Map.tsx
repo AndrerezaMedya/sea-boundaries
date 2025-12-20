@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { bbox } from '@turf/turf';
 import maplibregl, { Map as MapLibreMap, NavigationControl, Popup, ScaleControl } from 'maplibre-gl';
 import { MapLibreSearchControl } from '@stadiamaps/maplibre-search-box';
@@ -14,6 +14,7 @@ import type {
 } from 'maplibre-gl';
 import type { FeatureCollection, Geometry } from 'geojson';
 
+import FeatureDetailModal from '@/components/FeatureDetailModal';
 import {
 	BASEMAPS_BY_THEME,
 	DEFAULT_BASEMAP_ID_BY_THEME,
@@ -28,7 +29,7 @@ import type { MapStyleKey } from '@/data/mapStyles';
 import { DEFAULT_MAP_STYLE, mapStyles } from '@/data/mapStyles';
 import { buildIdMatchExpression } from '@/lib/filterExpr';
 import { EMPTY_GEOJSON, MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM, buildPopupHtml, getBaseMapStyle } from '@/lib/map';
-import { LAYER_DISPLAY_ORDER } from '@/lib/schema';
+import { LAYER_DISPLAY_ORDER, getLayerSchema } from '@/lib/schema';
 import type { FeatureWithProps, LayerId, MapRenderKind } from '@/lib/types';
 import { USER_LAYER_ID } from '@/lib/types';
 import { useLayersStore } from '@/store/useLayers';
@@ -59,11 +60,16 @@ interface MapLayerConfig {
 const zoneColorExpression: unknown[] = [
 	'match',
 	['coalesce', ['get', 'TipeZona'], ''],
+	'Batas Laut Teritorial', '#2563eb',
 	'Teritorial', '#2563eb',
 	'Teritorial Laut', '#2563eb',
 	'Zona Tambahan', '#0ea5e9',
+	'Batas ZEE', '#16a34a',
+	'Zona Ekonomi Eksklusif', '#16a34a',
 	'ZEE', '#16a34a',
+	'Batas Landas Kontinen', '#f59e0b',
 	'Landas Kontinen', '#f59e0b',
+	'Batas Landas Kontinen Ekstensi', '#f97316',
 	'Landas Kontinen Ekstensi', '#f97316',
 	'#64748b',
 ];
@@ -71,6 +77,118 @@ const zoneColorExpression: unknown[] = [
 const ALL_LAYER_IDS: LayerId[] = [...LAYER_DISPLAY_ORDER, USER_LAYER_ID];
 
 const mapLayerConfigs: Record<LayerId, MapLayerConfig[]> = {
+	laut_teritorial: [
+		{
+			renderKind: 'line',
+			sourceId: 'source-laut-teritorial',
+			baseLayerId: 'layer-laut-teritorial-base',
+			filteredLayerId: 'layer-laut-teritorial-filtered',
+			selectionLayerId: 'layer-laut-teritorial-selected',
+			hoverLayerId: 'layer-laut-teritorial-hover',
+			type: 'line',
+			layout: {
+				'line-cap': 'round',
+				'line-join': 'round',
+			},
+			paint: {
+				base: {
+					'line-color': '#2563eb',
+					'line-width': 2.8,
+					'line-opacity': 0.85,
+				},
+				filtered: {
+					'line-color': '#2563eb',
+					'line-width': 3.6,
+					'line-opacity': 0.9,
+				},
+				selection: {
+					'line-color': '#f97316',
+					'line-width': 5,
+					'line-opacity': 0.95,
+				},
+				hover: {
+					'line-color': '#eab308',
+					'line-width': 4.2,
+					'line-opacity': 0.95,
+				},
+			},
+		},
+	],
+	zee: [
+		{
+			renderKind: 'line',
+			sourceId: 'source-zee',
+			baseLayerId: 'layer-zee-base',
+			filteredLayerId: 'layer-zee-filtered',
+			selectionLayerId: 'layer-zee-selected',
+			hoverLayerId: 'layer-zee-hover',
+			type: 'line',
+			layout: {
+				'line-cap': 'round',
+				'line-join': 'round',
+			},
+			paint: {
+				base: {
+					'line-color': '#16a34a',
+					'line-width': 2.8,
+					'line-opacity': 0.85,
+				},
+				filtered: {
+					'line-color': '#16a34a',
+					'line-width': 3.6,
+					'line-opacity': 0.9,
+				},
+				selection: {
+					'line-color': '#f97316',
+					'line-width': 5,
+					'line-opacity': 0.95,
+				},
+				hover: {
+					'line-color': '#eab308',
+					'line-width': 4.2,
+					'line-opacity': 0.95,
+				},
+			},
+		},
+	],
+	landas_kontinen: [
+		{
+			renderKind: 'line',
+			sourceId: 'source-landas-kontinen',
+			baseLayerId: 'layer-landas-kontinen-base',
+			filteredLayerId: 'layer-landas-kontinen-filtered',
+			selectionLayerId: 'layer-landas-kontinen-selected',
+			hoverLayerId: 'layer-landas-kontinen-hover',
+			type: 'line',
+			layout: {
+				'line-cap': 'round',
+				'line-join': 'round',
+			},
+			paint: {
+				base: {
+					'line-color': '#f59e0b',
+					'line-width': 2.8,
+					'line-opacity': 0.85,
+					'line-dasharray': [1, 2],
+				},
+				filtered: {
+					'line-color': '#f59e0b',
+					'line-width': 3.6,
+					'line-opacity': 0.9,
+				},
+				selection: {
+					'line-color': '#f97316',
+					'line-width': 5,
+					'line-opacity': 0.95,
+				},
+				hover: {
+					'line-color': '#eab308',
+					'line-width': 4.2,
+					'line-opacity': 0.95,
+				},
+			},
+		},
+	],
 	batas_maritim: [
 		{
 			renderKind: 'line',
@@ -89,7 +207,7 @@ const mapLayerConfigs: Record<LayerId, MapLayerConfig[]> = {
 					'line-color': zoneColorExpression,
 					'line-width': 2.8,
 					'line-opacity': 0.85,
-					'line-dasharray': [1, 0],
+					'line-dasharray': [5, 3],
 				},
 				filtered: {
 					'line-color': zoneColorExpression,
@@ -127,6 +245,7 @@ const mapLayerConfigs: Record<LayerId, MapLayerConfig[]> = {
 					'line-color': '#1e293b',
 					'line-width': 2.4,
 					'line-opacity': 0.8,
+					'line-dasharray': [1, 3],
 				},
 				filtered: {
 					'line-color': '#2563eb',
@@ -505,12 +624,17 @@ const reapplyCustomLayers = (map: MapLibreMap, captured: CapturedMapState) => {
 };
 
 const popupButtonClass =
-	'inline-flex min-h-[32px] items-center justify-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-sm ring-1 ring-white/70 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300';
+	'inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500';
 
 const MapView = () => {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const mapRef = useRef<MapLibreMap | null>(null);
 	const popupRef = useRef<Popup | null>(null);
+	const [modalState, setModalState] = useState<{ isOpen: boolean; layerId: LayerId | null; featureId: string | null }>({
+		isOpen: false,
+		layerId: null,
+		featureId: null,
+	});
 	const mapReadyRef = useRef(false);
 	const capturedStateRef = useRef<CapturedMapState | null>(null);
 	const themeFromStore = useThemeStore((state) => state.theme);
@@ -556,7 +680,13 @@ const MapView = () => {
 		});
 		mapRef.current = map;
 
-		const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 12, className: 'app-popup' });
+		const popup = new maplibregl.Popup({ 
+			closeButton: true, 
+			closeOnClick: false, 
+			offset: 15, 
+			className: 'app-popup',
+			maxWidth: '380px'
+		});
 		popupRef.current = popup;
 
 		const navigationControl = new NavigationControl({ visualizePitch: true });
@@ -638,9 +768,11 @@ const MapView = () => {
 		const basemapControlOptions: BasemapsControlOptionsWithCompact = {
 			basemaps: Array.from(basemapDefinitionMap.values()).map((definition) => {
 				const tiles =
-					definition.kind === 'raster'
-						? definition.tiles
-						: definition.previewTiles ?? [];
+					definition.previewTiles && definition.previewTiles.length > 0
+						? definition.previewTiles
+						: definition.kind === 'raster'
+							? definition.tiles
+							: [];
 				const sourceExtraParams: Partial<RasterSourceSpecification> = {};
 				if (definition.kind === 'raster') {
 					if (typeof definition.tileSize === 'number') {
@@ -1159,7 +1291,16 @@ const MapView = () => {
 				popupInstance.remove();
 				return;
 			}
-			const featureId = String(feature.id);
+			
+			// Get schema untuk mendapatkan primaryKey
+			const schema = getLayerSchema(layerId);
+			const properties = feature.properties ?? {};
+			
+			// Gunakan primaryKey dari properties sebagai featureId, fallback ke feature.id
+			const featureId = properties[schema.primaryKey] !== undefined && properties[schema.primaryKey] !== null
+				? String(properties[schema.primaryKey])
+				: String(feature.id);
+			
 			const currentLayerState = useLayersStore.getState().layers[layerId];
 			const currentSelection = currentLayerState?.selectionIds ?? [];
 			const isAlreadySelected = currentSelection.includes(featureId);
@@ -1169,17 +1310,16 @@ const MapView = () => {
 			setActiveLayer(layerId);
 
 			const popupHtml = `
-				<div class="space-y-4">
+				<div class="popup-content">
 					${buildPopupHtml(layerId, feature.properties ?? {})}
-					<div class="flex flex-wrap items-center gap-2">
-						<button class="${popupButtonClass}" data-action="zoom" data-layer="${layerId}" data-id="${featureId}">
-							Zoom fitur
+					<div class="mt-3 pt-3 border-t border-slate-200 flex flex-wrap gap-2">
+						<button class="${popupButtonClass}" data-action="detail" data-layer="${layerId}" data-id="${featureId}" title="Buka detail lengkap atribut fitur">
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+							Lihat di Tabel Atribut
 						</button>
-						<button class="${popupButtonClass}" data-action="table" data-layer="${layerId}" data-id="${featureId}">
-							Lihat di tabel
-						</button>
-						<button class="${popupButtonClass}" data-action="clear-selection" data-layer="${layerId}" data-id="${featureId}">
-							Batalkan pilihan
+						<button class="${popupButtonClass}" data-action="zoom" data-layer="${layerId}" data-id="${featureId}" title="Zoom ke fitur ini">
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+							Zoom
 						</button>
 					</div>
 				</div>
@@ -1205,13 +1345,8 @@ const MapView = () => {
 				if (action === 'zoom') {
 					requestZoomToIds(layer, [id], 160);
 				}
-				if (action === 'table') {
-					setActiveLayer(layer);
-					setSelection(layer, [id]);
-					setActiveTab('table');
-				}
-				if (action === 'clear-selection') {
-					setSelection(layer, []);
+				if (action === 'detail') {
+					setModalState({ isOpen: true, layerId: layer, featureId: id });
 					popupInstance.remove();
 				}
 			};
@@ -1298,7 +1433,19 @@ const MapView = () => {
 		fitMapToFeatures(mapInstance, features, request.padding ?? 120);
 	}, [consumeZoomRequest, getFeatureById, pendingZoom]);
 
-	return <div ref={containerRef} className='h-full w-full' />;
+	return (
+		<>
+			<div ref={containerRef} className='h-full w-full' />
+			{modalState.isOpen && modalState.layerId && modalState.featureId && (
+				<FeatureDetailModal
+					isOpen={modalState.isOpen}
+					onClose={() => setModalState({ isOpen: false, layerId: null, featureId: null })}
+					layerId={modalState.layerId}
+					featureId={modalState.featureId}
+				/>
+			)}
+		</>
+	);
 };
 
 const syncMapWithState = (map: MapLibreMap, layers: ReturnType<typeof useLayersStore.getState>['layers']) => {
