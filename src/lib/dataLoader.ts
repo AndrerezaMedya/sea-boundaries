@@ -12,6 +12,9 @@ const rawCollections: Record<CoreLayerId, string> = {
 	baseline: baselineRaw,
 	titik_perjanjian: titikPerjanjianRaw,
 	batas_maritim: batasMaritimRaw,
+	laut_teritorial: '',
+	zee: '',
+	landas_kontinen: '',
 };
 
 const parseRawCollection = (raw: string): Feature<Geometry, Record<string, unknown>>[] => {
