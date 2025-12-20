@@ -90,32 +90,76 @@ export const LAYER_SCHEMAS: Record<CoreLayerId, LayerSchema> = {
 		primaryKey: 'Titik',
 		popupFields: ['Titik', 'Batas_Ngr', 'TipeZona', 'StatusLaut', 'Janji_Tgl', 'Ratif_Thn'],
 		fields: titikPerjanjianFields,
-		description: 'Koordinat titik yang disepakati dalam perjanjian batas laut.',
+		description: undefined,
 	},
 	batas_maritim: {
 		id: 'batas_maritim',
-		label: 'Batas Maritim',
+		label: 'Batas Maritim (Semua Zona)',
 		geometryType: 'MultiLineString',
 		primaryKey: 'ID',
 		popupFields: ['Jenis', 'TipeZona', 'Datum', 'Panjang_NM', 'Batas_Ngr'],
 		fields: batasMaritimFields,
-		description: 'Garis batas maritim antar negara beserta metadata hukumnya.',
+		description: 'Garis batas maritim seluruh zona (digunakan sebagai sumber data turunan).',
+		defaultVisible: false,
+	},
+	laut_teritorial: {
+		id: 'laut_teritorial',
+		label: 'Zona Laut Teritorial',
+		geometryType: 'MultiLineString',
+		primaryKey: 'ID',
+		popupFields: ['Jenis', 'TipeZona', 'Datum', 'Panjang_NM', 'Batas_Ngr'],
+		fields: batasMaritimFields,
+		description: undefined,
+		defaultVisible: true,
+	},
+	zee: {
+		id: 'zee',
+		label: 'Zona Ekonomi Eksklusif (ZEE)',
+		geometryType: 'MultiLineString',
+		primaryKey: 'ID',
+		popupFields: ['Jenis', 'TipeZona', 'Datum', 'Panjang_NM', 'Batas_Ngr'],
+		fields: batasMaritimFields,
+		description: undefined,
+		defaultVisible: true,
+	},
+	landas_kontinen: {
+		id: 'landas_kontinen',
+		label: 'Landas Kontinen',
+		geometryType: 'MultiLineString',
+		primaryKey: 'ID',
+		popupFields: ['Jenis', 'TipeZona', 'Datum', 'Panjang_NM', 'Batas_Ngr'],
+		fields: batasMaritimFields,
+		description: undefined,
+		defaultVisible: true,
 	},
 };
 
-export const LAYER_DISPLAY_ORDER: CoreLayerId[] = ['batas_maritim', 'baseline', 'titik_perjanjian', 'basepoints'];
+export const LAYER_DISPLAY_ORDER: CoreLayerId[] = [
+	'laut_teritorial',
+	'zee',
+	'landas_kontinen',
+	'baseline',
+	'titik_perjanjian',
+	'basepoints',
+];
 
 export const ZONA_COLOR_MAPPING: Record<string, string> = {
+	'Batas Laut Teritorial': '#2563eb',
 	Teritorial: '#2563eb',
 	'Teritorial Laut': '#2563eb',
 	'Zona Tambahan': '#0ea5e9',
+	'Batas ZEE': '#16a34a',
 	ZEE: '#16a34a',
+	'Zona Ekonomi Eksklusif': '#16a34a',
+	'Batas Landas Kontinen': '#f59e0b',
 	'Landas Kontinen': '#f59e0b',
+	'Batas Landas Kontinen Ekstensi': '#f97316',
 	'Landas Kontinen Ekstensi': '#f97316',
 	default: '#64748b',
 };
 
 export const STATUS_LAUT_DASH: Record<string, number[] | undefined> = {
+	'Kesepakatan belum ratifikasi': [2, 1],
 	'Perlu Kesepakatan': [2, 1],
 	Unilateral: [1, 1],
 };
@@ -155,6 +199,9 @@ export const DATE_FIELDS_BY_LAYER: Record<CoreLayerId, string[]> = {
 	baseline: [],
 	titik_perjanjian: ['Janji_Tgl'],
 	batas_maritim: ['Janji_Tgl'],
+	laut_teritorial: ['Janji_Tgl'],
+	zee: ['Janji_Tgl'],
+	landas_kontinen: ['Janji_Tgl'],
 };
 
 export const getDateFieldsForLayer = (layerId: LayerId): string[] => {
