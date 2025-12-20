@@ -114,7 +114,9 @@ const normaliseFeature = (
 
 export const loadLayerCollections = (): Record<CoreLayerId, FeatureCollectionWithProps> => {
 	const result: Partial<Record<CoreLayerId, FeatureCollectionWithProps>> = {};
-	(Object.keys(rawCollections) as CoreLayerId[]).forEach((layerId) => {
+
+	// Parse basis data (yang punya berkas fisik)
+	(['basepoints', 'baseline', 'titik_perjanjian', 'batas_maritim'] as CoreLayerId[]).forEach((layerId) => {
 		const raw = rawCollections[layerId];
 		const features = parseRawCollection(raw).map((feature, index) => normaliseFeature(layerId, feature, index)) as FeatureWithProps[];
 		result[layerId] = {
@@ -122,5 +124,34 @@ export const loadLayerCollections = (): Record<CoreLayerId, FeatureCollectionWit
 			features,
 		};
 	});
+
+	// Turunan dari batas_maritim: pisah per zona
+	const maritim = result.batas_maritim;
+	if (maritim) {
+		const filterByZona = (zones: string[]): FeatureWithProps[] =>
+			(maritim.features as FeatureWithProps[]).filter((feature) => {
+				const tipe = String(feature.properties?.TipeZona ?? '').trim();
+				return zones.includes(tipe);
+			});
+
+		result.laut_teritorial = {
+			type: 'FeatureCollection',
+			features: filterByZona(['Batas Laut Teritorial', 'Teritorial', 'Teritorial Laut']),
+		};
+		result.zee = {
+			type: 'FeatureCollection',
+			features: filterByZona(['Batas ZEE', 'Zona Ekonomi Eksklusif', 'ZEE']),
+		};
+		result.landas_kontinen = {
+			type: 'FeatureCollection',
+			features: filterByZona([
+				'Batas Landas Kontinen',
+				'Batas Landas Kontinen Ekstensi',
+				'Landas Kontinen',
+				'Landas Kontinen Ekstensi',
+			]),
+		};
+	}
+
 	return result as Record<CoreLayerId, FeatureCollectionWithProps>;
 };
