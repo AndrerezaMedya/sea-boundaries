@@ -102,7 +102,7 @@ const normaliseFeature = (
 	});
 
 	const primaryKey = schema.primaryKey;
-	const rawId = properties[primaryKey];
+	const rawId = properties[primaryKey] ?? feature.id ?? (properties as Record<string, unknown>).fid;
 	const featureId = rawId === undefined || rawId === null ? `${layerId}-${index}` : String(rawId);
 
 	return {
