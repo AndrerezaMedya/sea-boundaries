@@ -124,27 +124,10 @@ const buildStringExpression = (
 	}
 };
 
-const groupConditionsByGroup = (definition: FilterDefinition) => {
-	const groups = new Map<string, { join: FilterJoin; conditions: FilterCondition[] }>();
-	definition.groups.forEach((group) => {
-		groups.set(group.id, { join: group.join, conditions: [] });
-	});
-	const rootConditions: FilterCondition[] = [];
-	definition.conditions.forEach((condition) => {
-		if (condition.groupId && groups.has(condition.groupId)) {
-			groups.get(condition.groupId)!.conditions.push(condition);
-			return;
-		}
-		rootConditions.push(condition);
-	});
-	return { groups, rootConditions };
-};
-
 export const toMapLibreFilter = (layerId: LayerId, definition: FilterDefinition): FilterExpression => {
 	if (definition.conditions.length === 0) {
 		return ['all'];
 	}
-	const { groups, rootConditions } = groupConditionsByGroup(definition);
 
 	const buildConditionExpression = (condition: FilterCondition): FilterExpression => {
 		const field = getFieldSchema(layerId, condition.field);
@@ -164,25 +147,11 @@ export const toMapLibreFilter = (layerId: LayerId, definition: FilterDefinition)
 		return buildStringExpression(field, condition.operator, Array.isArray(condition.value) ? condition.value.map((item) => normaliseString(item)) : normaliseString(condition.value));
 	};
 
-	const parts: FilterExpression[] = [];
-	rootConditions.forEach((condition) => {
-		parts.push(buildConditionExpression(condition));
-	});
-	groups.forEach(({ join, conditions }) => {
-		if (conditions.length === 0) {
-			return;
-		}
-		const expressions = conditions.map((condition) => buildConditionExpression(condition));
-		parts.push([join === 'all' ? 'all' : 'any', ...expressions]);
-	});
-
-	if (parts.length === 0) {
-		return ['all'];
+	const expressions = definition.conditions.map((condition) => buildConditionExpression(condition));
+	if (expressions.length === 1) {
+		return expressions[0];
 	}
-	if (parts.length === 1) {
-		return parts[0];
-	}
-	return [definition.join === 'all' ? 'all' : 'any', ...parts];
+	return [definition.join === 'all' ? 'all' : 'any', ...expressions];
 };
 
 const evaluateNumeric = (
@@ -299,25 +268,7 @@ export const featureMatchesFilter = (
 	if (definition.conditions.length === 0) {
 		return true;
 	}
-	const { groups, rootConditions } = groupConditionsByGroup(definition);
-	const groupResults: boolean[] = [];
-	groups.forEach(({ join, conditions }) => {
-		if (conditions.length === 0) {
-			return;
-		}
-		groupResults.push(evaluateConditionList(layerId, feature, conditions, join));
-	});
-	const parts: boolean[] = [...groupResults];
-	if (rootConditions.length > 0) {
-		parts.push(evaluateConditionList(layerId, feature, rootConditions, 'all'));
-	}
-	if (parts.length === 0) {
-		return true;
-	}
-	if (definition.join === 'all') {
-		return parts.every(Boolean);
-	}
-	return parts.some(Boolean);
+	return evaluateConditionList(layerId, feature, definition.conditions, definition.join);
 };
 
 export const buildIdMatchExpression = (ids: string[]): FilterExpression => {
