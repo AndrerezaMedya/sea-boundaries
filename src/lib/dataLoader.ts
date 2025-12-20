@@ -1,8 +1,8 @@
 import type { Feature, Geometry } from 'geojson';
 
-import batasMaritimRaw from '@/data/batas_maritim.geojson?raw';
-import basepointsRaw from '@/data/basepoints.geojson?raw';
-import baselineRaw from '@/data/baseline.geojson?raw';
+import batasMaritimRaw from '../../data/BatasMaritim.geojson?raw';
+import basepointsRaw from '../../data/TitikDasar.geojson?raw';
+import baselineRaw from '../../data/GarisPangkal.geojson?raw';
 import titikPerjanjianRaw from '@/data/titik_perjanjian.geojson?raw';
 import { DATE_FIELDS_BY_LAYER, LAYER_SCHEMAS } from '@/lib/schema';
 import type { CoreLayerId, FeatureCollectionWithProps, FeatureWithProps } from '@/lib/types';
