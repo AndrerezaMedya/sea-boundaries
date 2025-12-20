@@ -1,75 +1,109 @@
-import { Radio, Layers, Eye, EyeOff } from 'lucide-react';
-
 import { Switch } from '@/components/ui/switch';
 import { LAYER_DISPLAY_ORDER, getLayerSchema } from '@/lib/schema';
 import type { LayerId } from '@/lib/types';
-import { USER_LAYER_ID } from '@/lib/types';
 import { useLayersStore } from '@/store/useLayers';
 
-const LayerToggles = () => {
+type LayerTogglesProps = {
+	compact?: boolean;
+};
+
+// Konfigurasi simbol dan warna untuk setiap layer
+const LAYER_SYMBOLS: Record<
+	LayerId,
+	{ color: string; type: 'point' | 'line'; dashArray?: string }
+> = {
+	basepoints: { color: '#1d4ed8', type: 'point' },
+	baseline: { color: '#1e293b', type: 'line', dashArray: '1 3' }, // Kesepakatan belum ratifikasi
+	titik_perjanjian: { color: '#0ea5e9', type: 'point' },
+	batas_maritim: { color: '#64748b', type: 'line', dashArray: '5 3' }, // Perlu Kesepakatan
+	laut_teritorial: { color: '#2563eb', type: 'line' }, // Solid
+	zee: { color: '#16a34a', type: 'line' }, // Solid
+	landas_kontinen: { color: '#f59e0b', type: 'line', dashArray: '1 2' }, // Unilateral
+	user_layer: { color: '#14b8a6', type: 'point' },
+};
+
+const LayerSymbol = ({ layerId }: { layerId: LayerId; isActive: boolean }) => {
+	const symbol = LAYER_SYMBOLS[layerId];
+
+	if (symbol.type === 'point') {
+		return (
+			<div
+				className='flex h-5 w-5 items-center justify-center'
+			>
+				<div
+					className='h-3 w-3 rounded-full border-2 border-white shadow-sm'
+					style={{ backgroundColor: symbol.color }}
+				/>
+			</div>
+		);
+	}
+
+	// Line symbol
+	return (
+		<div className='flex h-5 w-5 items-center justify-center'>
+			<svg width='16' height='20' viewBox='0 0 16 20' className='overflow-visible'>
+				<line
+					x1='0'
+					y1='10'
+					x2='16'
+					y2='10'
+					stroke={symbol.color}
+					strokeWidth='2'
+					strokeDasharray={symbol.dashArray}
+					strokeLinecap='round'
+				/>
+			</svg>
+		</div>
+	);
+};
+
+const LayerToggles = ({ compact: _compact = false }: LayerTogglesProps) => {
 	const layers = useLayersStore((state) => state.layers);
 	const activeLayerId = useLayersStore((state) => state.activeLayerId);
 	const setActiveLayer = useLayersStore((state) => state.setActiveLayer);
 	const setLayerVisibility = useLayersStore((state) => state.setLayerVisibility);
-	const userLayerMeta = useLayersStore((state) => state.userLayerMeta);
 
 	const handleVisibilityChange = (layerId: LayerId, visible: boolean) => {
 		setLayerVisibility(layerId, visible);
 	};
 
 	return (
-		<div className='space-y-3'>
-			{[...LAYER_DISPLAY_ORDER, USER_LAYER_ID].map((layerId) => {
+		<div className='space-y-2'>
+			{LAYER_DISPLAY_ORDER.map((layerId) => {
 				const schema = getLayerSchema(layerId);
 				const layerState = layers[layerId];
 				if (!layerState) {
 					return null;
 				}
-				const featureCount = layerState.data.features.length;
 				const isActive = activeLayerId === layerId;
 				const isVisible = layerState.visible;
-				const isUserLayer = layerId === USER_LAYER_ID;
-				const userLoaded = !isUserLayer || userLayerMeta.loaded;
+
 				return (
 					<div
 						key={layerId}
-						className='flex items-center gap-3 rounded-xl border border-slate-200/70 bg-white px-3 py-3 shadow-sm transition hover:border-slate-300 hover:shadow-md'
+						className={`group flex items-center gap-2.5 rounded-lg border bg-white px-3 py-2.5 shadow-sm transition hover:shadow-md ${isActive ? 'border-blue-500 bg-blue-50/30 shadow-md' : 'border-slate-200'
+							}`}
 					>
+						{/* Layer Symbol */}
+						<LayerSymbol layerId={layerId} isActive={isActive} />
+
+						{/* Layer Name */}
 						<button
 							type='button'
-							onClick={() => userLoaded && setActiveLayer(layerId)}
-							className={`flex h-9 w-9 items-center justify-center rounded-full border ${
-								isActive ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-500'
-							}`}
-							aria-label={`Pilih ${schema.label} sebagai layer aktif`}
-							disabled={!userLoaded}
+							onClick={() => setActiveLayer(layerId)}
+							className='flex-1 text-left'
 						>
-							<Radio className='h-4 w-4' />
+							<span className={`text-sm font-semibold ${isActive ? 'text-blue-900' : 'text-slate-900'}`}>
+								{schema.label}
+							</span>
 						</button>
-						<div className='flex flex-1 flex-col gap-1'>
-							<div className='flex items-center gap-2'>
-								<span className='text-sm font-semibold text-slate-900'>{schema.label}</span>
-								<span className='inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-500'>
-									<Layers className='h-3.5 w-3.5' />
-									{schema.geometryType}
-								</span>
-							</div>
-							<p className='text-xs text-slate-500'>
-								{isUserLayer && !userLayerMeta.loaded ? 'Belum ada data pengguna yang dimuat.' : schema.description}
-							</p>
-							<p className='text-[11px] font-medium text-slate-400'>
-								{featureCount.toLocaleString('id-ID')} fitur tersedia
-							</p>
-						</div>
-						<div className='flex items-center gap-2'>
-							{isVisible ? <Eye className='h-4 w-4 text-slate-400' /> : <EyeOff className='h-4 w-4 text-slate-400' />}
-							<Switch
-								checked={isVisible}
-								onCheckedChange={(checked) => handleVisibilityChange(layerId, checked)}
-								aria-label={`Tampilkan/ sembunyikan layer ${schema.label}`}
-								disabled={!userLoaded}
-							/>
-						</div>
+
+						{/* Visibility Toggle */}
+						<Switch
+							checked={isVisible}
+							onCheckedChange={(checked) => handleVisibilityChange(layerId, checked)}
+							aria-label={`Tampilkan/sembunyikan layer ${schema.label}`}
+						/>
 					</div>
 				);
 			})}
