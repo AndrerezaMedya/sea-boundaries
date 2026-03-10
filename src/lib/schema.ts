@@ -1,68 +1,91 @@
-import type { CoreLayerId, FieldSchema, LayerId, LayerSchema } from '@/lib/types';
+﻿import type { CoreLayerId, FieldSchema, LayerGroup, LayerId, LayerSchema } from '@/lib/types';
 import { USER_LAYER_ID } from '@/lib/types';
 
+// â”€â”€ Titik Dasar â”€â”€
 const basepointsFields: FieldSchema[] = [
-	{ name: 'TitikDasar', label: 'Titik Dasar', type: 'string', example: 'TD/025' },
-	{ name: 'Lintang', label: 'Lintang', type: 'number', example: -2.73111 },
-	{ name: 'Bujur', label: 'Bujur', type: 'number', example: 107.47236 },
-	{ name: 'Lokasi', label: 'Lokasi', type: 'string', example: 'Pulau Tengkorak' },
-	{ name: 'TitikRefer', label: 'Titik Referensi', type: 'string', example: 'TD/024' },
-	{ name: 'JarakTitik', label: 'Jarak Titik (km)', type: 'number', example: 3.2 },
-	{ name: 'Nomor_Peta', label: 'Nomor Peta', type: 'string', example: '384' },
+	{ name: 'TitikDasar', label: 'Titik Dasar', type: 'string', example: 'TD.001' },
+	{ name: 'Lintang', label: 'Lintang', type: 'number', example: 1.2408 },
+	{ name: 'Bujur', label: 'Bujur', type: 'number', example: 104.5756 },
+	{ name: 'Lokasi', label: 'Lokasi', type: 'string', example: 'Tg. Berakit' },
+	{ name: 'TitikRefer', label: 'Titik Referensi', type: 'string', example: 'TR.001' },
+	{ name: 'JarakTitik', label: 'Jarak Titik (km)', type: 'number', example: 19.19 },
+	{ name: 'Nomor_Peta', label: 'Nomor Peta', type: 'string', example: '431' },
 	{ name: 'Datum_H', label: 'Datum Horizontal', type: 'string', enum: ["WGS'84", 'WGS-84'] },
 	{ name: 'Datum_V', label: 'Datum Vertikal', type: 'string', enum: ['MLWS', 'LAT', 'MSL'] },
-	{ name: 'Perairan', label: 'Perairan', type: 'string', example: 'Bangka Selatan' },
-	{ name: 'Sumber', label: 'Sumber', type: 'string', example: 'PP No. 38' },
+	{ name: 'Perairan', label: 'Perairan', type: 'string', example: 'Laut Natuna' },
+	{ name: 'Sumber', label: 'Sumber', type: 'string', example: 'PP' },
 	{ name: 'Sumber_No', label: 'No. Sumber', type: 'string', example: '38' },
 	{ name: 'Sumber_Th', label: 'Tahun Sumber', type: 'number', example: 2002 },
 ];
 
+// â”€â”€ Garis Pangkal â”€â”€
 const baselineFields: FieldSchema[] = [
-	{ name: 'ID', label: 'ID Segmen', type: 'string', example: 'GBp_1' },
+	{ name: 'ID', label: 'ID Segmen', type: 'string', example: '1' },
 	{ name: 'TipeSegmen', label: 'Tipe Segmen', type: 'string', enum: ['Garis Pangkal Lurus Kepulauan', 'Garis Pangkal Biasa'] },
 	{ name: 'Datum_H', label: 'Datum Horizontal', type: 'string', enum: ["WGS'84", 'WGS-84'] },
 	{ name: 'Datum_V', label: 'Datum Vertikal', type: 'string', enum: ['MLWS', 'LAT', 'MSL'] },
-	{ name: 'Panjang', label: 'Panjang (km)', type: 'number', example: 10.08 },
-	{ name: 'Panjang_NM', label: 'Panjang (NM)', type: 'number', example: 5.44 },
-	{ name: 'Perairan', label: 'Perairan', type: 'string', example: 'Perairan Indonesia' },
-	{ name: 'Sumber', label: 'Sumber', type: 'string', example: 'PP No. 38' },
+	{ name: 'Panjang', label: 'Panjang (km)', type: 'number', example: 19.173 },
+	{ name: 'Panjang_NM', label: 'Panjang (NM)', type: 'string', example: '19.173 mil laut' },
+	{ name: 'Perairan', label: 'Perairan', type: 'string', example: 'Laut Natuna' },
+	{ name: 'Sumber', label: 'Sumber', type: 'string', example: 'PP' },
 	{ name: 'Sumber_No', label: 'No. Sumber', type: 'string', example: '38' },
 	{ name: 'Sumber_Th', label: 'Tahun Sumber', type: 'number', example: 2002 },
 ];
 
-const titikPerjanjianFields: FieldSchema[] = [
-	{ name: 'Titik', label: 'Kode Titik', type: 'string', example: 'TP-01' },
-	{ name: 'Lintang', label: 'Lintang', type: 'number', example: -10.123 },
-	{ name: 'Bujur', label: 'Bujur', type: 'number', example: 123.456 },
-	{ name: 'Jenis', label: 'Jenis', type: 'string', example: 'Koordinat' },
+// â”€â”€ Batas Maritim garis — shared for all line-boundary layers â”€â”€
+const batasMaritimFields: FieldSchema[] = [
+	{ name: 'ID', label: 'ID Segmen', type: 'string', example: '1' },
+	{ name: 'Jenis', label: 'Jenis', type: 'string', enum: ['Bilateral', 'Trilateral', 'Unilateral', '-'] },
 	{ name: 'TipeZona', label: 'Tipe Zona', type: 'string' },
-	{ name: 'Datum', label: 'Datum', type: 'string', enum: ['WGS84'] },
-	{ name: 'Batas_Ngr', label: 'Batas Negara', type: 'string', example: 'Australia' },
-	{ name: 'StatusLaut', label: 'Status Laut', type: 'string', enum: ['Perlu Kesepakatan', 'Disepakati', 'Unilateral'] },
-	{ name: 'Jenis_Janj', label: 'Jenis Perjanjian', type: 'string', example: 'Perjanjian bilateral' },
-	{ name: 'Janji_Tgl', label: 'Tanggal Perjanjian', type: 'date', example: '1997-09-12', expressionField: 'Janji_Tgl__ts' },
+	{ name: 'Datum', label: 'Datum', type: 'string', enum: ['WGS-84', "WGS'84"] },
+	{ name: 'Panjang', label: 'Panjang', type: 'string', example: '317.854 mil laut' },
+	{ name: 'Batas_Ngr', label: 'Batas Negara', type: 'string', example: 'Malaysia' },
+	{ name: 'StatusLaut', label: 'Status Laut', type: 'string', enum: ['Kesepakatan sudah ratifikasi', 'Kesepakatan belum ratifikasi', 'Perlu Kesepakatan', 'Unilateral'] },
+	{ name: 'Jenis_Janj', label: 'Jenis Perjanjian', type: 'string', example: 'Treaty' },
+	{ name: 'Janji_Tgl', label: 'Tanggal Perjanjian', type: 'string', example: '12 September 1997' },
 	{ name: 'Janji_Thn', label: 'Tahun Perjanjian', type: 'number', example: 1997 },
 	{ name: 'Ratif_Jns', label: 'Jenis Ratifikasi', type: 'string', example: 'UU' },
 	{ name: 'Ratif_No', label: 'Nomor Ratifikasi', type: 'string', example: 'No. 5' },
 	{ name: 'Ratif_Thn', label: 'Tahun Ratifikasi', type: 'number', example: 1999 },
 ];
 
-const batasMaritimFields: FieldSchema[] = [
-	{ name: 'ID', label: 'ID Segmen', type: 'string', example: 'BM-001' },
-	{ name: 'Jenis', label: 'Jenis', type: 'string', enum: ['Bilateral', 'Trilateral', 'Unilateral', '-'] },
-	{ name: 'TipeZona', label: 'Tipe Zona', type: 'string', enum: ['Batas Laut Teritorial', 'Batas Landas Kontinen', 'Batas ZEE'] },
+// â”€â”€ Landas Kontinen Ekstensi (polygon) â”€â”€
+const ekstensiFields: FieldSchema[] = [
+	{ name: 'ID', label: 'ID', type: 'string', example: '1' },
+	{ name: 'Jenis', label: 'Jenis', type: 'string', enum: ['Unilateral'] },
+	{ name: 'TipeZona', label: 'Tipe Zona', type: 'string' },
 	{ name: 'Datum', label: 'Datum', type: 'string', enum: ['WGS-84', "WGS'84"] },
-	{ name: 'Panjang', label: 'Panjang (km)', type: 'number', example: 145.2 },
-	{ name: 'Panjang_NM', label: 'Panjang (NM)', type: 'number', example: 78.4 },
-	{ name: 'Batas_Ngr', label: 'Batas Negara', type: 'string', example: 'Malaysia' },
-	{ name: 'StatusLaut', label: 'Status Laut', type: 'string', enum: ['Kesepakatan sudah ratifikasi', 'Kesepakatan belum ratifikasi', 'Perlu Kesepakatan', 'Unilateral'] },
-	{ name: 'Jenis_Janj', label: 'Jenis Perjanjian', type: 'string', example: 'Treaty' },
-	{ name: 'Janji_Tgl', label: 'Tanggal Perjanjian', type: 'date', example: '1997-09-12', expressionField: 'Janji_Tgl__ts' },
-	{ name: 'Janji_Thn', label: 'Tahun Perjanjian', type: 'number', example: 1997 },
-	{ name: 'Ratif_Jns', label: 'Jenis Ratifikasi', type: 'string', example: 'UU' },
-	{ name: 'Ratif_No', label: 'Nomor Ratifikasi', type: 'string', example: 'No. 5' },
-	{ name: 'Ratif_Thn', label: 'Tahun Ratifikasi', type: 'number', example: 1999 },
+	{ name: 'Luas', label: 'Luas (km²)', type: 'number', example: 1181.961 },
+	{ name: 'Luas_SNM', label: 'Luas (SNM)', type: 'string', example: '1181.961 mil laut persegi' },
+	{ name: 'Batas_Ngr', label: 'Batas Negara', type: 'string', example: '-' },
+	{ name: 'StatusLaut', label: 'Status Laut', type: 'string', enum: ['Unilateral'] },
+	{ name: 'Jenis_Janj', label: 'Jenis Perjanjian', type: 'string' },
+	{ name: 'Janji_Thn', label: 'Tahun Perjanjian', type: 'number' },
+	{ name: 'Ratif_Jns', label: 'Jenis Ratifikasi', type: 'string' },
+	{ name: 'Ratif_No', label: 'Nomor Ratifikasi', type: 'string' },
+	{ name: 'Ratif_Thn', label: 'Tahun Ratifikasi', type: 'number' },
 ];
+
+// â”€â”€ Titik Perjanjian â”€â”€
+const titikPerjanjianFields: FieldSchema[] = [
+	{ name: 'Titik', label: 'Kode Titik', type: 'string', example: 'TP-01' },
+	{ name: 'Lintang', label: 'Lintang', type: 'number', example: 3.111 },
+	{ name: 'Bujur', label: 'Bujur', type: 'number', example: 119.926 },
+	{ name: 'Jenis', label: 'Jenis', type: 'string', enum: ['Bilateral', 'Trilateral', 'Unilateral'] },
+	{ name: 'TipeZona', label: 'Tipe Zona', type: 'string' },
+	{ name: 'Datum', label: 'Datum', type: 'string', enum: ['WGS-84', "WGS'84"] },
+	{ name: 'Batas_Ngr', label: 'Batas Negara', type: 'string', example: 'Filipina' },
+	{ name: 'StatusLaut', label: 'Status Laut', type: 'string', enum: ['Kesepakatan sudah ratifikasi', 'Kesepakatan belum ratifikasi', 'Perlu Kesepakatan', 'Unilateral'] },
+	{ name: 'Jenis_Janj', label: 'Jenis Perjanjian', type: 'string', example: 'Agreement' },
+	{ name: 'Janji_Tgl', label: 'Tanggal Perjanjian', type: 'string', example: '23 Mei' },
+	{ name: 'Janji_Thn', label: 'Tahun Perjanjian', type: 'number', example: 2014 },
+	{ name: 'Ratif_Jns', label: 'Jenis Ratifikasi', type: 'string', example: 'UU' },
+	{ name: 'Ratif_No', label: 'Nomor Ratifikasi', type: 'string', example: '4' },
+	{ name: 'Ratif_Thn', label: 'Tahun Ratifikasi', type: 'number', example: 2017 },
+];
+
+const POPUP_BATAS = ['Jenis', 'TipeZona', 'Datum', 'Panjang', 'Batas_Ngr', 'StatusLaut'];
+const POPUP_BATAS_RATIF = [...POPUP_BATAS, 'Janji_Thn', 'Ratif_Thn'];
 
 export const LAYER_SCHEMAS: Record<CoreLayerId, LayerSchema> = {
 	basepoints: {
@@ -72,75 +95,219 @@ export const LAYER_SCHEMAS: Record<CoreLayerId, LayerSchema> = {
 		primaryKey: 'TitikDasar',
 		popupFields: ['TitikDasar', 'Lokasi', 'Datum_H', 'Datum_V', 'Sumber', 'Sumber_Th'],
 		fields: basepointsFields,
-		description: undefined,
+		defaultVisible: true,
 	},
 	baseline: {
 		id: 'baseline',
 		label: 'Garis Pangkal',
 		geometryType: 'MultiLineString',
 		primaryKey: 'ID',
-		popupFields: ['ID', 'TipeSegmen', 'Datum_H', 'Datum_V', 'Panjang', 'Sumber'],
+		popupFields: ['ID', 'TipeSegmen', 'Datum_H', 'Datum_V', 'Panjang_NM', 'Sumber'],
 		fields: baselineFields,
-		description: undefined,
+		defaultVisible: true,
 	},
-	titik_perjanjian: {
-		id: 'titik_perjanjian',
-		label: 'Titik Perjanjian',
+	laut_teritorial_sepakat: {
+		id: 'laut_teritorial_sepakat',
+		label: 'Laut Teritorial — Sepakat',
+		geometryType: 'MultiLineString',
+		primaryKey: 'ID',
+		popupFields: POPUP_BATAS_RATIF,
+		fields: batasMaritimFields,
+		defaultVisible: true,
+	},
+	laut_teritorial_perlu: {
+		id: 'laut_teritorial_perlu',
+		label: 'Laut Teritorial — Perlu Kesepakatan',
+		geometryType: 'MultiLineString',
+		primaryKey: 'ID',
+		popupFields: POPUP_BATAS,
+		fields: batasMaritimFields,
+		defaultVisible: true,
+	},
+	zee_sepakat: {
+		id: 'zee_sepakat',
+		label: 'ZEE — Sepakat',
+		geometryType: 'MultiLineString',
+		primaryKey: 'ID',
+		popupFields: POPUP_BATAS_RATIF,
+		fields: batasMaritimFields,
+		defaultVisible: true,
+	},
+	zee_sepakat_ratif: {
+		id: 'zee_sepakat_ratif',
+		label: 'ZEE — Sepakat, Perlu Ratifikasi',
+		geometryType: 'MultiLineString',
+		primaryKey: 'ID',
+		popupFields: [...POPUP_BATAS, 'Janji_Thn'],
+		fields: batasMaritimFields,
+		defaultVisible: true,
+	},
+	zee_perlu: {
+		id: 'zee_perlu',
+		label: 'ZEE — Perlu Kesepakatan',
+		geometryType: 'MultiLineString',
+		primaryKey: 'ID',
+		popupFields: POPUP_BATAS,
+		fields: batasMaritimFields,
+		defaultVisible: true,
+	},
+	landas_kontinen_sepakat: {
+		id: 'landas_kontinen_sepakat',
+		label: 'Landas Kontinen — Sepakat',
+		geometryType: 'MultiLineString',
+		primaryKey: 'ID',
+		popupFields: POPUP_BATAS_RATIF,
+		fields: batasMaritimFields,
+		defaultVisible: true,
+	},
+	landas_kontinen_sepakat_ratif: {
+		id: 'landas_kontinen_sepakat_ratif',
+		label: 'Landas Kontinen — Sepakat, Perlu Ratifikasi',
+		geometryType: 'MultiLineString',
+		primaryKey: 'ID',
+		popupFields: [...POPUP_BATAS, 'Janji_Thn'],
+		fields: batasMaritimFields,
+		defaultVisible: true,
+	},
+	landas_kontinen_perlu: {
+		id: 'landas_kontinen_perlu',
+		label: 'Landas Kontinen — Perlu Kesepakatan',
+		geometryType: 'MultiLineString',
+		primaryKey: 'ID',
+		popupFields: POPUP_BATAS,
+		fields: batasMaritimFields,
+		defaultVisible: true,
+	},
+	landas_kontinen_ekstensi: {
+		id: 'landas_kontinen_ekstensi',
+		label: 'Landas Kontinen Ekstensi',
+		geometryType: 'MultiPolygon',
+		primaryKey: 'ID',
+		popupFields: ['TipeZona', 'Datum', 'Luas', 'Luas_SNM', 'StatusLaut'],
+		fields: ekstensiFields,
+		defaultVisible: true,
+	},
+	zona_tambahan: {
+		id: 'zona_tambahan',
+		label: 'Zona Tambahan',
+		geometryType: 'MultiLineString',
+		primaryKey: 'ID',
+		popupFields: POPUP_BATAS,
+		fields: batasMaritimFields,
+		defaultVisible: true,
+	},
+	titik_perjanjian_lt: {
+		id: 'titik_perjanjian_lt',
+		label: 'Titik Perjanjian — Laut Teritorial',
 		geometryType: 'Point',
 		primaryKey: 'Titik',
-		popupFields: ['Titik', 'Batas_Ngr', 'TipeZona', 'StatusLaut', 'Janji_Tgl', 'Ratif_Thn'],
+		popupFields: ['Titik', 'Batas_Ngr', 'TipeZona', 'StatusLaut', 'Janji_Thn', 'Ratif_Thn'],
 		fields: titikPerjanjianFields,
-		description: undefined,
-	},
-	batas_maritim: {
-		id: 'batas_maritim',
-		label: 'Batas Maritim (Semua Zona)',
-		geometryType: 'MultiLineString',
-		primaryKey: 'ID',
-		popupFields: ['Jenis', 'TipeZona', 'Datum', 'Panjang_NM', 'Batas_Ngr'],
-		fields: batasMaritimFields,
-		description: 'Garis batas maritim seluruh zona (digunakan sebagai sumber data turunan).',
 		defaultVisible: false,
 	},
-	laut_teritorial: {
-		id: 'laut_teritorial',
-		label: 'Zona Laut Teritorial',
-		geometryType: 'MultiLineString',
-		primaryKey: 'ID',
-		popupFields: ['Jenis', 'TipeZona', 'Datum', 'Panjang_NM', 'Batas_Ngr'],
-		fields: batasMaritimFields,
-		description: undefined,
-		defaultVisible: true,
+	titik_perjanjian_lk: {
+		id: 'titik_perjanjian_lk',
+		label: 'Titik Perjanjian — Landas Kontinen',
+		geometryType: 'Point',
+		primaryKey: 'Titik',
+		popupFields: ['Titik', 'Batas_Ngr', 'TipeZona', 'StatusLaut', 'Janji_Thn', 'Ratif_Thn'],
+		fields: titikPerjanjianFields,
+		defaultVisible: false,
 	},
-	zee: {
-		id: 'zee',
-		label: 'Zona Ekonomi Eksklusif (ZEE)',
-		geometryType: 'MultiLineString',
-		primaryKey: 'ID',
-		popupFields: ['Jenis', 'TipeZona', 'Datum', 'Panjang_NM', 'Batas_Ngr'],
-		fields: batasMaritimFields,
-		description: undefined,
-		defaultVisible: true,
-	},
-	landas_kontinen: {
-		id: 'landas_kontinen',
-		label: 'Landas Kontinen',
-		geometryType: 'MultiLineString',
-		primaryKey: 'ID',
-		popupFields: ['Jenis', 'TipeZona', 'Datum', 'Panjang_NM', 'Batas_Ngr'],
-		fields: batasMaritimFields,
-		description: undefined,
-		defaultVisible: true,
+	titik_perjanjian_zee: {
+		id: 'titik_perjanjian_zee',
+		label: 'Titik Perjanjian — ZEE',
+		geometryType: 'Point',
+		primaryKey: 'Titik',
+		popupFields: ['Titik', 'Batas_Ngr', 'TipeZona', 'StatusLaut', 'Janji_Thn', 'Ratif_Thn'],
+		fields: titikPerjanjianFields,
+		defaultVisible: false,
 	},
 };
 
+// â”€â”€ Map rendering order (bottom â†’ top) â”€â”€
 export const LAYER_DISPLAY_ORDER: CoreLayerId[] = [
-	'laut_teritorial',
-	'zee',
-	'landas_kontinen',
+	'landas_kontinen_ekstensi',     // polygon fill — paling bawah
+	'zona_tambahan',
+	'landas_kontinen_perlu',
+	'landas_kontinen_sepakat_ratif',
+	'landas_kontinen_sepakat',
+	'zee_perlu',
+	'zee_sepakat_ratif',
+	'zee_sepakat',
+	'laut_teritorial_perlu',
+	'laut_teritorial_sepakat',
 	'baseline',
-	'titik_perjanjian',
+	'titik_perjanjian_lk',
+	'titik_perjanjian_zee',
+	'titik_perjanjian_lt',
 	'basepoints',
+];
+
+// â”€â”€ Sidebar layer groups â”€â”€
+export const LAYER_GROUPS: LayerGroup[] = [
+	{
+		id: 'laut_teritorial',
+		label: 'Laut Teritorial',
+		color: '#1d4ed8', // same as laut_teritorial_sepakat
+		defaultExpanded: true,
+		entries: [
+			{ layerId: 'laut_teritorial_sepakat', sublabel: 'Sepakat' },
+			{ layerId: 'laut_teritorial_perlu', sublabel: 'Perlu Kesepakatan' },
+		],
+	},
+	{
+		id: 'zee',
+		label: 'ZEE',
+		color: '#15803d', // same as zee_sepakat
+		defaultExpanded: true,
+		entries: [
+			{ layerId: 'zee_sepakat', sublabel: 'Sepakat' },
+			{ layerId: 'zee_sepakat_ratif', sublabel: 'Sepakat, Perlu Ratifikasi' },
+			{ layerId: 'zee_perlu', sublabel: 'Perlu Kesepakatan' },
+		],
+	},
+	{
+		id: 'landas_kontinen',
+		label: 'Landas Kontinen',
+		color: '#92400e', // same as landas_kontinen_sepakat
+		defaultExpanded: true,
+		entries: [
+			{ layerId: 'landas_kontinen_sepakat', sublabel: 'Sepakat' },
+			{ layerId: 'landas_kontinen_sepakat_ratif', sublabel: 'Sepakat, Perlu Ratifikasi' },
+			{ layerId: 'landas_kontinen_perlu', sublabel: 'Perlu Kesepakatan' },
+			{ layerId: 'landas_kontinen_ekstensi', sublabel: 'Ekstensi (Unilateral)' },
+		],
+	},
+	{
+		id: 'zona_tambahan',
+		label: 'Zona Tambahan',
+		color: '#0891b2', // same as zona_tambahan layer
+		entries: [{ layerId: 'zona_tambahan', sublabel: 'Zona Tambahan' }],
+	},
+	{
+		id: 'baseline',
+		label: 'Garis Pangkal',
+		color: '#1e293b', // same as baseline layer
+		entries: [{ layerId: 'baseline', sublabel: 'Garis Pangkal' }],
+	},
+	{
+		id: 'titik_perjanjian',
+		label: 'Titik Perjanjian',
+		color: '#3730a3', // same as titik_perjanjian_lt
+		defaultExpanded: false,
+		entries: [
+			{ layerId: 'titik_perjanjian_lt', sublabel: 'Laut Teritorial' },
+			{ layerId: 'titik_perjanjian_lk', sublabel: 'Landas Kontinen' },
+			{ layerId: 'titik_perjanjian_zee', sublabel: 'ZEE' },
+		],
+	},
+	{
+		id: 'basepoints',
+		label: 'Titik Dasar',
+		color: '#475569',
+		entries: [{ layerId: 'basepoints', sublabel: 'Titik Dasar' }],
+	},
 ];
 
 export const ZONA_COLOR_MAPPING: Record<string, string> = {
@@ -159,8 +326,8 @@ export const ZONA_COLOR_MAPPING: Record<string, string> = {
 };
 
 export const STATUS_LAUT_DASH: Record<string, number[] | undefined> = {
-	'Kesepakatan belum ratifikasi': [2, 1],
-	'Perlu Kesepakatan': [2, 1],
+	'Kesepakatan belum ratifikasi': [4, 2],
+	'Perlu Kesepakatan': [2, 2],
 	Unilateral: [1, 1],
 };
 
@@ -197,11 +364,19 @@ export const getFieldSchema = (layerId: LayerId, field: string): FieldSchema | u
 export const DATE_FIELDS_BY_LAYER: Record<CoreLayerId, string[]> = {
 	basepoints: [],
 	baseline: [],
-	titik_perjanjian: ['Janji_Tgl'],
-	batas_maritim: ['Janji_Tgl'],
-	laut_teritorial: ['Janji_Tgl'],
-	zee: ['Janji_Tgl'],
-	landas_kontinen: ['Janji_Tgl'],
+	laut_teritorial_sepakat: [],
+	laut_teritorial_perlu: [],
+	zee_sepakat: [],
+	zee_sepakat_ratif: [],
+	zee_perlu: [],
+	landas_kontinen_sepakat: [],
+	landas_kontinen_sepakat_ratif: [],
+	landas_kontinen_perlu: [],
+	landas_kontinen_ekstensi: [],
+	zona_tambahan: [],
+	titik_perjanjian_lt: [],
+	titik_perjanjian_lk: [],
+	titik_perjanjian_zee: [],
 };
 
 export const getDateFieldsForLayer = (layerId: LayerId): string[] => {
@@ -214,3 +389,4 @@ export const getDateFieldsForLayer = (layerId: LayerId): string[] => {
 	}
 	return DATE_FIELDS_BY_LAYER[layerId];
 };
+

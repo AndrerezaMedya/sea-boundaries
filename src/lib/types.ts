@@ -1,6 +1,21 @@
 import type { Feature, FeatureCollection, Geometry } from 'geojson';
 
-export type CoreLayerId = 'basepoints' | 'baseline' | 'titik_perjanjian' | 'batas_maritim';
+export type CoreLayerId =
+	| 'basepoints'
+	| 'baseline'
+	| 'laut_teritorial_sepakat'
+	| 'laut_teritorial_perlu'
+	| 'zee_sepakat'
+	| 'zee_sepakat_ratif'
+	| 'zee_perlu'
+	| 'landas_kontinen_sepakat'
+	| 'landas_kontinen_sepakat_ratif'
+	| 'landas_kontinen_perlu'
+	| 'landas_kontinen_ekstensi'
+	| 'zona_tambahan'
+	| 'titik_perjanjian_lt'
+	| 'titik_perjanjian_lk'
+	| 'titik_perjanjian_zee';
 export type DynamicLayerId = 'user_layer';
 export const USER_LAYER_ID: DynamicLayerId = 'user_layer';
 export type LayerId = CoreLayerId | DynamicLayerId;
@@ -54,12 +69,6 @@ export interface LayerSchema {
 
 export type FilterJoin = 'all' | 'any';
 
-export interface FilterGroup {
-	id: string;
-	label: string;
-	join: FilterJoin;
-}
-
 export interface FilterCondition {
 	id: string;
 	field: string;
@@ -67,18 +76,29 @@ export interface FilterCondition {
 	value: ConditionValue;
 	value2?: string | number;
 	type: FieldType;
-	groupId?: string | null;
 }
 
 export interface FilterDefinition {
 	conditions: FilterCondition[];
 	join: FilterJoin;
-	groups: FilterGroup[];
 }
 
 export type FilterExpression = any[];
 
 export type FeatureWithProps = Feature<Geometry, Record<string, unknown>> & { id: string };
+
+export interface LayerGroupEntry {
+	layerId: CoreLayerId;
+	sublabel: string;
+}
+
+export interface LayerGroup {
+	id: string;
+	label: string;
+	entries: LayerGroupEntry[];
+	defaultExpanded?: boolean;
+	color: string;
+}
 
 export type FeatureCollectionWithProps = FeatureCollection<Geometry, Record<string, unknown>> & {
 	features: FeatureWithProps[];

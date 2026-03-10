@@ -1,20 +1,39 @@
 import type { Feature, Geometry } from 'geojson';
 
-import batasMaritimRaw from '../../data/BatasMaritim.geojson?raw';
-import basepointsRaw from '../../data/TitikDasar.geojson?raw';
-import baselineRaw from '../../data/GarisPangkal.geojson?raw';
-import titikPerjanjianRaw from '@/data/titik_perjanjian.geojson?raw';
+import basepointsRaw from '../../data/pembaharuan/TitikDasar.geojson?raw';
+import baselineRaw from '../../data/pembaharuan/GarisPangkal.geojson?raw';
+import ltSepakatRaw from '../../data/pembaharuan/LautTeritorial_Sepakat.geojson?raw';
+import ltPerluRaw from '../../data/pembaharuan/LautTeritorial_PerluKesepakatan.geojson?raw';
+import zeeSepakatRaw from '../../data/pembaharuan/BZEE_Sepakat.geojson?raw';
+import zeeSepakatRatifRaw from '../../data/pembaharuan/BZEE_SepakatPerluRatif.geojson?raw';
+import zeePerluRaw from '../../data/pembaharuan/BZEE_PerluKesepakatan.geojson?raw';
+import lkSepakatRaw from '../../data/pembaharuan/LandasKontinen_Sepakat.geojson?raw';
+import lkSepakatRatifRaw from '../../data/pembaharuan/LandasKontinen_SepakatPerluRatif.geojson?raw';
+import lkPerluRaw from '../../data/pembaharuan/LandasKontinen_PerluKesepakatan.geojson?raw';
+import lkEkstensiRaw from '../../data/pembaharuan/LandasKontinenEkstensi.geojson?raw';
+import zonaTambahanRaw from '../../data/pembaharuan/ZonaTambahan.geojson?raw';
+import tpLtRaw from '../../data/pembaharuan/TitikPerjanjian_LautTeritorial.geojson?raw';
+import tpLkRaw from '../../data/pembaharuan/TitikPerjanjian_LandasKontinen.geojson?raw';
+import tpZeeRaw from '../../data/pembaharuan/TitikPerjanjian_BZEE.geojson?raw';
 import { DATE_FIELDS_BY_LAYER, LAYER_SCHEMAS } from '@/lib/schema';
 import type { CoreLayerId, FeatureCollectionWithProps, FeatureWithProps } from '@/lib/types';
 
 const rawCollections: Record<CoreLayerId, string> = {
 	basepoints: basepointsRaw,
 	baseline: baselineRaw,
-	titik_perjanjian: titikPerjanjianRaw,
-	batas_maritim: batasMaritimRaw,
-	laut_teritorial: '',
-	zee: '',
-	landas_kontinen: '',
+	laut_teritorial_sepakat: ltSepakatRaw,
+	laut_teritorial_perlu: ltPerluRaw,
+	zee_sepakat: zeeSepakatRaw,
+	zee_sepakat_ratif: zeeSepakatRatifRaw,
+	zee_perlu: zeePerluRaw,
+	landas_kontinen_sepakat: lkSepakatRaw,
+	landas_kontinen_sepakat_ratif: lkSepakatRatifRaw,
+	landas_kontinen_perlu: lkPerluRaw,
+	landas_kontinen_ekstensi: lkEkstensiRaw,
+	zona_tambahan: zonaTambahanRaw,
+	titik_perjanjian_lt: tpLtRaw,
+	titik_perjanjian_lk: tpLkRaw,
+	titik_perjanjian_zee: tpZeeRaw,
 };
 
 const parseRawCollection = (raw: string): Feature<Geometry, Record<string, unknown>>[] => {
@@ -115,43 +134,16 @@ const normaliseFeature = (
 export const loadLayerCollections = (): Record<CoreLayerId, FeatureCollectionWithProps> => {
 	const result: Partial<Record<CoreLayerId, FeatureCollectionWithProps>> = {};
 
-	// Parse basis data (yang punya berkas fisik)
-	(['basepoints', 'baseline', 'titik_perjanjian', 'batas_maritim'] as CoreLayerId[]).forEach((layerId) => {
+	(Object.keys(rawCollections) as CoreLayerId[]).forEach((layerId) => {
 		const raw = rawCollections[layerId];
-		const features = parseRawCollection(raw).map((feature, index) => normaliseFeature(layerId, feature, index)) as FeatureWithProps[];
+		const features = parseRawCollection(raw).map((feature, index) =>
+			normaliseFeature(layerId, feature, index),
+		) as FeatureWithProps[];
 		result[layerId] = {
 			type: 'FeatureCollection',
 			features,
 		};
 	});
-
-	// Turunan dari batas_maritim: pisah per zona
-	const maritim = result.batas_maritim;
-	if (maritim) {
-		const filterByZona = (zones: string[]): FeatureWithProps[] =>
-			(maritim.features as FeatureWithProps[]).filter((feature) => {
-				const tipe = String(feature.properties?.TipeZona ?? '').trim();
-				return zones.includes(tipe);
-			});
-
-		result.laut_teritorial = {
-			type: 'FeatureCollection',
-			features: filterByZona(['Batas Laut Teritorial', 'Teritorial', 'Teritorial Laut']),
-		};
-		result.zee = {
-			type: 'FeatureCollection',
-			features: filterByZona(['Batas ZEE', 'Zona Ekonomi Eksklusif', 'ZEE']),
-		};
-		result.landas_kontinen = {
-			type: 'FeatureCollection',
-			features: filterByZona([
-				'Batas Landas Kontinen',
-				'Batas Landas Kontinen Ekstensi',
-				'Landas Kontinen',
-				'Landas Kontinen Ekstensi',
-			]),
-		};
-	}
 
 	return result as Record<CoreLayerId, FeatureCollectionWithProps>;
 };

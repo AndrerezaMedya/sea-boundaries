@@ -122,8 +122,8 @@ export const buildPopupHtml = (layerId: LayerId, properties: Record<string, unkn
 		.map(
 			(row) => `
 				<tr>
-					<td class="py-1.5 pr-3 text-xs font-medium text-slate-600 align-top">${row.label}</td>
-					<td class="py-1.5 text-xs font-semibold text-slate-900">${row.value}</td>
+					<td class="py-1.5 pr-3 text-xs font-medium align-top" style="color:var(--color-muted)">${row.label}</td>
+					<td class="py-1.5 text-xs font-semibold" style="color:var(--color-text)">${row.value}</td>
 				</tr>
 			`,
 		)
@@ -131,9 +131,9 @@ export const buildPopupHtml = (layerId: LayerId, properties: Record<string, unkn
 	
 	return `
 		<div class="min-w-[280px]">
-			<div class="mb-3 pb-3 border-b border-slate-200">
-				<div class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">${schema.label}</div>
-				<div class="text-sm font-bold text-slate-900">${primaryValue}</div>
+			<div class="mb-3 pb-3 border-b" style="border-color:var(--color-border)">
+				<div class="text-[10px] font-semibold uppercase tracking-wider mb-1" style="color:var(--color-muted)">${schema.label}</div>
+				<div class="text-sm font-bold" style="color:var(--color-text)">${primaryValue}</div>
 			</div>
 			<table class="w-full">
 				<tbody>${rowsHtml}</tbody>
