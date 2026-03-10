@@ -1,14 +1,16 @@
 import { useEffect } from 'react';
 
 import MapView from '@/components/Map';
-import Sidebar from '@/components/Sidebar';
-import TopBar from '@/components/TopBar';
+import LegendFloating from '@/components/LegendFloating';
+import Ribbon from '@/components/Ribbon';
+import FilterPanel from '@/components/panels/FilterPanel';
+import GeoPanel from '@/components/panels/GeoPanel';
+import ImportPanel from '@/components/panels/ImportPanel';
+import LayerPanel from '@/components/panels/LayerPanel';
+import TablePanel from '@/components/panels/TablePanel';
 import { useLayersStore } from '@/store/useLayers';
-import { useUIStore } from '@/store/useUI';
 
 const App = () => {
-	const sidebarOpen = useUIStore((state) => state.sidebarOpen);
-	const setSidebarOpen = useUIStore((state) => state.setSidebarOpen);
 	const loadInitialFilters = useLayersStore((state) => state.loadInitialFilters);
 
 	useEffect(() => {
@@ -17,12 +19,15 @@ const App = () => {
 
 	return (
 		<div className='app-theme flex h-screen flex-col overflow-hidden'>
-			<TopBar onOpenSidebar={() => setSidebarOpen(true)} />
-			<div className='flex flex-1 overflow-hidden'>
-				<Sidebar open={sidebarOpen} onOpenChange={setSidebarOpen} />
-				<main className='relative flex-1 overflow-hidden'>
-					<MapView />
-				</main>
+			<Ribbon />
+			<div className='relative flex-1 overflow-hidden'>
+				<MapView />
+				<LayerPanel />
+				<FilterPanel />
+				<GeoPanel />
+				<ImportPanel />
+				<TablePanel />
+				<LegendFloating />
 			</div>
 		</div>
 	);
