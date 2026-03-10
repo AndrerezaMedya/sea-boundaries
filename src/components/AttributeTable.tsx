@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { Clipboard, Download, FilterIcon, Search, ZoomIn } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/components/ui/use-toast';
 import { downloadAttributeCsv } from '@/lib/export';
@@ -14,13 +13,13 @@ import { useLayersStore } from '@/store/useLayers';
 const PAGE_SIZE = 10;
 
 const pillPrimaryClass =
-	'rounded-full bg-slate-900 px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 disabled:bg-slate-700 disabled:text-white/80 disabled:opacity-90';
+	'rounded-full bg-[color:var(--color-accent)] px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 disabled:opacity-60 disabled:text-white/80';
 const pillOutlineClass =
-	'rounded-full border border-slate-300 bg-white px-4 py-1.5 text-xs font-semibold text-slate-800 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:border-slate-200 disabled:text-slate-400 disabled:opacity-90';
+	'rounded-full border border-[color:var(--color-border)] bg-[color:var(--color-panel)] px-4 py-1.5 text-xs font-semibold text-[color:var(--color-text)] transition hover:bg-[color:var(--color-panel-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-border)] disabled:opacity-90';
 const iconButtonClass =
-	'rounded-full text-slate-500 transition hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:text-slate-400 disabled:opacity-80';
+	'rounded-full text-[color:var(--color-muted)] transition hover:text-[color:var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-border)] disabled:text-[color:var(--color-muted)] disabled:opacity-80';
 const paginationButtonClass =
-	'rounded-full bg-slate-900 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 disabled:bg-slate-700 disabled:text-white/70 disabled:opacity-90';
+	'rounded-full bg-[color:var(--color-accent)] px-4 py-1.5 text-xs font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 disabled:opacity-60 disabled:text-white/70';
 
 const AttributeTable = () => {
 	const { toast } = useToast();
@@ -149,45 +148,46 @@ const AttributeTable = () => {
 	};
 
 	return (
-		<div className='space-y-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-md'>
-			<div className='flex flex-wrap items-center justify-between gap-3'>
-				<div>
-					<h3 className='text-base font-semibold text-slate-900'>Attribute Table</h3>
-					<p className='text-xs text-slate-600'>Memuat fitur dari layer aktif dan mengikuti filter yang diterapkan.</p>
-				</div>
-				<div className='flex flex-wrap items-center gap-2'>
-					<Button onClick={handleZoomFiltered} variant='outline' size='sm' className={cn('gap-2', pillOutlineClass)}>
-						<ZoomIn className='h-4 w-4' />
+		<div className='flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-md'>
+			<div className='flex flex-shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-4 py-2'>
+				<h3 className='text-sm font-semibold text-[color:var(--color-text)]'>Attribute Table</h3>
+				<div className='flex items-center gap-2'>
+					<Button onClick={handleZoomFiltered} variant='outline' size='sm' className={cn('gap-1.5', pillOutlineClass)}>
+						<ZoomIn className='h-3.5 w-3.5' />
 						Zoom hasil
 					</Button>
-					<Button onClick={handleExport} variant='default' size='sm' className={cn('gap-2', pillPrimaryClass)}>
-						<Download className='h-4 w-4' />
+					<Button onClick={handleExport} variant='default' size='sm' className={cn('gap-1.5', pillPrimaryClass)}>
+						<Download className='h-3.5 w-3.5' />
 						Export CSV
 					</Button>
 				</div>
 			</div>
 
-			<div className='flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3'>
-				<div className='relative flex-1 min-w-[220px]'>
-					<Search className='absolute left-2 top-2.5 h-4 w-4 text-slate-400' />
-					<Input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder='Cari atribut...' className='pl-8' />
-				</div>
-				<div className='flex flex-wrap items-center gap-2 text-xs text-slate-600'>
-					<FilterIcon className='h-4 w-4 text-slate-400' />
-					{schema.fields.map((field) => (
-						<label key={field.name} className='flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1'>
-							<input
-								type='checkbox'
-								checked={visibleColumns.has(field.name)}
-								onChange={() => toggleColumn(field.name)}
-								className='h-3.5 w-3.5 accent-slate-700'
-							/>
-							<span>{field.label}</span>
-						</label>
-					))}
-				</div>
+			<div className='flex flex-shrink-0 items-center gap-2 overflow-x-auto border-b border-slate-200 bg-[color:var(--color-panel-muted)] px-3 py-1.5'>
+				<Search className='h-3.5 w-3.5 shrink-0 text-[color:var(--color-muted)]' />
+				<input
+					type='text'
+					value={searchTerm}
+					onChange={(e) => setSearchTerm(e.target.value)}
+					placeholder='Cari atribut...'
+					className='w-36 shrink-0 rounded border border-[color:var(--color-border)] bg-[color:var(--color-panel)] px-2 py-0.5 text-xs text-[color:var(--color-text)] outline-none focus:ring-1 focus:ring-blue-500'
+				/>
+				<div className='mx-1 h-4 w-px shrink-0 bg-[color:var(--color-border)]' />
+				<FilterIcon className='h-3.5 w-3.5 shrink-0 text-[color:var(--color-muted)]' />
+				{schema.fields.map((field) => (
+					<label key={field.name} className='flex shrink-0 cursor-pointer items-center gap-1 rounded-full border border-[color:var(--color-border)] bg-[color:var(--color-panel)] px-2 py-0.5 text-xs text-[color:var(--color-text)] hover:bg-[color:var(--color-panel-elevated)]'>
+						<input
+							type='checkbox'
+							checked={visibleColumns.has(field.name)}
+							onChange={() => toggleColumn(field.name)}
+							className='h-3 w-3 accent-slate-700'
+						/>
+						<span className='whitespace-nowrap'>{field.label}</span>
+					</label>
+				))}
 			</div>
 
+			<div className='min-h-0 flex-1 overflow-auto px-5 py-2'>
 			<div className='overflow-x-auto rounded-xl border border-slate-200 bg-white'>
 				<Table>
 					<TableHeader className='bg-slate-900 text-white [&_th]:text-xs [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wide'>
@@ -270,8 +270,9 @@ const AttributeTable = () => {
 					</TableBody>
 				</Table>
 			</div>
+			</div>
 
-			<div className='flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600'>
+			<div className='flex flex-shrink-0 flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-3 text-xs text-slate-600'>
 				<p>
 					Menampilkan {pagedRows.length} dari {filteredRows.length.toLocaleString('id-ID')} baris
 				</p>

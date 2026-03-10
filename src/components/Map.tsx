@@ -57,173 +57,186 @@ interface MapLayerConfig {
 	paint: LayerPaintConfig;
 }
 
-const zoneColorExpression: unknown[] = [
-	'match',
-	['coalesce', ['get', 'TipeZona'], ''],
-	'Batas Laut Teritorial', '#2563eb',
-	'Teritorial', '#2563eb',
-	'Teritorial Laut', '#2563eb',
-	'Zona Tambahan', '#0ea5e9',
-	'Batas ZEE', '#16a34a',
-	'Zona Ekonomi Eksklusif', '#16a34a',
-	'ZEE', '#16a34a',
-	'Batas Landas Kontinen', '#f59e0b',
-	'Landas Kontinen', '#f59e0b',
-	'Batas Landas Kontinen Ekstensi', '#f97316',
-	'Landas Kontinen Ekstensi', '#f97316',
-	'#64748b',
-];
 
 const ALL_LAYER_IDS: LayerId[] = [...LAYER_DISPLAY_ORDER, USER_LAYER_ID];
 
 const mapLayerConfigs: Record<LayerId, MapLayerConfig[]> = {
-	laut_teritorial: [
+	laut_teritorial_sepakat: [
 		{
 			renderKind: 'line',
-			sourceId: 'source-laut-teritorial',
-			baseLayerId: 'layer-laut-teritorial-base',
-			filteredLayerId: 'layer-laut-teritorial-filtered',
-			selectionLayerId: 'layer-laut-teritorial-selected',
-			hoverLayerId: 'layer-laut-teritorial-hover',
+			sourceId: 'source-lt-sepakat',
+			baseLayerId: 'layer-lt-sepakat-base',
+			filteredLayerId: 'layer-lt-sepakat-filtered',
+			selectionLayerId: 'layer-lt-sepakat-selected',
+			hoverLayerId: 'layer-lt-sepakat-hover',
 			type: 'line',
-			layout: {
-				'line-cap': 'round',
-				'line-join': 'round',
-			},
+			layout: { 'line-cap': 'round', 'line-join': 'round' },
 			paint: {
-				base: {
-					'line-color': '#2563eb',
-					'line-width': 2.8,
-					'line-opacity': 0.85,
-				},
-				filtered: {
-					'line-color': '#2563eb',
-					'line-width': 3.6,
-					'line-opacity': 0.9,
-				},
-				selection: {
-					'line-color': '#f97316',
-					'line-width': 5,
-					'line-opacity': 0.95,
-				},
-				hover: {
-					'line-color': '#eab308',
-					'line-width': 4.2,
-					'line-opacity': 0.95,
-				},
+				base: { 'line-color': '#1d4ed8', 'line-width': 2.8, 'line-opacity': 0.85 },
+				filtered: { 'line-color': '#1d4ed8', 'line-width': 3.6, 'line-opacity': 0.9 },
+				selection: { 'line-color': '#f97316', 'line-width': 5, 'line-opacity': 0.95 },
+				hover: { 'line-color': '#eab308', 'line-width': 4.2, 'line-opacity': 0.95 },
 			},
 		},
 	],
-	zee: [
+	laut_teritorial_perlu: [
 		{
 			renderKind: 'line',
-			sourceId: 'source-zee',
-			baseLayerId: 'layer-zee-base',
-			filteredLayerId: 'layer-zee-filtered',
-			selectionLayerId: 'layer-zee-selected',
-			hoverLayerId: 'layer-zee-hover',
+			sourceId: 'source-lt-perlu',
+			baseLayerId: 'layer-lt-perlu-base',
+			filteredLayerId: 'layer-lt-perlu-filtered',
+			selectionLayerId: 'layer-lt-perlu-selected',
+			hoverLayerId: 'layer-lt-perlu-hover',
 			type: 'line',
-			layout: {
-				'line-cap': 'round',
-				'line-join': 'round',
-			},
+			layout: { 'line-cap': 'round', 'line-join': 'round' },
 			paint: {
-				base: {
-					'line-color': '#16a34a',
-					'line-width': 2.8,
-					'line-opacity': 0.85,
-				},
-				filtered: {
-					'line-color': '#16a34a',
-					'line-width': 3.6,
-					'line-opacity': 0.9,
-				},
-				selection: {
-					'line-color': '#f97316',
-					'line-width': 5,
-					'line-opacity': 0.95,
-				},
-				hover: {
-					'line-color': '#eab308',
-					'line-width': 4.2,
-					'line-opacity': 0.95,
-				},
+				base: { 'line-color': '#6366f1', 'line-width': 2.8, 'line-opacity': 0.85, 'line-dasharray': [4, 2] },
+				filtered: { 'line-color': '#6366f1', 'line-width': 3.6, 'line-opacity': 0.9 },
+				selection: { 'line-color': '#f97316', 'line-width': 5, 'line-opacity': 0.95 },
+				hover: { 'line-color': '#eab308', 'line-width': 4.2, 'line-opacity': 0.95 },
 			},
 		},
 	],
-	landas_kontinen: [
+	zee_sepakat: [
 		{
 			renderKind: 'line',
-			sourceId: 'source-landas-kontinen',
-			baseLayerId: 'layer-landas-kontinen-base',
-			filteredLayerId: 'layer-landas-kontinen-filtered',
-			selectionLayerId: 'layer-landas-kontinen-selected',
-			hoverLayerId: 'layer-landas-kontinen-hover',
+			sourceId: 'source-zee-sepakat',
+			baseLayerId: 'layer-zee-sepakat-base',
+			filteredLayerId: 'layer-zee-sepakat-filtered',
+			selectionLayerId: 'layer-zee-sepakat-selected',
+			hoverLayerId: 'layer-zee-sepakat-hover',
 			type: 'line',
-			layout: {
-				'line-cap': 'round',
-				'line-join': 'round',
-			},
+			layout: { 'line-cap': 'round', 'line-join': 'round' },
 			paint: {
-				base: {
-					'line-color': '#f59e0b',
-					'line-width': 2.8,
-					'line-opacity': 0.85,
-					'line-dasharray': [1, 2],
-				},
-				filtered: {
-					'line-color': '#f59e0b',
-					'line-width': 3.6,
-					'line-opacity': 0.9,
-				},
-				selection: {
-					'line-color': '#f97316',
-					'line-width': 5,
-					'line-opacity': 0.95,
-				},
-				hover: {
-					'line-color': '#eab308',
-					'line-width': 4.2,
-					'line-opacity': 0.95,
-				},
+				base: { 'line-color': '#15803d', 'line-width': 2.8, 'line-opacity': 0.85 },
+				filtered: { 'line-color': '#15803d', 'line-width': 3.6, 'line-opacity': 0.9 },
+				selection: { 'line-color': '#f97316', 'line-width': 5, 'line-opacity': 0.95 },
+				hover: { 'line-color': '#eab308', 'line-width': 4.2, 'line-opacity': 0.95 },
 			},
 		},
 	],
-	batas_maritim: [
+	zee_sepakat_ratif: [
 		{
 			renderKind: 'line',
-			sourceId: 'source-batas-maritim',
-			baseLayerId: 'layer-batas-maritim-base',
-			filteredLayerId: 'layer-batas-maritim-filtered',
-			selectionLayerId: 'layer-batas-maritim-selected',
-			hoverLayerId: 'layer-batas-maritim-hover',
+			sourceId: 'source-zee-sepakat-ratif',
+			baseLayerId: 'layer-zee-sepakat-ratif-base',
+			filteredLayerId: 'layer-zee-sepakat-ratif-filtered',
+			selectionLayerId: 'layer-zee-sepakat-ratif-selected',
+			hoverLayerId: 'layer-zee-sepakat-ratif-hover',
 			type: 'line',
-			layout: {
-				'line-cap': 'round',
-				'line-join': 'round',
-			},
+			layout: { 'line-cap': 'round', 'line-join': 'round' },
 			paint: {
-				base: {
-					'line-color': zoneColorExpression,
-					'line-width': 2.8,
-					'line-opacity': 0.85,
-					'line-dasharray': [5, 3],
-				},
-				filtered: {
-					'line-color': zoneColorExpression,
-					'line-width': 3.6,
-					'line-opacity': 0.9,
-				},
-				selection: {
-					'line-color': '#f97316',
-					'line-width': 5,
-					'line-opacity': 0.95,
-				},
-				hover: {
-					'line-color': '#eab308',
-					'line-width': 4.2,
-					'line-opacity': 0.95,
-				},
+				base: { 'line-color': '#22c55e', 'line-width': 2.8, 'line-opacity': 0.85, 'line-dasharray': [4, 2] },
+				filtered: { 'line-color': '#22c55e', 'line-width': 3.6, 'line-opacity': 0.9 },
+				selection: { 'line-color': '#f97316', 'line-width': 5, 'line-opacity': 0.95 },
+				hover: { 'line-color': '#eab308', 'line-width': 4.2, 'line-opacity': 0.95 },
+			},
+		},
+	],
+	zee_perlu: [
+		{
+			renderKind: 'line',
+			sourceId: 'source-zee-perlu',
+			baseLayerId: 'layer-zee-perlu-base',
+			filteredLayerId: 'layer-zee-perlu-filtered',
+			selectionLayerId: 'layer-zee-perlu-selected',
+			hoverLayerId: 'layer-zee-perlu-hover',
+			type: 'line',
+			layout: { 'line-cap': 'round', 'line-join': 'round' },
+			paint: {
+				base: { 'line-color': '#84cc16', 'line-width': 2.8, 'line-opacity': 0.85, 'line-dasharray': [2, 2] },
+				filtered: { 'line-color': '#84cc16', 'line-width': 3.6, 'line-opacity': 0.9 },
+				selection: { 'line-color': '#f97316', 'line-width': 5, 'line-opacity': 0.95 },
+				hover: { 'line-color': '#eab308', 'line-width': 4.2, 'line-opacity': 0.95 },
+			},
+		},
+	],
+	landas_kontinen_sepakat: [
+		{
+			renderKind: 'line',
+			sourceId: 'source-lk-sepakat',
+			baseLayerId: 'layer-lk-sepakat-base',
+			filteredLayerId: 'layer-lk-sepakat-filtered',
+			selectionLayerId: 'layer-lk-sepakat-selected',
+			hoverLayerId: 'layer-lk-sepakat-hover',
+			type: 'line',
+			layout: { 'line-cap': 'round', 'line-join': 'round' },
+			paint: {
+				base: { 'line-color': '#92400e', 'line-width': 2.8, 'line-opacity': 0.85 },
+				filtered: { 'line-color': '#92400e', 'line-width': 3.6, 'line-opacity': 0.9 },
+				selection: { 'line-color': '#f97316', 'line-width': 5, 'line-opacity': 0.95 },
+				hover: { 'line-color': '#eab308', 'line-width': 4.2, 'line-opacity': 0.95 },
+			},
+		},
+	],
+	landas_kontinen_sepakat_ratif: [
+		{
+			renderKind: 'line',
+			sourceId: 'source-lk-sepakat-ratif',
+			baseLayerId: 'layer-lk-sepakat-ratif-base',
+			filteredLayerId: 'layer-lk-sepakat-ratif-filtered',
+			selectionLayerId: 'layer-lk-sepakat-ratif-selected',
+			hoverLayerId: 'layer-lk-sepakat-ratif-hover',
+			type: 'line',
+			layout: { 'line-cap': 'round', 'line-join': 'round' },
+			paint: {
+				base: { 'line-color': '#c2410c', 'line-width': 2.8, 'line-opacity': 0.85, 'line-dasharray': [4, 2] },
+				filtered: { 'line-color': '#c2410c', 'line-width': 3.6, 'line-opacity': 0.9 },
+				selection: { 'line-color': '#f97316', 'line-width': 5, 'line-opacity': 0.95 },
+				hover: { 'line-color': '#eab308', 'line-width': 4.2, 'line-opacity': 0.95 },
+			},
+		},
+	],
+	landas_kontinen_perlu: [
+		{
+			renderKind: 'line',
+			sourceId: 'source-lk-perlu',
+			baseLayerId: 'layer-lk-perlu-base',
+			filteredLayerId: 'layer-lk-perlu-filtered',
+			selectionLayerId: 'layer-lk-perlu-selected',
+			hoverLayerId: 'layer-lk-perlu-hover',
+			type: 'line',
+			layout: { 'line-cap': 'round', 'line-join': 'round' },
+			paint: {
+				base: { 'line-color': '#f59e0b', 'line-width': 2.8, 'line-opacity': 0.85, 'line-dasharray': [2, 2] },
+				filtered: { 'line-color': '#f59e0b', 'line-width': 3.6, 'line-opacity': 0.9 },
+				selection: { 'line-color': '#f97316', 'line-width': 5, 'line-opacity': 0.95 },
+				hover: { 'line-color': '#eab308', 'line-width': 4.2, 'line-opacity': 0.95 },
+			},
+		},
+	],
+	landas_kontinen_ekstensi: [
+		{
+			renderKind: 'fill',
+			sourceId: 'source-lk-ekstensi',
+			baseLayerId: 'layer-lk-ekstensi-base',
+			filteredLayerId: 'layer-lk-ekstensi-filtered',
+			selectionLayerId: 'layer-lk-ekstensi-selected',
+			hoverLayerId: 'layer-lk-ekstensi-hover',
+			type: 'fill',
+			paint: {
+				base: { 'fill-color': '#f97316', 'fill-opacity': 0.25, 'fill-outline-color': '#c2410c' },
+				filtered: { 'fill-color': '#f97316', 'fill-opacity': 0.4, 'fill-outline-color': '#c2410c' },
+				selection: { 'fill-color': '#f97316', 'fill-opacity': 0.55, 'fill-outline-color': '#7c2d12' },
+				hover: { 'fill-color': '#facc15', 'fill-opacity': 0.45, 'fill-outline-color': '#ca8a04' },
+			},
+		},
+	],
+	zona_tambahan: [
+		{
+			renderKind: 'line',
+			sourceId: 'source-zona-tambahan',
+			baseLayerId: 'layer-zona-tambahan-base',
+			filteredLayerId: 'layer-zona-tambahan-filtered',
+			selectionLayerId: 'layer-zona-tambahan-selected',
+			hoverLayerId: 'layer-zona-tambahan-hover',
+			type: 'line',
+			layout: { 'line-cap': 'round', 'line-join': 'round' },
+			paint: {
+				base: { 'line-color': '#0891b2', 'line-width': 2.8, 'line-opacity': 0.85 },
+				filtered: { 'line-color': '#0891b2', 'line-width': 3.6, 'line-opacity': 0.9 },
+				selection: { 'line-color': '#f97316', 'line-width': 5, 'line-opacity': 0.95 },
+				hover: { 'line-color': '#eab308', 'line-width': 4.2, 'line-opacity': 0.95 },
 			},
 		},
 	],
@@ -236,73 +249,63 @@ const mapLayerConfigs: Record<LayerId, MapLayerConfig[]> = {
 			selectionLayerId: 'layer-baseline-selected',
 			hoverLayerId: 'layer-baseline-hover',
 			type: 'line',
-			layout: {
-				'line-cap': 'round',
-				'line-join': 'round',
-			},
+			layout: { 'line-cap': 'round', 'line-join': 'round' },
 			paint: {
-				base: {
-					'line-color': '#1e293b',
-					'line-width': 2.4,
-					'line-opacity': 0.8,
-					'line-dasharray': [1, 3],
-				},
-				filtered: {
-					'line-color': '#2563eb',
-					'line-width': 3.2,
-					'line-opacity': 0.95,
-				},
-				selection: {
-					'line-color': '#f97316',
-					'line-width': 4,
-					'line-opacity': 0.95,
-				},
-				hover: {
-					'line-color': '#eab308',
-					'line-width': 3.5,
-					'line-opacity': 0.95,
-				},
+				base: { 'line-color': '#1e293b', 'line-width': 2.4, 'line-opacity': 0.8, 'line-dasharray': [1, 3] },
+				filtered: { 'line-color': '#1e293b', 'line-width': 3.2, 'line-opacity': 0.95 },
+				selection: { 'line-color': '#f97316', 'line-width': 4, 'line-opacity': 0.95 },
+				hover: { 'line-color': '#eab308', 'line-width': 3.5, 'line-opacity': 0.95 },
 			},
 		},
 	],
-	titik_perjanjian: [
+	titik_perjanjian_lt: [
 		{
 			renderKind: 'circle',
-			sourceId: 'source-titik-perjanjian',
-			baseLayerId: 'layer-titik-perjanjian-base',
-			filteredLayerId: 'layer-titik-perjanjian-filtered',
-			selectionLayerId: 'layer-titik-perjanjian-selected',
-			hoverLayerId: 'layer-titik-perjanjian-hover',
+			sourceId: 'source-tp-lt',
+			baseLayerId: 'layer-tp-lt-base',
+			filteredLayerId: 'layer-tp-lt-filtered',
+			selectionLayerId: 'layer-tp-lt-selected',
+			hoverLayerId: 'layer-tp-lt-hover',
 			type: 'circle',
 			paint: {
-				base: {
-					'circle-radius': 5,
-					'circle-color': '#0ea5e9',
-					'circle-stroke-color': '#ffffff',
-					'circle-stroke-width': 1.1,
-					'circle-opacity': 0.8,
-				},
-				filtered: {
-					'circle-radius': 6.2,
-					'circle-color': '#0ea5e9',
-					'circle-stroke-color': '#1f2937',
-					'circle-stroke-width': 2,
-					'circle-opacity': 0.9,
-				},
-				selection: {
-					'circle-radius': 7.4,
-					'circle-color': '#f97316',
-					'circle-stroke-color': '#0f172a',
-					'circle-stroke-width': 2.2,
-					'circle-opacity': 0.95,
-				},
-				hover: {
-					'circle-radius': 6.8,
-					'circle-color': '#eab308',
-					'circle-stroke-color': '#0f172a',
-					'circle-stroke-width': 2,
-					'circle-opacity': 0.95,
-				},
+				base: { 'circle-radius': 5, 'circle-color': '#3730a3', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.1, 'circle-opacity': 0.85 },
+				filtered: { 'circle-radius': 6.2, 'circle-color': '#3730a3', 'circle-stroke-color': '#1f2937', 'circle-stroke-width': 2, 'circle-opacity': 0.9 },
+				selection: { 'circle-radius': 7.4, 'circle-color': '#f97316', 'circle-stroke-color': '#0f172a', 'circle-stroke-width': 2.2, 'circle-opacity': 0.95 },
+				hover: { 'circle-radius': 6.8, 'circle-color': '#eab308', 'circle-stroke-color': '#0f172a', 'circle-stroke-width': 2, 'circle-opacity': 0.95 },
+			},
+		},
+	],
+	titik_perjanjian_lk: [
+		{
+			renderKind: 'circle',
+			sourceId: 'source-tp-lk',
+			baseLayerId: 'layer-tp-lk-base',
+			filteredLayerId: 'layer-tp-lk-filtered',
+			selectionLayerId: 'layer-tp-lk-selected',
+			hoverLayerId: 'layer-tp-lk-hover',
+			type: 'circle',
+			paint: {
+				base: { 'circle-radius': 5, 'circle-color': '#78350f', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.1, 'circle-opacity': 0.85 },
+				filtered: { 'circle-radius': 6.2, 'circle-color': '#78350f', 'circle-stroke-color': '#1f2937', 'circle-stroke-width': 2, 'circle-opacity': 0.9 },
+				selection: { 'circle-radius': 7.4, 'circle-color': '#f97316', 'circle-stroke-color': '#0f172a', 'circle-stroke-width': 2.2, 'circle-opacity': 0.95 },
+				hover: { 'circle-radius': 6.8, 'circle-color': '#eab308', 'circle-stroke-color': '#0f172a', 'circle-stroke-width': 2, 'circle-opacity': 0.95 },
+			},
+		},
+	],
+	titik_perjanjian_zee: [
+		{
+			renderKind: 'circle',
+			sourceId: 'source-tp-zee',
+			baseLayerId: 'layer-tp-zee-base',
+			filteredLayerId: 'layer-tp-zee-filtered',
+			selectionLayerId: 'layer-tp-zee-selected',
+			hoverLayerId: 'layer-tp-zee-hover',
+			type: 'circle',
+			paint: {
+				base: { 'circle-radius': 5, 'circle-color': '#0d9488', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.1, 'circle-opacity': 0.85 },
+				filtered: { 'circle-radius': 6.2, 'circle-color': '#0d9488', 'circle-stroke-color': '#1f2937', 'circle-stroke-width': 2, 'circle-opacity': 0.9 },
+				selection: { 'circle-radius': 7.4, 'circle-color': '#f97316', 'circle-stroke-color': '#0f172a', 'circle-stroke-width': 2.2, 'circle-opacity': 0.95 },
+				hover: { 'circle-radius': 6.8, 'circle-color': '#eab308', 'circle-stroke-color': '#0f172a', 'circle-stroke-width': 2, 'circle-opacity': 0.95 },
 			},
 		},
 	],
@@ -316,34 +319,10 @@ const mapLayerConfigs: Record<LayerId, MapLayerConfig[]> = {
 			hoverLayerId: 'layer-basepoints-hover',
 			type: 'circle',
 			paint: {
-				base: {
-					'circle-radius': 4.5,
-					'circle-color': '#1d4ed8',
-					'circle-opacity': 0.75,
-					'circle-stroke-color': '#ffffff',
-					'circle-stroke-width': 1,
-				},
-				filtered: {
-					'circle-radius': 5.8,
-					'circle-color': '#1d4ed8',
-					'circle-stroke-color': '#0f172a',
-					'circle-stroke-width': 1.8,
-					'circle-opacity': 0.9,
-				},
-				selection: {
-					'circle-radius': 7,
-					'circle-color': '#f97316',
-					'circle-stroke-color': '#0f172a',
-					'circle-stroke-width': 2.2,
-					'circle-opacity': 0.95,
-				},
-				hover: {
-					'circle-radius': 6.2,
-					'circle-color': '#eab308',
-					'circle-stroke-color': '#0f172a',
-					'circle-stroke-width': 2,
-					'circle-opacity': 0.95,
-				},
+				base: { 'circle-radius': 4.5, 'circle-color': '#475569', 'circle-opacity': 0.75, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1 },
+				filtered: { 'circle-radius': 5.8, 'circle-color': '#475569', 'circle-stroke-color': '#0f172a', 'circle-stroke-width': 1.8, 'circle-opacity': 0.9 },
+				selection: { 'circle-radius': 7, 'circle-color': '#f97316', 'circle-stroke-color': '#0f172a', 'circle-stroke-width': 2.2, 'circle-opacity': 0.95 },
+				hover: { 'circle-radius': 6.2, 'circle-color': '#eab308', 'circle-stroke-color': '#0f172a', 'circle-stroke-width': 2, 'circle-opacity': 0.95 },
 			},
 		},
 	],
@@ -663,6 +642,12 @@ const MapView = () => {
 	const setActiveLayer = useLayersStore((state) => state.setActiveLayer);
 	const requestZoomToIds = useLayersStore((state) => state.requestZoomToIds);
 	const setActiveTab = useUIStore((state) => state.setActiveTab);
+	const showCoordinates = useUIStore((state) => state.showCoordinates);
+
+	const [coords, setCoords] = useState<{ lng: number; lat: number } | null>(null);
+	const showCoordinatesRef = useRef(showCoordinates);
+	// Keep ref in sync so the stable mousemove closure sees latest toggle
+	showCoordinatesRef.current = showCoordinates;
 
 	useEffect(() => {
 		if (!containerRef.current) {
@@ -692,6 +677,17 @@ const MapView = () => {
 		const navigationControl = new NavigationControl({ visualizePitch: true });
 		map.addControl(navigationControl, 'top-right');
 		map.addControl(new ScaleControl({ unit: 'metric' }), 'bottom-right');
+
+		const handleMapMouseMove = (e: maplibregl.MapMouseEvent) => {
+			if (!showCoordinatesRef.current) {
+				setCoords(null);
+				return;
+			}
+			setCoords({ lng: e.lngLat.lng, lat: e.lngLat.lat });
+		};
+		const handleMapMouseLeave = () => setCoords(null);
+		map.on('mousemove', handleMapMouseMove);
+		map.on('mouseleave', handleMapMouseLeave);
 
 		const accessibilityCleanup: Array<() => void> = [];
 
@@ -1370,6 +1366,8 @@ const MapView = () => {
 		return () => {
 			window.removeEventListener('resize', resize);
 			accessibilityCleanup.forEach((fn) => fn());
+			map.off('mousemove', handleMapMouseMove);
+			map.off('mouseleave', handleMapMouseLeave);
 			map.removeControl(navigationControl);
 			map.removeControl(basemapControl);
 			map.removeControl(styleControl);
@@ -1436,6 +1434,19 @@ const MapView = () => {
 	return (
 		<>
 			<div ref={containerRef} className='h-full w-full' />
+			{showCoordinates && coords && (
+				<div
+					className='pointer-events-none absolute bottom-8 left-1/2 z-20 -translate-x-1/2 rounded-md border px-2.5 py-1 text-[11px] font-mono tabular-nums shadow-sm backdrop-blur-sm'
+					style={{
+						backgroundColor: 'rgba(var(--color-panel-rgb, 255 255 255) / 0.88)',
+						borderColor: 'var(--color-border, #e2e8f0)',
+						color: 'var(--color-text)',
+					}}
+				>
+					{coords.lat >= 0 ? `${coords.lat.toFixed(6)}°N` : `${Math.abs(coords.lat).toFixed(6)}°S`}&nbsp;&nbsp;
+					{coords.lng >= 0 ? `${coords.lng.toFixed(6)}°E` : `${Math.abs(coords.lng).toFixed(6)}°W`}
+				</div>
+			)}
 			{modalState.isOpen && modalState.layerId && modalState.featureId && (
 				<FeatureDetailModal
 					isOpen={modalState.isOpen}

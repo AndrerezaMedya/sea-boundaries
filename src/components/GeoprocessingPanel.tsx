@@ -231,11 +231,11 @@ const GeoprocessingPanel = () => {
 	return (
 		<div className='space-y-4'>
 			<div className='space-y-2'>
-				<label className='text-xs font-semibold text-slate-700'>Operasi Geoprocessing</label>
+				<label className='text-xs font-semibold text-[color:var(--color-text)]'>Operasi Geoprocessing</label>
 				<select
 					value={selectedOperation || ''}
 					onChange={(e) => setSelectedOperation(e.target.value as GeoprocessingOperation)}
-					className='w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20'
+					className='w-full rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-panel)] px-3 py-2 text-sm text-[color:var(--color-text)] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20'
 				>
 					<option value=''>Pilih operasi...</option>
 					{Object.entries(OPERATIONS).map(([key, config]) => (
@@ -245,18 +245,18 @@ const GeoprocessingPanel = () => {
 					))}
 				</select>
 				{operationConfig && (
-					<p className='text-xs text-slate-600'>{operationConfig.description}</p>
+					<p className='text-xs text-[color:var(--color-muted)]'>{operationConfig.description}</p>
 				)}
 			</div>
 
 			{selectedOperation && (
 				<>
 					<div className='space-y-2'>
-						<label className='text-xs font-semibold text-slate-700'>Layer Input</label>
+						<label className='text-xs font-semibold text-[color:var(--color-text)]'>Layer Input</label>
 						<select
 							value={inputLayer}
 							onChange={(e) => setInputLayer(e.target.value as LayerId)}
-							className='w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20'
+							className='w-full rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-panel)] px-3 py-2 text-sm text-[color:var(--color-text)] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20'
 						>
 							{availableLayers.map((layerId) => {
 								const schema = getLayerSchema(layerId);
@@ -271,11 +271,11 @@ const GeoprocessingPanel = () => {
 
 					{operationConfig?.requiresSecondLayer && (
 						<div className='space-y-2'>
-							<label className='text-xs font-semibold text-slate-700'>Layer Kedua</label>
+							<label className='text-xs font-semibold text-[color:var(--color-text)]'>Layer Kedua</label>
 							<select
 								value={secondLayer || ''}
 								onChange={(e) => setSecondLayer(e.target.value as LayerId)}
-								className='w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20'
+							className='w-full rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-panel)] px-3 py-2 text-sm text-[color:var(--color-text)] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20'
 							>
 								<option value=''>Pilih layer...</option>
 								{availableLayers
@@ -294,7 +294,7 @@ const GeoprocessingPanel = () => {
 
 					{operationConfig?.parameterType === 'distance' && (
 						<div className='space-y-2'>
-							<label className='text-xs font-semibold text-slate-700'>
+							<label className='text-xs font-semibold text-[color:var(--color-text)]'>
 								Jarak Buffer (km)
 							</label>
 							<input
@@ -303,14 +303,14 @@ const GeoprocessingPanel = () => {
 								onChange={(e) => setParameter(e.target.value)}
 								step='0.1'
 								min='0'
-								className='w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20'
+								className='w-full rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-panel)] px-3 py-2 text-sm text-[color:var(--color-text)] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20'
 							/>
 						</div>
 					)}
 
 					{operationConfig?.parameterType === 'tolerance' && (
 						<div className='space-y-2'>
-							<label className='text-xs font-semibold text-slate-700'>
+							<label className='text-xs font-semibold text-[color:var(--color-text)]'>
 								Tolerance (meter)
 							</label>
 							<input
@@ -319,7 +319,7 @@ const GeoprocessingPanel = () => {
 								onChange={(e) => setParameter(e.target.value)}
 								step='1'
 								min='0'
-								className='w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20'
+								className='w-full rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-panel)] px-3 py-2 text-sm text-[color:var(--color-text)] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20'
 							/>
 						</div>
 					)}
@@ -334,8 +334,8 @@ const GeoprocessingPanel = () => {
 					</button>
 
 					{result && (
-						<div className='rounded-lg border border-slate-200 bg-slate-50 p-3'>
-							<p className='whitespace-pre-line text-xs text-slate-700'>{result}</p>
+						<div className='rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-panel-muted)] p-3'>
+							<p className='whitespace-pre-line text-xs text-[color:var(--color-text)]'>{result}</p>
 						</div>
 					)}
 				</>

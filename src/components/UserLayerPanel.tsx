@@ -165,15 +165,15 @@ const UserLayerPanel = () => {
 				accept='.geojson,application/geo+json,application/json'
 				idleHint={
 					<div className='flex flex-col items-center gap-2'>
-						<CloudUpload className='h-7 w-7 text-slate-500' />
-						<span className='text-sm font-semibold text-slate-700'>Seret & jatuhkan berkas GeoJSON</span>
-						<span className='max-w-[220px] text-[11px] text-slate-500'>Mendukung FeatureCollection dengan geometri sejenis</span>
+						<CloudUpload className='h-7 w-7 text-[color:var(--color-muted)]' />
+						<span className='text-sm font-semibold text-[color:var(--color-text)]'>Seret & jatuhkan berkas GeoJSON</span>
+						<span className='max-w-[220px] text-[11px] text-[color:var(--color-muted)]'>Mendukung FeatureCollection dengan geometri sejenis</span>
 					</div>
 				}
 				activeHint={
 					<div className='flex flex-col items-center gap-2'>
-						<CloudUpload className='h-7 w-7 text-slate-600' />
-						<span className='text-sm font-semibold text-slate-700'>Lepaskan untuk memuat GeoJSON</span>
+						<CloudUpload className='h-7 w-7 text-[color:var(--color-muted)]' />
+						<span className='text-sm font-semibold text-[color:var(--color-text)]'>Lepaskan untuk memuat GeoJSON</span>
 					</div>
 				}
 			/>
@@ -182,7 +182,7 @@ const UserLayerPanel = () => {
 				<Button
 					onClick={handleSelectFile}
 					variant='outline'
-					className='w-full min-w-0 gap-2 border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+					className='w-full min-w-0 gap-2 border-[color:var(--color-border)] bg-[color:var(--color-panel)] text-[color:var(--color-text)] hover:bg-[color:var(--color-panel-muted)]'
 					disabled={loadingFile || loadingUrl}
 				>
 					<FolderPlus className='h-4 w-4' />
@@ -197,7 +197,7 @@ const UserLayerPanel = () => {
 						void handleUrlLoad(lastUrl);
 					}}
 					variant='outline'
-					className='w-full min-w-0 gap-2 border-slate-300 bg-white text-slate-700 hover:bg-slate-50 disabled:text-slate-400'
+					className='w-full min-w-0 gap-2 border-[color:var(--color-border)] bg-[color:var(--color-panel)] text-[color:var(--color-text)] hover:bg-[color:var(--color-panel-muted)] disabled:text-[color:var(--color-muted)]'
 					disabled={loadingUrl || loadingFile || !lastUrl}
 				>
 					<RefreshCcw className='h-4 w-4' />
@@ -205,18 +205,18 @@ const UserLayerPanel = () => {
 				</Button>
 			</div>
 
-			<div className='flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm'>
-				<label className='text-xs font-semibold uppercase tracking-[0.18em] text-slate-600'>URL GeoJSON</label>
+			<div className='flex flex-col gap-2 rounded-xl border border-[color:var(--color-border)] bg-[color:var(--color-panel)] p-3 shadow-sm'>
+				<label className='text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--color-muted)]'>URL GeoJSON</label>
 				<div className='flex flex-col gap-2 sm:flex-row sm:items-center'>
 					<Input
 						value={urlInput}
 						onChange={(event) => setUrlInput(event.target.value)}
 						placeholder='https://example.com/data.geojson'
-						className='flex-1 border-slate-300 text-sm text-slate-800 placeholder:text-slate-400'
+						className='flex-1 border-[color:var(--color-border)] text-sm text-[color:var(--color-text)] placeholder:text-[color:var(--color-muted)]'
 					/>
 					<Button
 						onClick={() => void handleUrlLoad()}
-						className='w-full gap-2 bg-slate-900 text-white hover:bg-slate-800 sm:w-auto'
+						className='w-full gap-2 bg-[color:var(--color-accent)] text-white hover:opacity-90 sm:w-auto'
 						disabled={loadingUrl}
 					>
 						{loadingUrl ? 'Memuat...' : (
@@ -228,7 +228,7 @@ const UserLayerPanel = () => {
 					</Button>
 				</div>
 				{showLastUrlPrompt ? (
-					<p className='text-[11px] text-slate-500'>URL terakhir: <button type='button' className='underline' onClick={() => setUrlInput(lastUrl)}>{lastUrl}</button></p>
+					<p className='text-[11px] text-[color:var(--color-muted)]'>URL terakhir: <button type='button' className='underline' onClick={() => setUrlInput(lastUrl)}>{lastUrl}</button></p>
 				) : null}
 			</div>
 
@@ -251,8 +251,8 @@ const UserLayerPanel = () => {
 					<p className='text-[11px] text-emerald-700'>Layer ini otomatis aktif di peta, Query Builder, dan tabel atribut.</p>
 				</div>
 			) : (
-				<div className='flex items-center gap-2 rounded-xl border border-dashed border-slate-300 bg-white p-3 text-xs text-slate-600 shadow-sm'>
-					<AlertTriangle className='h-4 w-4 text-slate-400' />
+				<div className='flex items-center gap-2 rounded-xl border border-dashed border-[color:var(--color-border)] bg-[color:var(--color-panel)] p-3 text-xs text-[color:var(--color-muted)] shadow-sm'>
+					<AlertTriangle className='h-4 w-4 text-[color:var(--color-muted)]' />
 					<span>Belum ada GeoJSON pengguna yang dimuat. Gunakan salah satu opsi di atas.</span>
 				</div>
 			)}

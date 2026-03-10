@@ -95,7 +95,7 @@ const QueryBuilder = () => {
 		createPreset,
 		deletePreset,
 		renamePreset,
-		setActiveTab,
+		setTableOpen,
 	} = useUIStore();
 	const layerState = layers[activeLayerId];
 	const layerPresets = useMemo(
@@ -230,7 +230,7 @@ const QueryBuilder = () => {
 		}
 		applyFilter(activeLayerId, cloneDefinition(builder));
 		toast({ title: 'Filter diterapkan', description: `${filteredIds.length} fitur terpilih.` });
-		setActiveTab('table');
+		setTableOpen(true);
 	};
 
 	const handleClear = () => {
@@ -267,7 +267,7 @@ const QueryBuilder = () => {
 		setBuilderState(activeLayerId, preset.definition);
 		applyFilter(activeLayerId, cloneDefinition(preset.definition));
 		toast({ title: 'Preset diterapkan', description: `Filter "${preset.name}" aktif.` });
-		setActiveTab('table');
+		setTableOpen(true);
 	};
 
 	const handleShowValues = (conditionId: string, fieldName: string) => {
@@ -319,12 +319,12 @@ const QueryBuilder = () => {
 
 	return (
 		<div className='space-y-5'>
-			<div className='space-y-3 rounded-xl border border-slate-200/70 bg-white p-4 shadow-sm'>
+			<div className='space-y-3 rounded-xl border border-[var(--color-border)] bg-[color:var(--color-panel)] p-4 shadow-sm'>
 				<div className='flex items-center justify-between gap-3'>
 					<div>
-						<h3 className='text-sm font-semibold text-slate-900'>Query</h3>
+						<h3 className='text-sm font-semibold text-[color:var(--color-text)]'>Query</h3>
 					</div>
-					<span className='inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-500'>
+					<span className='inline-flex items-center gap-1 rounded-full bg-[color:var(--color-panel-muted)] px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-[color:var(--color-muted)]'>
 						<Filter className='h-3.5 w-3.5' />
 						{schema.label}
 					</span>
@@ -332,20 +332,20 @@ const QueryBuilder = () => {
 				{isDisabled ? (
 					<div className='rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700'>Aktifkan visibilitas layer untuk mengakses Query Builder.</div>
 				) : null}
-				<div className='flex items-center gap-2 text-xs font-medium text-slate-500'>
+				<div className='flex items-center gap-2 text-xs font-medium text-[color:var(--color-muted)] text-[color:var(--color-muted)]'>
 					<span>Gabung kondisi dengan</span>
-					<div className='inline-flex rounded-full border border-slate-200 bg-slate-100 p-1 text-[11px] uppercase tracking-wide'>
+					<div className='inline-flex rounded-full border border-[var(--color-border)] bg-[color:var(--color-panel-muted)] p-1 text-[11px] uppercase tracking-wide'>
 						<button
 							type='button'
 							onClick={() => setJoin('all')}
-							className={cn('rounded-full px-3 py-1 transition', builder.join === 'all' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700')}
+							className={cn('rounded-full px-3 py-1 transition', builder.join === 'all' ? 'bg-[color:var(--color-panel)] text-[color:var(--color-text)] shadow-sm' : 'text-[color:var(--color-muted)] hover:text-[color:var(--color-text)]')}
 						>
 							AND
 						</button>
 						<button
 							type='button'
 							onClick={() => setJoin('any')}
-							className={cn('rounded-full px-3 py-1 transition', builder.join === 'any' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700')}
+							className={cn('rounded-full px-3 py-1 transition', builder.join === 'any' ? 'bg-[color:var(--color-panel)] text-[color:var(--color-text)] shadow-sm' : 'text-[color:var(--color-muted)] hover:text-[color:var(--color-text)]')}
 						>
 							OR
 						</button>
@@ -354,7 +354,7 @@ const QueryBuilder = () => {
 
 				<div className='space-y-3'>
 					{conditions.length === 0 ? (
-						<div className='rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-xs text-slate-500'>
+						<div className='rounded-lg border border-dashed border-[var(--color-border)] bg-[color:var(--color-panel-elevated)] px-4 py-6 text-center text-xs text-[color:var(--color-muted)]'>
 							Belum ada kondisi. Pilih salah satu tombol cepat atau klik "Tambah kondisi".
 						</div>
 					) : (
@@ -363,8 +363,8 @@ const QueryBuilder = () => {
 							const operators = getOperatorOptions(fieldSchema.type);
 							const valuesText = Array.isArray(condition.value) ? condition.value.join(', ') : condition.value;
 							return (
-								<div key={condition.id} className='space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3 shadow-inner'>
-									<div className='flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500'>
+								<div key={condition.id} className='space-y-3 rounded-lg border border-[var(--color-border)] bg-[color:var(--color-panel-elevated)] p-3 shadow-inner'>
+									<div className='flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--color-muted)]'>
 										<span>Kondisi {index + 1}</span>
 										<Button
 											onClick={() => removeCondition(condition.id)}
@@ -382,7 +382,7 @@ const QueryBuilder = () => {
 											<select
 												value={condition.field}
 												onChange={(event) => handleFieldChange(condition.id, event.target.value)}
-												className='w-full rounded-md border border-slate-200 bg-white px-2 py-2 text-xs'
+												className='w-full rounded-md border border-[var(--color-border)] bg-[color:var(--color-panel)] px-2 py-2 text-xs'
 												disabled={isDisabled}
 											>
 												{schema.fields.map((field) => (
@@ -397,7 +397,7 @@ const QueryBuilder = () => {
 											<select
 												value={condition.operator}
 												onChange={(event) => handleOperatorChange(condition.id, event.target.value as Operator)}
-												className='w-full rounded-md border border-slate-200 bg-white px-2 py-2 text-xs'
+												className='w-full rounded-md border border-[var(--color-border)] bg-[color:var(--color-panel)] px-2 py-2 text-xs'
 												disabled={isDisabled}
 											>
 												{operators.map((operator) => (
@@ -413,7 +413,7 @@ const QueryBuilder = () => {
 												<textarea
 													value={Array.isArray(condition.value) ? condition.value.join(', ') : ''}
 													onChange={(event) => handleValueChange(condition.id, event.target.value)}
-													className='min-h-[60px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs'
+													className='min-h-[60px] w-full rounded-md border border-[var(--color-border)] bg-[color:var(--color-panel)] px-3 py-2 text-xs'
 													placeholder='Pisahkan dengan koma'
 													disabled={isDisabled}
 												/>
@@ -449,7 +449,7 @@ const QueryBuilder = () => {
 											>
 												Daftar nilai
 											</Button>
-											{fieldSchema?.description ? <span className='text-[11px] text-slate-500'>Catatan: {fieldSchema.description}</span> : null}
+											{fieldSchema?.description ? <span className='text-[11px] text-[color:var(--color-muted)]'>Catatan: {fieldSchema.description}</span> : null}
 										</div>
 									</div>
 								</div>
@@ -487,23 +487,23 @@ const QueryBuilder = () => {
 				<Button onClick={handleApply} className='w-full justify-center gap-2 bg-slate-900 text-white hover:bg-slate-800' disabled={!canApply || isDisabled}>
 					Terapkan filter
 				</Button>
-				<Button onClick={handleZoomToFiltered} variant='outline' className='w-full justify-center gap-2 text-slate-700' disabled={filteredIds.length === 0}>
+				<Button onClick={handleZoomToFiltered} variant='outline' className='w-full justify-center gap-2 text-[color:var(--color-text)]' disabled={filteredIds.length === 0}>
 					Zoom ke hasil filter
 				</Button>
-				<Button onClick={handleClear} variant='secondary' className='w-full justify-center gap-2 text-slate-700'>
+				<Button onClick={handleClear} variant='secondary' className='w-full justify-center gap-2 text-[color:var(--color-text)]'>
 					Reset
 				</Button>
 			</div>
 
-			<div className='rounded-xl border border-slate-200/70 bg-white p-4 shadow-sm'>
-				<div className='mb-2 flex items-center justify-between text-sm font-semibold text-slate-900'>
+			<div className='rounded-xl border border-[var(--color-border)] bg-[color:var(--color-panel)] p-4 shadow-sm'>
+				<div className='mb-2 flex items-center justify-between text-sm font-semibold text-[color:var(--color-text)]'>
 					<span>Preset filter</span>
 					<Button onClick={handleSavePreset} size='sm' variant='outline' disabled={!canApply}>
 						Simpan sebagai preset
 					</Button>
 				</div>
 				{layerPresets.length === 0 ? (
-					<p className='text-xs text-slate-500'>Belum ada preset. Simpan kueri favorit untuk pakai ulang.</p>
+					<p className='text-xs text-[color:var(--color-muted)]'>Belum ada preset. Simpan kueri favorit untuk pakai ulang.</p>
 				) : (
 					<div className='space-y-2'>
 						<div className='flex flex-wrap items-center gap-2'>
@@ -526,7 +526,7 @@ const QueryBuilder = () => {
 						<ul className='space-y-1 text-xs text-slate-600'>
 							{layerPresets.map((preset) => (
 								<li key={preset.id} className='flex items-center justify-between rounded-md bg-slate-50 px-2 py-1'>
-									<span className='font-medium text-slate-700'>{preset.name}</span>
+									<span className='font-medium text-[color:var(--color-text)]'>{preset.name}</span>
 									<div className='flex items-center gap-2'>
 										<Button
 											onClick={() => {
@@ -564,14 +564,14 @@ const QueryBuilder = () => {
 									key={String(value)}
 									onClick={() => handleSelectValue(value)}
 									type='button'
-									className='rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100'
+									className='rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-[color:var(--color-text)] hover:bg-slate-100'
 								>
 									{String(value)}
 								</button>
 							))}
 						</div>
 					)}
-					<Button onClick={() => setValuesPanel(null)} variant='ghost' size='sm' className='mt-3 text-slate-500'>Tutup daftar nilai</Button>
+					<Button onClick={() => setValuesPanel(null)} variant='ghost' size='sm' className='mt-3 text-[color:var(--color-muted)]'>Tutup daftar nilai</Button>
 				</div>
 			) : null}
 
