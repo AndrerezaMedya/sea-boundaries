@@ -43,8 +43,8 @@ const Legend = () => {
 							<span>{status}</span>
 						</li>
 					))}
-						<li className='flex items-center gap-3 text-sm text-[color:var(--color-text)]'>
-							<span className='inline-flex h-0 w-12 border-b-2 border-[color:var(--color-muted)]' />
+					<li className='flex items-center gap-3 text-sm text-[color:var(--color-text)]'>
+						<span className='inline-flex h-0 w-12 border-b-2 border-[color:var(--color-muted)]' />
 						<span>Lainnya (solid)</span>
 					</li>
 				</ul>

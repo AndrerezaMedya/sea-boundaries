@@ -6,7 +6,7 @@ import { useLayersStore } from '@/store/useLayers';
 import type { LayerId } from '@/lib/types';
 import { getLayerSchema } from '@/lib/schema';
 
-type GeoprocessingOperation = 
+type GeoprocessingOperation =
 	| 'buffer'
 	| 'union'
 	| 'intersect'
@@ -87,7 +87,7 @@ const OPERATIONS: Record<GeoprocessingOperation, OperationConfig> = {
 const GeoprocessingPanel = () => {
 	const layers = useLayersStore((state) => state.layers);
 	const activeLayerId = useLayersStore((state) => state.activeLayerId);
-	
+
 	const [selectedOperation, setSelectedOperation] = useState<GeoprocessingOperation | null>(null);
 	const [inputLayer, setInputLayer] = useState<LayerId>(activeLayerId);
 	const [secondLayer, setSecondLayer] = useState<LayerId | null>(null);
@@ -111,11 +111,11 @@ const GeoprocessingPanel = () => {
 		try {
 			const inputData = layers[inputLayer]?.data;
 			const selectedFeatures = layers[inputLayer]?.selectionIds || [];
-			
+
 			let features: Feature[] = inputData?.features || [];
 			if (selectedFeatures.length > 0) {
 				const schema = getLayerSchema(inputLayer);
-				features = features.filter((f) => 
+				features = features.filter((f) =>
 					selectedFeatures.includes(String(f.properties?.[schema.primaryKey]))
 				);
 			}
@@ -275,7 +275,7 @@ const GeoprocessingPanel = () => {
 							<select
 								value={secondLayer || ''}
 								onChange={(e) => setSecondLayer(e.target.value as LayerId)}
-							className='w-full rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-panel)] px-3 py-2 text-sm text-[color:var(--color-text)] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20'
+								className='w-full rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-panel)] px-3 py-2 text-sm text-[color:var(--color-text)] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20'
 							>
 								<option value=''>Pilih layer...</option>
 								{availableLayers
@@ -343,7 +343,7 @@ const GeoprocessingPanel = () => {
 
 			<div className='rounded-lg border border-blue-200 bg-blue-50 p-3'>
 				<p className='text-xs text-blue-900'>
-					<strong>ℹ️ Catatan:</strong> Saat ini menggunakan Turf.js untuk operasi geometri lokal. 
+					<strong>ℹ️ Catatan:</strong> Saat ini menggunakan Turf.js untuk operasi geometri lokal.
 					Kedepannya akan diganti dengan WPS (Web Processing Service) untuk geoprocessing server-side.
 				</p>
 			</div>

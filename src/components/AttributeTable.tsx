@@ -188,88 +188,88 @@ const AttributeTable = () => {
 			</div>
 
 			<div className='min-h-0 flex-1 overflow-auto px-5 py-2'>
-			<div className='overflow-x-auto rounded-xl border border-slate-200 bg-white'>
-				<Table>
-					<TableHeader className='bg-slate-900 text-white [&_th]:text-xs [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wide'>
-						<TableRow>
-							<TableHead className='w-20 text-center'>Aksi</TableHead>
-							{schema.fields
-								.filter((field) => visibleColumns.has(field.name))
-								.map((field) => (
-									<TableHead
-										key={field.name}
-										onClick={() => handleSort(field.name)}
-										className='cursor-pointer select-none whitespace-nowrap'
-									>
-										{field.label}
-										{sortField === field.name ? (
-											<span className='ml-1 text-[10px] text-white/70'>{sortDirection === 'asc' ? '▲' : '▼'}</span>
-										) : null}
-									</TableHead>
-								))}
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{pagedRows.length === 0 ? (
+				<div className='overflow-x-auto rounded-xl border border-slate-200 bg-white'>
+					<Table>
+						<TableHeader className='bg-slate-900 text-white [&_th]:text-xs [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wide'>
 							<TableRow>
-								<TableCell colSpan={visibleColumns.size + 1} className='py-6 text-center text-sm text-slate-600'>
-									Tidak ada fitur yang cocok dengan filter.
-								</TableCell>
+								<TableHead className='w-20 text-center'>Aksi</TableHead>
+								{schema.fields
+									.filter((field) => visibleColumns.has(field.name))
+									.map((field) => (
+										<TableHead
+											key={field.name}
+											onClick={() => handleSort(field.name)}
+											className='cursor-pointer select-none whitespace-nowrap'
+										>
+											{field.label}
+											{sortField === field.name ? (
+												<span className='ml-1 text-[10px] text-white/70'>{sortDirection === 'asc' ? '▲' : '▼'}</span>
+											) : null}
+										</TableHead>
+									))}
 							</TableRow>
-						) : (
-							pagedRows.map((row) => {
-								const isSelected = selectionIds.includes(row.id);
-								return (
-									<TableRow
-										key={row.id}
-										onMouseEnter={() => setHoveredFeature(activeLayerId, row.id)}
-										onMouseLeave={() => setHoveredFeature(activeLayerId, null)}
-										className={cn(
-											'border-b border-slate-200 text-sm transition-colors',
-											isSelected ? 'bg-slate-900 text-white' : 'bg-white text-slate-800',
-											hoveredId === row.id && !isSelected ? 'bg-slate-100 text-slate-900' : undefined,
-										)}
-									>
-										<TableCell className='align-top'>
-											<div className='flex flex-col gap-1'>
-												<Button size='sm' variant='default' onClick={() => handleSelectRow(row.id)} className={pillPrimaryClass}>
-													{isSelected ? 'Batalkan' : 'Pilih'}
-												</Button>
-												<Button size='sm' variant='outline' onClick={() => handleZoomRow(row.id)} className={pillOutlineClass}>
-													Zoom
-												</Button>
-												<Button size='sm' variant='ghost' onClick={() => handleCopyRow(row.id)} className={cn('px-0', iconButtonClass)}>
-													<Clipboard className='h-3.5 w-3.5' />
-												</Button>
-											</div>
-										</TableCell>
-										{schema.fields
-											.filter((field) => visibleColumns.has(field.name))
-											.map((field) => {
-												const value = row.properties[field.name];
-												const displayValue =
-													value === undefined || value === null
-														? '—'
-														: typeof value === 'number'
-														?
-															value.toLocaleString('id-ID')
-														: String(value);
-												return (
-													<TableCell
-														key={field.name}
-														className={cn('whitespace-nowrap align-top text-sm', isSelected ? 'text-white' : 'text-slate-800')}
-													>
-														{displayValue}
-													</TableCell>
-												);
-											})}
-									</TableRow>
-								);
-							})
-						)}
-					</TableBody>
-				</Table>
-			</div>
+						</TableHeader>
+						<TableBody>
+							{pagedRows.length === 0 ? (
+								<TableRow>
+									<TableCell colSpan={visibleColumns.size + 1} className='py-6 text-center text-sm text-slate-600'>
+										Tidak ada fitur yang cocok dengan filter.
+									</TableCell>
+								</TableRow>
+							) : (
+								pagedRows.map((row) => {
+									const isSelected = selectionIds.includes(row.id);
+									return (
+										<TableRow
+											key={row.id}
+											onMouseEnter={() => setHoveredFeature(activeLayerId, row.id)}
+											onMouseLeave={() => setHoveredFeature(activeLayerId, null)}
+											className={cn(
+												'border-b border-slate-200 text-sm transition-colors',
+												isSelected ? 'bg-slate-900 text-white' : 'bg-white text-slate-800',
+												hoveredId === row.id && !isSelected ? 'bg-slate-100 text-slate-900' : undefined,
+											)}
+										>
+											<TableCell className='align-top'>
+												<div className='flex flex-col gap-1'>
+													<Button size='sm' variant='default' onClick={() => handleSelectRow(row.id)} className={pillPrimaryClass}>
+														{isSelected ? 'Batalkan' : 'Pilih'}
+													</Button>
+													<Button size='sm' variant='outline' onClick={() => handleZoomRow(row.id)} className={pillOutlineClass}>
+														Zoom
+													</Button>
+													<Button size='sm' variant='ghost' onClick={() => handleCopyRow(row.id)} className={cn('px-0', iconButtonClass)}>
+														<Clipboard className='h-3.5 w-3.5' />
+													</Button>
+												</div>
+											</TableCell>
+											{schema.fields
+												.filter((field) => visibleColumns.has(field.name))
+												.map((field) => {
+													const value = row.properties[field.name];
+													const displayValue =
+														value === undefined || value === null
+															? '—'
+															: typeof value === 'number'
+																?
+																value.toLocaleString('id-ID')
+																: String(value);
+													return (
+														<TableCell
+															key={field.name}
+															className={cn('whitespace-nowrap align-top text-sm', isSelected ? 'text-white' : 'text-slate-800')}
+														>
+															{displayValue}
+														</TableCell>
+													);
+												})}
+										</TableRow>
+									);
+								})
+							)}
+						</TableBody>
+					</Table>
+				</div>
 			</div>
 
 			<div className='flex flex-shrink-0 flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-3 text-xs text-slate-600'>

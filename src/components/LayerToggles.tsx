@@ -8,21 +8,21 @@ import { useLayersStore } from '@/store/useLayers';
 type SymbolConfig = { color: string; type: 'circle' | 'line' | 'fill'; dashArray?: string };
 
 const LAYER_SYMBOLS: Record<CoreLayerId, SymbolConfig> = {
-	basepoints:                     { color: '#475569', type: 'circle' },
-	baseline:                       { color: '#1e293b', type: 'line', dashArray: '1 3' },
-	laut_teritorial_sepakat:        { color: '#1d4ed8', type: 'line' },
-	laut_teritorial_perlu:          { color: '#6366f1', type: 'line', dashArray: '4 2' },
-	zee_sepakat:                    { color: '#15803d', type: 'line' },
-	zee_sepakat_ratif:              { color: '#22c55e', type: 'line', dashArray: '4 2' },
-	zee_perlu:                      { color: '#84cc16', type: 'line', dashArray: '2 2' },
-	landas_kontinen_sepakat:        { color: '#92400e', type: 'line' },
-	landas_kontinen_sepakat_ratif:  { color: '#c2410c', type: 'line', dashArray: '4 2' },
-	landas_kontinen_perlu:          { color: '#f59e0b', type: 'line', dashArray: '2 2' },
-	landas_kontinen_ekstensi:       { color: '#f97316', type: 'fill' },
-	zona_tambahan:                  { color: '#0891b2', type: 'line' },
-	titik_perjanjian_lt:            { color: '#3730a3', type: 'circle' },
-	titik_perjanjian_lk:            { color: '#78350f', type: 'circle' },
-	titik_perjanjian_zee:           { color: '#0d9488', type: 'circle' },
+	basepoints: { color: '#475569', type: 'circle' },
+	baseline: { color: '#1e293b', type: 'line', dashArray: '1 3' },
+	laut_teritorial_sepakat: { color: '#1d4ed8', type: 'line' },
+	laut_teritorial_perlu: { color: '#6366f1', type: 'line', dashArray: '4 2' },
+	zee_sepakat: { color: '#15803d', type: 'line' },
+	zee_sepakat_ratif: { color: '#22c55e', type: 'line', dashArray: '4 2' },
+	zee_perlu: { color: '#84cc16', type: 'line', dashArray: '2 2' },
+	landas_kontinen_sepakat: { color: '#92400e', type: 'line' },
+	landas_kontinen_sepakat_ratif: { color: '#c2410c', type: 'line', dashArray: '4 2' },
+	landas_kontinen_perlu: { color: '#f59e0b', type: 'line', dashArray: '2 2' },
+	landas_kontinen_ekstensi: { color: '#f97316', type: 'fill' },
+	zona_tambahan: { color: '#0891b2', type: 'line' },
+	titik_perjanjian_lt: { color: '#3730a3', type: 'circle' },
+	titik_perjanjian_lk: { color: '#78350f', type: 'circle' },
+	titik_perjanjian_zee: { color: '#0d9488', type: 'circle' },
 };
 
 const LayerSymbol = ({ layerId }: { layerId: CoreLayerId }) => {

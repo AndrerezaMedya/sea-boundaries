@@ -665,10 +665,10 @@ const MapView = () => {
 		});
 		mapRef.current = map;
 
-		const popup = new maplibregl.Popup({ 
-			closeButton: true, 
-			closeOnClick: false, 
-			offset: 15, 
+		const popup = new maplibregl.Popup({
+			closeButton: true,
+			closeOnClick: false,
+			offset: 15,
 			className: 'app-popup',
 			maxWidth: '380px'
 		});
@@ -1287,16 +1287,16 @@ const MapView = () => {
 				popupInstance.remove();
 				return;
 			}
-			
+
 			// Get schema untuk mendapatkan primaryKey
 			const schema = getLayerSchema(layerId);
 			const properties = feature.properties ?? {};
-			
+
 			// Gunakan primaryKey dari properties sebagai featureId, fallback ke feature.id
 			const featureId = properties[schema.primaryKey] !== undefined && properties[schema.primaryKey] !== null
 				? String(properties[schema.primaryKey])
 				: String(feature.id);
-			
+
 			const currentLayerState = useLayersStore.getState().layers[layerId];
 			const currentSelection = currentLayerState?.selectionIds ?? [];
 			const isAlreadySelected = currentSelection.includes(featureId);
