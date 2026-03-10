@@ -246,7 +246,7 @@ body {
 }
 
 .style-flipper-control .map-style.active,
-.style-flipper-control .style-option input[type='radio']:checked + span {
+.style-flipper-control .style-option input[type='radio']:checked+span {
 	border-color: var(--color-accent) !important;
 	color: var(--color-accent) !important;
 }
@@ -275,8 +275,9 @@ body {
 		flex-direction: column;
 		gap: 0.4rem;
 	}
-	.maplibregl-ctrl-top-left > .maplibregl-ctrl,
-	.maplibregl-ctrl-bottom-left > .maplibregl-ctrl {
+
+	.maplibregl-ctrl-top-left>.maplibregl-ctrl,
+	.maplibregl-ctrl-bottom-left>.maplibregl-ctrl {
 		width: 100%;
 	}
 }
@@ -293,19 +294,22 @@ body {
 	background-color: var(--color-panel) !important;
 	color: var(--color-text) !important;
 	border: 1px solid var(--color-border) !important;
-	box-shadow: 0 4px 24px 0 rgba(0,0,0,0.18) !important;
+	box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.18) !important;
 	border-radius: 0.875rem !important;
 	padding: 1rem !important;
 }
+
 .maplibregl-popup-tip {
 	border-top-color: var(--color-panel) !important;
 	border-bottom-color: var(--color-panel) !important;
 	border-left-color: var(--color-panel) !important;
 	border-right-color: var(--color-panel) !important;
 }
+
 .maplibregl-popup-close-button {
 	color: var(--color-muted) !important;
 }
+
 .maplibregl-popup-close-button:hover {
 	color: var(--color-text) !important;
 	background-color: var(--color-panel-muted) !important;
@@ -313,13 +317,27 @@ body {
 
 /* ── Panel entrance animations ── */
 @keyframes slideInLeft {
-	from { transform: translateX(-100%); opacity: 0; }
-	to   { transform: translateX(0);     opacity: 1; }
+	from {
+		transform: translateX(-100%);
+		opacity: 0;
+	}
+
+	to {
+		transform: translateX(0);
+		opacity: 1;
+	}
 }
 
 @keyframes slideInUp {
-	from { transform: translateY(100%); opacity: 0; }
-	to   { transform: translateY(0);    opacity: 1; }
+	from {
+		transform: translateY(100%);
+		opacity: 0;
+	}
+
+	to {
+		transform: translateY(0);
+		opacity: 1;
+	}
 }
 
 .panel-slide-left {
