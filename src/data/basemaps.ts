@@ -63,6 +63,18 @@ const esriWorldImagery: RasterBasemapDefinition = {
 	maxZoom: 22,
 };
 
+const rbiBasemap: RasterBasemapDefinition = {
+	id: 'rbi',
+	label: 'Rupabumi Indonesia',
+	kind: 'raster',
+	tiles: ['https://geoservices.big.go.id/rbi/rest/services/BASEMAP/Rupabumi_Indonesia/MapServer/tile/{z}/{y}/{x}'],
+	attribution: '© Badan Informasi Geospasial',
+	tileSize: 256,
+	minZoom: 0,
+	maxZoom: 20,
+	previewTiles: ['https://tanahair.indonesia.go.id/portal-web/static/media/rbi.494852622726ecff0319.png'],
+};
+
 const cartoDarkMatter: VectorBasemapDefinition = {
 	id: 'darkMatter',
 	label: 'Carto Dark Matter',
@@ -79,12 +91,14 @@ const cartoDarkMatter: VectorBasemapDefinition = {
 
 export const lightBasemaps: Record<string, BasemapDefinition> = {
 	osm: osmStandard,
+	rbi: rbiBasemap,
 	topo: openTopoMap,
 	esri: esriWorldImagery,
 };
 
 export const darkBasemaps: Record<string, BasemapDefinition> = {
 	darkMatter: cartoDarkMatter,
+	rbi: rbiBasemap,
 	topo: openTopoMap,
 	esri: esriWorldImagery,
 };
