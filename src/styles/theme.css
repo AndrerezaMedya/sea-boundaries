@@ -12,6 +12,10 @@
 	--color-danger: #dc2626;
 	--shadow-soft: 0 12px 30px rgba(15, 23, 42, 0.08);
 	--shadow-strong: 0 24px 48px rgba(15, 23, 42, 0.15);
+	--switch-unchecked-bg: #64748b;
+	--switch-unchecked-border: #64748b;
+	--switch-checked-bg: #2563eb;
+	--switch-checked-border: #2563eb;
 }
 
 :root.dark {
@@ -28,6 +32,10 @@
 	--color-danger: #f87171;
 	--shadow-soft: 0 16px 36px rgba(8, 145, 178, 0.24);
 	--shadow-strong: 0 26px 64px rgba(30, 64, 175, 0.35);
+	--switch-unchecked-bg: #475569;
+	--switch-unchecked-border: #64748b;
+	--switch-checked-bg: #3b82f6;
+	--switch-checked-border: #3b82f6;
 }
 
 .app-theme {
@@ -47,6 +55,11 @@
 .app-theme button,
 .app-theme svg {
 	color: inherit;
+}
+
+/* Preserve switch component backgrounds from theme override */
+.app-theme button[role="switch"] {
+	background-color: revert !important;
 }
 
 .app-theme .bg-white,
@@ -273,6 +286,48 @@ body {
 .style-flipper-control,
 .maplibre-search-box {
 	transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* ── MapLibre popup dark mode ── */
+.maplibregl-popup-content {
+	background-color: var(--color-panel) !important;
+	color: var(--color-text) !important;
+	border: 1px solid var(--color-border) !important;
+	box-shadow: 0 4px 24px 0 rgba(0,0,0,0.18) !important;
+	border-radius: 0.875rem !important;
+	padding: 1rem !important;
+}
+.maplibregl-popup-tip {
+	border-top-color: var(--color-panel) !important;
+	border-bottom-color: var(--color-panel) !important;
+	border-left-color: var(--color-panel) !important;
+	border-right-color: var(--color-panel) !important;
+}
+.maplibregl-popup-close-button {
+	color: var(--color-muted) !important;
+}
+.maplibregl-popup-close-button:hover {
+	color: var(--color-text) !important;
+	background-color: var(--color-panel-muted) !important;
+}
+
+/* ── Panel entrance animations ── */
+@keyframes slideInLeft {
+	from { transform: translateX(-100%); opacity: 0; }
+	to   { transform: translateX(0);     opacity: 1; }
+}
+
+@keyframes slideInUp {
+	from { transform: translateY(100%); opacity: 0; }
+	to   { transform: translateY(0);    opacity: 1; }
+}
+
+.panel-slide-left {
+	animation: slideInLeft 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.panel-slide-up {
+	animation: slideInUp 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
 /* Button variants */

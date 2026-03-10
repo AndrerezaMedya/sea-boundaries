@@ -16,23 +16,54 @@ body {
 }
 
 .maplibregl-popup.app-popup .maplibregl-popup-content {
-	background-color: var(--color-panel);
-	color: var(--color-text);
-	border-radius: 1rem;
-	border: 1px solid var(--color-border);
-	box-shadow: var(--shadow-strong);
-	padding: 1.25rem 1.5rem;
+	background-color: #ffffff;
+	color: #0f172a;
+	border-radius: 0.75rem;
+	border: 1px solid #e2e8f0;
+	box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+	padding: 1rem 1.25rem;
+	max-width: 360px;
 }
 
 .maplibregl-popup.app-popup .maplibregl-popup-content p,
 .maplibregl-popup.app-popup .maplibregl-popup-content h3,
-.maplibregl-popup.app-popup .maplibregl-popup-content li span {
+.maplibregl-popup.app-popup .maplibregl-popup-content div,
+.maplibregl-popup.app-popup .maplibregl-popup-content td {
 	color: inherit;
 }
 
+.maplibregl-popup.app-popup .maplibregl-popup-content table {
+	border-collapse: collapse;
+	width: 100%;
+}
+
+.maplibregl-popup.app-popup .maplibregl-popup-content table td {
+	padding: 0.375rem 0;
+	vertical-align: top;
+}
+
 .maplibregl-popup.app-popup .maplibregl-popup-tip {
-	border-top-color: var(--color-panel) !important;
-	border-bottom-color: var(--color-panel) !important;
-	border-left-color: var(--color-panel) !important;
-	border-right-color: var(--color-panel) !important;
+	border-top-color: #ffffff !important;
+	border-bottom-color: #ffffff !important;
+	border-left-color: #ffffff !important;
+	border-right-color: #ffffff !important;
+}
+
+.maplibregl-popup.app-popup .maplibregl-popup-close-button {
+	font-size: 18px;
+	padding: 4px;
+	width: 24px;
+	height: 24px;
+	line-height: 16px;
+	color: #64748b;
+	background: transparent;
+	border-radius: 0.375rem;
+	transition: all 0.2s;
+	right: 8px;
+	top: 8px;
+}
+
+.maplibregl-popup.app-popup .maplibregl-popup-close-button:hover {
+	background-color: #f1f5f9;
+	color: #0f172a;
 }
