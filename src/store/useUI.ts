@@ -6,19 +6,29 @@ import { USER_LAYER_ID } from '@/lib/types';
 
 const STORAGE_KEY = 'sea-boundaries:ui';
 
-type SidebarTab = 'query' | 'table' | 'legend';
+type SidebarTab = 'query' | 'table' | 'legend' | 'geoprocessing';
 
 const emptyDefinition = (): FilterDefinition => ({
 	conditions: [],
 	join: 'all',
-	groups: [],
 });
 
 const createEmptyBuilderState = (): Record<LayerId, FilterDefinition> => ({
 	basepoints: emptyDefinition(),
 	baseline: emptyDefinition(),
-	titik_perjanjian: emptyDefinition(),
-	batas_maritim: emptyDefinition(),
+	laut_teritorial_sepakat: emptyDefinition(),
+	laut_teritorial_perlu: emptyDefinition(),
+	zee_sepakat: emptyDefinition(),
+	zee_sepakat_ratif: emptyDefinition(),
+	zee_perlu: emptyDefinition(),
+	landas_kontinen_sepakat: emptyDefinition(),
+	landas_kontinen_sepakat_ratif: emptyDefinition(),
+	landas_kontinen_perlu: emptyDefinition(),
+	landas_kontinen_ekstensi: emptyDefinition(),
+	zona_tambahan: emptyDefinition(),
+	titik_perjanjian_lt: emptyDefinition(),
+	titik_perjanjian_lk: emptyDefinition(),
+	titik_perjanjian_zee: emptyDefinition(),
 	[USER_LAYER_ID]: emptyDefinition(),
 });
 
@@ -33,8 +43,7 @@ const cloneConditionValue = (value: FilterDefinition['conditions'][number]['valu
 };
 
 const cloneDefinition = (definition: FilterDefinition): FilterDefinition => ({
-	join: definition.join,
-	groups: definition.groups.map((group) => ({ ...group })),
+	join: definition.join ?? 'all',
 	conditions: definition.conditions.map((condition) => ({
 		...condition,
 		value: cloneConditionValue(condition.value),
@@ -47,11 +56,10 @@ const DEFAULT_PRESETS: PresetDefinition[] = [
 	{
 		id: 'preset-batas-australia',
 		name: 'Batas_Ngr = "Australia"',
-		layerId: 'batas_maritim',
+		layerId: 'zee_sepakat',
 		createdAt: '2025-01-01T00:00:00.000Z',
 		definition: {
 			join: 'all',
-			groups: [],
 			conditions: [
 				{
 					id: 'cond-batas-aus',
@@ -66,11 +74,10 @@ const DEFAULT_PRESETS: PresetDefinition[] = [
 	{
 		id: 'preset-tipezona-status',
 		name: 'TipeZona & StatusLaut',
-		layerId: 'batas_maritim',
+		layerId: 'laut_teritorial_sepakat',
 		createdAt: '2025-01-01T00:00:00.000Z',
 		definition: {
 			join: 'all',
-			groups: [],
 			conditions: [
 				{
 					id: 'cond-tipezona',
@@ -92,11 +99,10 @@ const DEFAULT_PRESETS: PresetDefinition[] = [
 	{
 		id: 'preset-ratif-before-2000',
 		name: 'Ratif_Thn < 2000',
-		layerId: 'batas_maritim',
+		layerId: 'landas_kontinen_sepakat',
 		createdAt: '2025-01-01T00:00:00.000Z',
 		definition: {
 			join: 'all',
-			groups: [],
 			conditions: [
 				{
 					id: 'cond-ratif',
@@ -110,11 +116,17 @@ const DEFAULT_PRESETS: PresetDefinition[] = [
 	},
 ];
 
+export type ActivePanel = 'layers' | 'filter' | 'geoprocessing' | 'import';
+
 interface UIStoreState {
 	sidebarOpen: boolean;
 	activeTab: SidebarTab;
 	builderState: Record<LayerId, FilterDefinition>;
 	presets: PresetDefinition[];
+	activePanel: ActivePanel | null;
+	tableOpen: boolean;
+	legendOpen: boolean;
+	showCoordinates: boolean;
 	setSidebarOpen: (open: boolean) => void;
 	toggleSidebar: () => void;
 	setActiveTab: (tab: SidebarTab) => void;
@@ -125,6 +137,12 @@ interface UIStoreState {
 	deletePreset: (presetId: string) => void;
 	renamePreset: (presetId: string, name: string) => void;
 	restoreDefaultPresets: () => void;
+	setActivePanel: (panel: ActivePanel | null) => void;
+	togglePanel: (panel: ActivePanel) => void;
+	setTableOpen: (open: boolean) => void;
+	toggleTable: () => void;
+	setLegendOpen: (open: boolean) => void;
+	setShowCoordinates: (show: boolean) => void;
 }
 
 export const useUIStore = create(
@@ -132,6 +150,10 @@ export const useUIStore = create(
 		(set) => ({
 			sidebarOpen: false,
 			activeTab: 'query',
+			activePanel: null,
+			tableOpen: false,
+			legendOpen: true,
+			showCoordinates: true,
 			builderState: createEmptyBuilderState(),
 			presets: DEFAULT_PRESETS.map((preset) => ({
 				...preset,
@@ -198,6 +220,12 @@ export const useUIStore = create(
 					})),
 				});
 			},
+			setActivePanel: (panel) => set({ activePanel: panel }),
+			togglePanel: (panel) => set((state) => ({ activePanel: state.activePanel === panel ? null : panel })),
+			setTableOpen: (open) => set({ tableOpen: open }),
+			toggleTable: () => set((state) => ({ tableOpen: !state.tableOpen })),
+			setLegendOpen: (open) => set({ legendOpen: open }),
+			setShowCoordinates: (show) => set({ showCoordinates: show }),
 		}),
 		{
 			name: STORAGE_KEY,

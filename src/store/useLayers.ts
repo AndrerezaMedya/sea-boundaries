@@ -235,13 +235,14 @@ const initialiseLayers = (persisted: PersistedFilters): LayersDictionary => {
 	return next as LayersDictionary;
 };
 
-const createInitialCache = (): Record<LayerId, Record<string, (string | number)[]>> => ({
-	basepoints: {},
-	baseline: {},
-	titik_perjanjian: {},
-	batas_maritim: {},
-	[USER_LAYER_ID]: {},
-});
+const createInitialCache = (): Record<LayerId, Record<string, (string | number)[]>> => {
+	const cache: Partial<Record<LayerId, Record<string, (string | number)[]>>> = {};
+	CORE_LAYER_IDS.forEach((id) => {
+		cache[id] = {};
+	});
+	cache[USER_LAYER_ID] = {};
+	return cache as Record<LayerId, Record<string, (string | number)[]>>;
+};
 
 const computeBounds = (collection: FeatureCollectionWithProps): [number, number, number, number] | null => {
 	if (!collection.features.length) {
@@ -254,7 +255,7 @@ const computeBounds = (collection: FeatureCollectionWithProps): [number, number,
 	return bounds;
 };
 
-const defaultActiveLayer: CoreLayerId = 'batas_maritim';
+const defaultActiveLayer: CoreLayerId = 'laut_teritorial_sepakat';
 
 export const useLayersStore = create<LayersStoreState>((set, get) => {
 	const persistedFilters = safeParseFilters();
