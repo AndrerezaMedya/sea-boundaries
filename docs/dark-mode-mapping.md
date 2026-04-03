@@ -13,41 +13,41 @@ Dokumen ini memetakan implementasi tema saat ini setelah dark mode dinonaktifkan
 ## Runtime Entry Points
 
 - `src/main.tsx`
-  - Bootstrap root untuk mode terang.
-  - Menetapkan class/data theme agar konsisten pada initial render.
+    - Bootstrap root untuk mode terang.
+    - Menetapkan class/data theme agar konsisten pada initial render.
 
 - `src/store/useTheme.ts`
-  - `ThemeMode` hanya `light`.
-  - `setTheme()` dan `toggleTheme()` dipaksa menetapkan `light`.
+    - `ThemeMode` hanya `light`.
+    - `setTheme()` dan `toggleTheme()` dipaksa menetapkan `light`.
 
 ## UI Trigger Points
 
 - `src/components/Ribbon.tsx`
-  - Dropdown Tampilan menampilkan status informatif `Mode Terang Aktif`.
-  - Tidak ada lagi tombol switch tema.
+    - Dropdown Tampilan menampilkan status informatif `Mode Terang Aktif`.
+    - Tidak ada lagi tombol switch tema.
 
 ## Basemap Coupling
 
 - `src/data/basemaps.ts`
-  - Hanya punya satu tema basemap: `light`.
-  - Default basemap untuk tema light: `esri`.
+    - Hanya punya satu tema basemap: `light`.
+    - Default basemap untuk tema light: `esri`.
 
 - `src/data/mapStyles.ts`
-  - Style map hanya `light`.
+    - Style map hanya `light`.
 
 - `src/components/map/controlsRuntime.ts`
-  - Basemap switching berjalan di konteks light-only.
+    - Basemap switching berjalan di konteks light-only.
 
 - `src/components/map/basemapRuntime.ts`
-  - Basemap IDs dikelola hanya untuk `light`.
-  - Purge raster source/layer memakai urutan aman agar switching stabil.
+    - Basemap IDs dikelola hanya untuk `light`.
+    - Purge raster source/layer memakai urutan aman agar switching stabil.
 
 ## CSS Layer
 
 - `src/styles/theme.css`
-  - Variabel dark mode sudah tidak dipakai.
-  - Fokus pada token light mode dan styling kontrol map.
-  - Override global yang terlalu agresif telah dipangkas untuk mencegah konflik utility classes.
+    - Variabel dark mode sudah tidak dipakai.
+    - Fokus pada token light mode dan styling kontrol map.
+    - Override global yang terlalu agresif telah dipangkas untuk mencegah konflik utility classes.
 
 ## Dampak Positif Setelah Migrasi Light-Only
 

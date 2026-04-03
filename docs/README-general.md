@@ -7,17 +7,17 @@ Dokumen ini menjelaskan alur runtime aplikasi SEA-BANDL berdasarkan implementasi
 - Vite + React + TypeScript sebagai fondasi aplikasi.
 - React Router untuk route portal dan route peta.
 - Zustand stores:
-  - `useLayersStore` untuk state layer, filter, seleksi, zoom request.
-  - `useUIStore` untuk state panel dan tampilan UI.
-  - `useThemeStore` untuk theme, saat ini dikunci light-only.
+    - `useLayersStore` untuk state layer, filter, seleksi, zoom request.
+    - `useUIStore` untuk state panel dan tampilan UI.
+    - `useThemeStore` untuk theme, saat ini dikunci light-only.
 - `Map.tsx` sebagai orchestrator map runtime.
 - Runtime map dipecah ke modul `src/components/map/*`:
-  - `controlsRuntime.ts`
-  - `basemapRuntime.ts`
-  - `sourceBootstrap.ts`
-  - `runtimeSync.ts`
-  - `layerInteractions.ts`
-  - `popupInteraction.ts`
+    - `controlsRuntime.ts`
+    - `basemapRuntime.ts`
+    - `sourceBootstrap.ts`
+    - `runtimeSync.ts`
+    - `layerInteractions.ts`
+    - `popupInteraction.ts`
 - `Ribbon.tsx` sebagai topbar halaman `/peta`.
 
 ## 2. Alur Routing Aplikasi
@@ -37,9 +37,9 @@ Semua route dimuat via lazy loading agar initial load portal lebih ringan.
 1. `WebGisPage.tsx` memanggil `loadInitialFilters()` saat mount.
 2. `Map.tsx` membuat instance MapLibre.
 3. `setupMapControls()` menginisialisasi:
-   - search control,
-   - navigation + scale control,
-   - custom basemap thumbnail control.
+    - search control,
+    - navigation + scale control,
+    - custom basemap thumbnail control.
 4. `ensureBasemapLayers()` menyiapkan raster basemap aktif.
 5. `initialiseSources()` + `syncMapWithState()` membangun source/layer operasional dan sinkronkan state store.
 
@@ -47,10 +47,10 @@ Semua route dimuat via lazy loading agar initial load portal lebih ringan.
 
 1. Data GeoJSON inti dibaca dari bundel data lokal.
 2. Store membangun runtime state tiap layer:
-   - `featureIndex`
-   - `filteredIds`
-   - `selectionIds`
-   - metadata render
+    - `featureIndex`
+    - `filteredIds`
+    - `selectionIds`
+    - metadata render
 3. Perubahan filter, seleksi, hover, dan visibility diteruskan ke MapLibre melalui `syncMapWithState()`.
 4. Tabel atribut menggunakan sumber data yang sama agar konsisten dengan peta.
 
@@ -70,8 +70,8 @@ Status saat ini:
 - Default basemap = `esri` (Esri Satellite).
 - Basemap control menggunakan thumbnail custom (bukan plugin default UI).
 - Runtime purge raster memakai urutan aman:
-  - hapus layer raster terkait dulu,
-  - baru hapus source yang sudah tidak direferensikan layer.
+    - hapus layer raster terkait dulu,
+    - baru hapus source yang sudah tidak direferensikan layer.
 
 Hal ini mencegah error seperti source tidak bisa dihapus karena masih dipakai layer legacy.
 
@@ -84,9 +84,9 @@ Elemen utama topbar:
 - Tombol panel: Layer, Filter, Geo, Import.
 - Tombol Tabel.
 - Dropdown Tampilan:
-  - toggle Legenda,
-  - toggle Koordinat Kursor,
-  - status Mode Terang Aktif.
+    - toggle Legenda,
+    - toggle Koordinat Kursor,
+    - status Mode Terang Aktif.
 - Tombol Request Data.
 - Counter fitur terfilter.
 

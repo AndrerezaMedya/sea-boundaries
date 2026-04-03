@@ -39,11 +39,11 @@ Membuat arsitektur route portal baru, tanpa mengganggu WebGIS lama.
 
 1. Menambahkan React Router di aplikasi utama.
 2. Memecah halaman menjadi:
-   - `/` portal landing.
-   - `/request-data`.
-   - `/request-data/success`.
-   - `/user-guide`.
-   - `/peta` untuk shell WebGIS lama.
+    - `/` portal landing.
+    - `/request-data`.
+    - `/request-data/success`.
+    - `/user-guide`.
+    - `/peta` untuk shell WebGIS lama.
 3. Membungkus aplikasi dengan provider router.
 4. Membuat komponen layout portal dan navbar portal.
 
@@ -98,8 +98,8 @@ Menggantikan placeholder request dengan form fungsional end-to-end.
 1. Membuat komponen form dedicated dengan state + validasi field.
 2. Validasi email, telepon, serta field wajib.
 3. Validasi lampiran:
-   - format: PDF/DOC/DOCX/JPG/PNG.
-   - batas ukuran: 5MB.
+    - format: PDF/DOC/DOCX/JPG/PNG.
+    - batas ukuran: 5MB.
 4. Menampilkan feedback toast untuk kasus invalid.
 5. Menavigasi ke halaman sukses dengan route state.
 6. Menampilkan ringkasan submit di halaman sukses.
@@ -174,16 +174,16 @@ Mencapai parity visual dan UX yang lebih penuh terhadap desain landing Figma, te
 
 1. Menambahkan dependency animasi `motion` untuk transisi halus dan reveal per section.
 2. Meng-upgrade navbar portal agar mendukung:
-   - navigasi anchor section (`hero`, `tentang`, `syarat`, `kontak`) pada halaman landing.
-   - transisi lintas halaman ke section tertentu melalui route state.
-   - state active section dan mobile menu yang konsisten.
+    - navigasi anchor section (`hero`, `tentang`, `syarat`, `kontak`) pada halaman landing.
+    - transisi lintas halaman ke section tertentu melalui route state.
+    - state active section dan mobile menu yang konsisten.
 3. Membangun ulang landing page dengan struktur parity:
-   - Hero + stat cards.
-   - Fitur unggulan.
-   - Section Tentang.
-   - Section Syarat & Ketentuan.
-   - CTA konversi.
-   - Footer + kontak.
+    - Hero + stat cards.
+    - Fitur unggulan.
+    - Section Tentang.
+    - Section Syarat & Ketentuan.
+    - CTA konversi.
+    - Footer + kontak.
 4. Menambahkan animasi masuk bertahap untuk meningkatkan quality UX tanpa mengubah route utama aplikasi.
 
 ### File terdampak
