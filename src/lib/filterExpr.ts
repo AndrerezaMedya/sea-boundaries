@@ -117,8 +117,13 @@ const buildStringExpression = (
 				['>=', ['index-of', ['literal', normaliseString(value)], accessor], 0],
 				['==', ['slice', accessor, 0, normaliseString(value).length], normaliseString(value)],
 			];
-		case 'in':
-			return ['match', accessor, ['literal', Array.isArray(value) ? value : [value]], true, false];
+		case 'in': {
+			const labels = Array.isArray(value) ? value : [value];
+			if (labels.length === 0) return ['==', accessor, '__no-match__'];
+			if (labels.length === 1) return ['==', accessor, labels[0]];
+			// MapLibre 'match' requires labels as a plain array, NOT ['literal', [...]]
+			return ['match', accessor, labels, true, false];
+		}
 		default:
 			return ['==', accessor, value];
 	}
