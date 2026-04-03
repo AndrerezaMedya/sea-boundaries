@@ -4,6 +4,31 @@ import { persist } from 'zustand/middleware';
 import type { FilterDefinition, LayerId, PresetDefinition } from '@/lib/types';
 import { USER_LAYER_ID } from '@/lib/types';
 
+// ── Simple Filter (friendly, cross-layer) ───────────────────────────────────
+export interface SimpleFilterState {
+	tipeBatas: string[];         // layer-group keys
+	statusKesepakatan: string[]; // StatusLaut values
+	batasNegara: string[];       // Batas_Ngr values
+	statusLaut: string[];        // Jenis field values (Unilateral/Bilateral/Trilateral)
+	tahunPerjanjianMin: string;
+	tahunPerjanjianMax: string;
+	tahunRatifikasiMin: string;
+	tahunRatifikasiMax: string;
+	perairan: string[];          // Perairan values (basepoints/baseline only)
+}
+
+const defaultSimpleFilter = (): SimpleFilterState => ({
+	tipeBatas: [],
+	statusKesepakatan: [],
+	batasNegara: [],
+	statusLaut: [],
+	tahunPerjanjianMin: '',
+	tahunPerjanjianMax: '',
+	tahunRatifikasiMin: '',
+	tahunRatifikasiMax: '',
+	perairan: [],
+});
+
 const STORAGE_KEY = 'sea-boundaries:ui';
 
 type SidebarTab = 'query' | 'table' | 'legend' | 'geoprocessing';
@@ -127,6 +152,7 @@ interface UIStoreState {
 	tableOpen: boolean;
 	legendOpen: boolean;
 	showCoordinates: boolean;
+	simpleFilter: SimpleFilterState;
 	setSidebarOpen: (open: boolean) => void;
 	toggleSidebar: () => void;
 	setActiveTab: (tab: SidebarTab) => void;
@@ -143,6 +169,8 @@ interface UIStoreState {
 	toggleTable: () => void;
 	setLegendOpen: (open: boolean) => void;
 	setShowCoordinates: (show: boolean) => void;
+	setSimpleFilter: (patch: Partial<SimpleFilterState>) => void;
+	resetSimpleFilter: () => void;
 }
 
 export const useUIStore = create(
@@ -154,6 +182,7 @@ export const useUIStore = create(
 			tableOpen: false,
 			legendOpen: true,
 			showCoordinates: true,
+			simpleFilter: defaultSimpleFilter(),
 			builderState: createEmptyBuilderState(),
 			presets: DEFAULT_PRESETS.map((preset) => ({
 				...preset,
@@ -226,6 +255,8 @@ export const useUIStore = create(
 			toggleTable: () => set((state) => ({ tableOpen: !state.tableOpen })),
 			setLegendOpen: (open) => set({ legendOpen: open }),
 			setShowCoordinates: (show) => set({ showCoordinates: show }),
+			setSimpleFilter: (patch) => set((state) => ({ simpleFilter: { ...state.simpleFilter, ...patch } })),
+			resetSimpleFilter: () => set({ simpleFilter: defaultSimpleFilter() }),
 		}),
 		{
 			name: STORAGE_KEY,
@@ -239,6 +270,9 @@ export const useUIStore = create(
 					...createEmptyBuilderState(),
 					...builder,
 				};
+				if (!state.simpleFilter) {
+					state.simpleFilter = defaultSimpleFilter();
+				}
 				if (!state.presets || state.presets.length === 0) {
 					state.presets = DEFAULT_PRESETS.map((preset) => ({
 						...preset,

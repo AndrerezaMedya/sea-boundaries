@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type ThemeMode = 'light' | 'dark';
+export type ThemeMode = 'light';
 
 interface ThemeState {
 	theme: ThemeMode;
@@ -13,17 +13,16 @@ const STORAGE_KEY = 'sea-boundaries:theme';
 
 export const useThemeStore = create(
 	persist<ThemeState>(
-		(set, get) => ({
+		(set) => ({
 			theme: 'light',
-			setTheme: (mode) => set({ theme: mode }),
+			setTheme: () => set({ theme: 'light' }),
 			toggleTheme: () => {
-				const next = get().theme === 'light' ? 'dark' : 'light';
-				set({ theme: next });
+				set({ theme: 'light' });
 			},
 		}),
 		{
 			name: STORAGE_KEY,
-			version: 1,
+			version: 2,
 		},
 	),
 );
