@@ -1,88 +1,114 @@
-# Ringkasan Algoritma Kerja Aplikasi Web
+# Ringkasan Alur Kerja Aplikasi Web
 
-Dokumen ini menjelaskan alur kerja tingkat tinggi aplikasi **Sea Boundaries** sejak pemuatan awal sampai interaksi utama pengguna. Fokusnya adalah bagaimana data dipersiapkan, dikelola, dan divisualisasikan pada UI.
+Dokumen ini menjelaskan alur runtime aplikasi SEA-BANDL berdasarkan implementasi terbaru.
 
 ## 1. Struktur Komponen Utama
 
-- **Vite + React** menjadi fondasi render antarmuka.
-- **Zustand store (`useLayersStore`, `useUIStore`)** menyimpan status global seperti layer aktif, filter, seleksi, dan preferensi UI.
-- **MapLibre (`Map.tsx`)** menangani render peta, sinkronisasi sorotan (hover/selection), popup, dan zoom.
-- **Sidebar modular** menampung Query Builder, Attribute Table, Legend, Layer Toggle, dan panel layer pengguna.
+- Vite + React + TypeScript sebagai fondasi aplikasi.
+- React Router untuk route portal dan route peta.
+- Zustand stores:
+  - `useLayersStore` untuk state layer, filter, seleksi, zoom request.
+  - `useUIStore` untuk state panel dan tampilan UI.
+  - `useThemeStore` untuk theme, saat ini dikunci light-only.
+- `Map.tsx` sebagai orchestrator map runtime.
+- Runtime map dipecah ke modul `src/components/map/*`:
+  - `controlsRuntime.ts`
+  - `basemapRuntime.ts`
+  - `sourceBootstrap.ts`
+  - `runtimeSync.ts`
+  - `layerInteractions.ts`
+  - `popupInteraction.ts`
+- `Ribbon.tsx` sebagai topbar halaman `/peta`.
 
-## 2. Alur Inisialisasi Aplikasi
+## 2. Alur Routing Aplikasi
 
-1. `App.tsx` memuat TopBar, Sidebar, dan Map setelah memanggil `loadInitialFilters()` dari `useLayersStore`.
-2. `loadLayerCollections()` (di `lib/dataLoader.ts`) menarik data GeoJSON statis dari direktori `src/data` dan menyiapkannya sebagai `FeatureCollection`.
-3. `initialiseLayers()` membangun `LayerRuntimeState` untuk setiap layer dasar:
-    - Membuat indeks fitur (`featureIndex`) agar akses cepat berdasarkan ID.
-    - Menyiapkan daftar fitur terfilter (`filteredIds`) awal berdasarkan filter tersimpan di `localStorage` (jika ada).
-    - Menghitung properti layer seperti `renderKind`, `geometryType`, status visibilitas, dll.
-4. `createInitialCache()` membuat cache nilai unik per field untuk Query Builder.
-5. Store menyetel layer aktif default (`batas_maritim`) dan membangun baris tabel awal (`buildTableRows`).
+Route utama:
 
-## 3. Siklus Hidup Data GeoJSON
+- `/` -> landing portal
+- `/request-data` -> formulir permintaan data
+- `/request-data/success` -> ringkasan submit
+- `/user-guide` -> panduan penggunaan
+- `/peta` -> shell WebGIS utama
 
-```mermaid
-graph TD
-    A[Load GeoJSON] --> B[Normalisasi Fitur]
-    B --> C[Index Feature]
-    C --> D{Filter Aktif?}
-    D -- Tidak --> E[filteredIds = semua id]
-    D -- Ya --> F[featureMatchesFilter]
-    F --> G[filteredIds]
-    G --> H[tableRows]
-    G --> I[Map Layers]
-    G --> J[Popup Highlight]
-```
+Semua route dimuat via lazy loading agar initial load portal lebih ringan.
 
-1. GeoJSON mentah dinormalisasi menjadi `FeatureWithProps` melalui `lib/schema.ts` dan `lib/userLayer.ts` (untuk layer pengguna). Normalisasi menambahkan kunci `__fid` dan memastikan `feature.id` unik.
-2. `featureIndex` memetakan `feature.id` ke objek fitur untuk lookup cepat.
-3. Ketika filter aktif, `featureMatchesFilter()` menentukan fitur mana yang lolos; hasilnya membentuk `filteredIds`.
-4. `filteredIds` digunakan oleh:
-    - **Attribute Table**: `buildTableRows()` mengambil properti berdasarkan daftar ID ini.
-    - **Map**: menyusun filter MapLibre sehingga layer "filtered"/"selection" hanya merender ID yang sama.
-    - **Popup**: `getFeatureById()` mencari fitur saat pengguna mengklik peta atau tabel.
+## 3. Inisialisasi WebGIS (`/peta`)
 
-## 4. Interaksi Pengguna & Reaksi Sistem
+1. `WebGisPage.tsx` memanggil `loadInitialFilters()` saat mount.
+2. `Map.tsx` membuat instance MapLibre.
+3. `setupMapControls()` menginisialisasi:
+   - search control,
+   - navigation + scale control,
+   - custom basemap thumbnail control.
+4. `ensureBasemapLayers()` menyiapkan raster basemap aktif.
+5. `initialiseSources()` + `syncMapWithState()` membangun source/layer operasional dan sinkronkan state store.
 
-| Aksi Pengguna               | Dampak di Store                      | Pembaruan UI                                                                                   |
-| --------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| Menyalakan/ mematikan layer | `setLayerVisibility`                 | Layer MapLibre di-hide/show, daftar toggle disinkronkan.                                       |
-| Memilih layer aktif         | `setActiveLayer`                     | Attribute Table dan Query Builder memuat skema & data layer baru.                              |
-| Hover/klik fitur di peta    | `setHoveredFeature` / `setSelection` | Map mengganti layer highlight, tabel menggulir & menyorot baris yang sama.                     |
-| Zoom via tombol/fitur       | `requestZoomToIds`→`pendingZoom`     | Map memanggil `map.fitBounds` atau `flyTo` untuk ID yang diminta.                              |
-| Mengimpor GeoJSON pengguna  | `parseUserGeoJson` → `setUserLayer`  | Skema layer pengguna dibuat, map & tabel diperbarui, Query Builder dapat mengakses field baru. |
+## 4. Siklus Data Layer
 
-## 5. Sinkronisasi Peta dan Sidebar
+1. Data GeoJSON inti dibaca dari bundel data lokal.
+2. Store membangun runtime state tiap layer:
+   - `featureIndex`
+   - `filteredIds`
+   - `selectionIds`
+   - metadata render
+3. Perubahan filter, seleksi, hover, dan visibility diteruskan ke MapLibre melalui `syncMapWithState()`.
+4. Tabel atribut menggunakan sumber data yang sama agar konsisten dengan peta.
 
-- **Map** memanfaatkan `mapLayerConfigs` untuk membuat empat lapisan per layer: `base`, `filtered`, `selection`, `hover`.
-- Store memancarkan `filterExpression`, `selectionIds`, `hoveredId`, dan `visible` ke Map melalui hooks.
-- Map mengikat event `mousemove`, `mouseleave`, `click` untuk memanggil update store (hover/selection) dan membuka popup (`buildPopupHtml`).
-- Sidebar komponen seperti `AttributeTable`, `LayerToggle`, `Legend`, `QueryBuilder` memonitor store menggunakan selectors ringan agar re-render minimal.
+## 5. Interaksi Pengguna dan Reaksi Sistem
 
-## 6. Manajemen Basemap & Tema
+- Toggle layer -> update visibility layer di map + panel.
+- Apply/clear filter -> update `filteredIds` + ekspresi filter map + tabel.
+- Klik fitur di peta/tabel -> sinkron seleksi dua arah.
+- Request zoom -> map mengeksekusi fit bounds/fly-to dari `pendingZoom`.
+- Import GeoJSON -> validasi data -> register user layer ke store -> render di map.
 
-Pengaturan basemap kini terbagi per mode tema untuk menjamin pengalaman konsisten saat pengguna berpindah antara tampilan terang dan gelap.
+## 6. Basemap dan Theme (Aktual)
 
-- **Mapping per mode** — `lightBasemaps` (OSM, OpenTopoMap, Esri) dan `darkBasemaps` (Carto Dark Matter, OpenTopoMap, Esri) didefinisikan di `src/data/basemaps.ts`.
-- **Sinkronisasi ID** — helper `mapBasemapId(currentId, targetTheme)` memastikan tipe basemap tetap sepadan ketika tema berubah (OSM ↔ Carto, lainnya tetap).
-- **Kontrol MapLibre** — `BasemapsControl` hanya menampilkan tiga opsi yang relevan untuk tema aktif; opsi lain disembunyikan dan tidak interaktif.
-- **Transisi tema** — `ensureBasemapLayers()` menyesuaikan sumber & layer raster, atau memuat style vector khusus (Carto) hanya bila diperlukan, lalu mengembalikan overlay tanpa kehilangan state.
-- **Fallback aman** — jika basemap tersimpan tidak tersedia pada tema tujuan, otomatis diganti dengan default (`osm` untuk light, `darkMatter` untuk dark).
+Status saat ini:
 
-Pengetahuan ini penting saat menambahkan basemap baru atau menyesuaikan perilaku tema, karena semua logika berpangkal pada berkas `basemaps.ts` dan fungsi `ensureBasemapLayers()` di `Map.tsx`.
+- Theme dark dinonaktifkan, aplikasi berjalan light-only.
+- Default basemap = `esri` (Esri Satellite).
+- Basemap control menggunakan thumbnail custom (bukan plugin default UI).
+- Runtime purge raster memakai urutan aman:
+  - hapus layer raster terkait dulu,
+  - baru hapus source yang sudah tidak direferensikan layer.
 
-## 7. Persistensi & Preferensi
+Hal ini mencegah error seperti source tidak bisa dihapus karena masih dipakai layer legacy.
 
-- Filter layer inti diserialisasi ke `localStorage` (`LAST_FILTER_KEY`).
-- URL layer pengguna terakhir disimpan di `LAST_USER_URL_KEY`.
-- Builder Query disimpan per layer di `useUIStore`, termasuk preset kustom.
+## 7. Ribbon Topbar (`/peta`)
 
-## 8. Error Handling & Feedback
+Elemen utama topbar:
 
-- Semua operasi pengguna kritis (import, fetch URL, apply filter) membungkus eksekusi dalam `try/catch` dan menampilkan toast.
-- Map memvalidasi dukungan geometri; jika campuran geometry family ditemukan saat import, proses dibatalkan dengan pesan.
+- Tombol Home (kiri paling awal) untuk kembali ke beranda.
+- Brand SEA-BANDL.
+- Tombol panel: Layer, Filter, Geo, Import.
+- Tombol Tabel.
+- Dropdown Tampilan:
+  - toggle Legenda,
+  - toggle Koordinat Kursor,
+  - status Mode Terang Aktif.
+- Tombol Request Data.
+- Counter fitur terfilter.
 
----
+## 8. Persistensi
 
-Gunakan dokumen ini sebagai peta mental saat menelusuri kode: mulai dari store, lihat `lib` untuk utilitas data, kemudian Map & komponen sidebar untuk interaksi UI. Dokumentasi spesifik Query dan fungsi lanjutan tersedia di `README-query.md`.
+- Filter inti disimpan di localStorage.
+- Sebagian state UI (query builder/preset) disimpan di store persist sesuai kebutuhan.
+- Theme persist tetap ada namun nilainya dimigrasi ke `light`.
+
+## 9. Error Handling
+
+- Operasi penting dibungkus guard + fallback.
+- Operasi map runtime yang rawan race condition (style/source/layer) diberi retry event (`styledata`) dan proteksi try/catch.
+- Notifikasi pengguna untuk validasi form/import ditampilkan via toast.
+
+## 10. Catatan Optimasi Kode
+
+Optimasi struktural yang sudah diterapkan:
+
+- `Map.tsx` diperkecil menjadi orchestrator runtime (modular map runtime).
+- `useLayers.ts` diperkecil menjadi facade store; logic dipecah ke `src/store/layers/*`.
+- Route portal menggunakan lazy loading.
+- Basemap runtime dipisah agar pergantian mode/style tidak mengganggu source/layer operasional.
+
+Gunakan dokumen ini sebagai peta cepat sebelum masuk detail masing-masing modul.

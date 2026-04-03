@@ -76,14 +76,14 @@ Perubahan `filteredIds`, `filterExpression`, dan `selectionIds` memicu beberapa 
 
 ## 7. Peran Fungsi Spesifik Lain
 
-| Fungsi                                         | Lokasi              | Peran                                                                                                                                |
-| ---------------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `parseUserGeoJson(raw, options)`               | `lib/userLayer.ts`  | Memvalidasi GeoJSON pengguna, memastikan geometri homogen, membuat schema field, menambahkan `__fid`, dan menentukan `geometryType`. |
-| `buildLayerState(layerId, schema, collection)` | `useLayersStore`    | Membungkus data menjadi bentuk siap-render (index, filter, visibilitas, render kind). Dipakai untuk layer inti dan user.             |
-| `buildTableRows(layerId, layer)`               | `useLayersStore`    | Mengonversi `filteredIds` ke array baris tabel dengan properti yang sudah disalin dari feature.                                      |
-| `buildPopupHtml(feature, schema)`              | `lib/map.ts`        | Menghasilkan markup popup berdasarkan `popupFields` layer.                                                                           |
-| `requestZoomToIds(layerId, ids, padding)`      | `useLayersStore`    | Mengantre permintaan zoom; Map membaca `pendingZoom` untuk mengatur viewport.                                                        |
-| `buildIdMatchExpression(ids)`                  | `lib/filterExpr.ts` | Membuat ekspresi MapLibre praktis untuk menyeleksi ID tertentu (dipakai untuk layer "filtered", "selection", dan "hover").           |
+| Fungsi                                         | Lokasi                                 | Peran                                                                                                                                |
+| ---------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `parseUserGeoJson(raw, options)`               | `lib/userLayer.ts`                     | Memvalidasi GeoJSON pengguna, memastikan geometri homogen, membuat schema field, menambahkan `__fid`, dan menentukan `geometryType`. |
+| `buildLayerState(layerId, schema, collection)` | `store/layers/stateBuilders.ts`        | Membungkus data menjadi bentuk siap-render (index, filter, visibilitas, render kind). Dipakai untuk layer inti dan user.             |
+| `buildTableRows(layerId, layer)`               | `store/layers/stateBuilders.ts`        | Mengonversi `filteredIds` ke array baris tabel dengan properti yang sudah disalin dari feature.                                      |
+| `buildPopupHtml(feature, schema)`              | `lib/map.ts`                           | Menghasilkan markup popup berdasarkan `popupFields` layer.                                                                           |
+| `requestZoomToIds(layerId, ids, padding)`      | `store/layers/actions/zoom.ts`         | Mengantre permintaan zoom; Map membaca `pendingZoom` untuk mengatur viewport.                                                        |
+| `buildIdMatchExpression(ids)`                  | `lib/filterExpr.ts`                    | Membuat ekspresi MapLibre praktis untuk menyeleksi ID tertentu (dipakai untuk layer "filtered", "selection", dan "hover").           |
 
 ## 8. Urutan Lengkap Saat Pengguna Menjalankan Query
 
