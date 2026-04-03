@@ -8,6 +8,7 @@ import { downloadAttributeCsv } from '@/lib/export';
 import { getLayerSchema } from '@/lib/schema';
 import type { LayerId, SortDirection, TableRow as TableRowData } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { formatFieldValue } from '@/lib/valueFormat';
 import { useLayersStore } from '@/store/useLayers';
 
 const PAGE_SIZE = 10;
@@ -352,13 +353,7 @@ const AttributeTable = () => {
 												.filter((field) => visibleColumns.has(field.name))
 												.map((field) => {
 													const value = row.properties[field.name];
-													const displayValue =
-														value === undefined || value === null
-															? '—'
-															: typeof value === 'number'
-																?
-																value.toLocaleString('id-ID')
-																: String(value);
+													const displayValue = formatFieldValue(field, value);
 													return (
 														<TableCell
 															key={field.name}

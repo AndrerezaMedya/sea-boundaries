@@ -2,7 +2,8 @@ import type { FeatureCollection } from 'geojson';
 import type { StyleSpecification } from 'maplibre-gl';
 
 import { getFieldSchema, getLayerSchema, STATUS_LAUT_DASH, ZONA_COLOR_MAPPING } from '@/lib/schema';
-import type { FieldSchema, LayerId } from '@/lib/types';
+import type { LayerId } from '@/lib/types';
+import { formatFieldValue } from '@/lib/valueFormat';
 
 export const MAP_DEFAULT_CENTER: [number, number] = [118, -2];
 export const MAP_DEFAULT_ZOOM = 4.2;
@@ -49,58 +50,6 @@ export const getBaseMapStyle = (): string | StyleSpecification => {
 	return rasterFallbackStyle;
 };
 
-const formatNumber = (value: unknown): string => {
-	if (typeof value === 'number') {
-		return value.toLocaleString('id-ID');
-	}
-	if (typeof value === 'string') {
-		const numeric = Number(value);
-		if (!Number.isNaN(numeric)) {
-			return numeric.toLocaleString('id-ID');
-		}
-	}
-	return value === undefined || value === null ? '—' : String(value);
-};
-
-const formatDate = (value: unknown): string => {
-	if (value === undefined || value === null) {
-		return '—';
-	}
-	if (typeof value === 'number') {
-		return new Date(value).toLocaleDateString('id-ID');
-	}
-	if (typeof value === 'string') {
-		if (value.trim().length === 0) {
-			return '—';
-		}
-		const parsed = new Date(value);
-		if (!Number.isNaN(parsed.getTime())) {
-			return parsed.toLocaleDateString('id-ID');
-		}
-		const parts = value.split('-');
-		if (parts.length === 3) {
-			const [first, second, third] = parts;
-			if (first.length === 2 && third.length === 4) {
-				return `${first}/${second}/${third}`;
-			}
-		}
-	}
-	return String(value);
-};
-
-const formatValue = (field: FieldSchema, value: unknown): string => {
-	if (value === undefined || value === null) {
-		return '—';
-	}
-	if (field.type === 'number') {
-		return formatNumber(value);
-	}
-	if (field.type === 'date') {
-		return formatDate(value);
-	}
-	return String(value);
-};
-
 export const buildPopupHtml = (layerId: LayerId, properties: Record<string, unknown>): string => {
 	const schema = getLayerSchema(layerId);
 	const rows = schema.popupFields
@@ -112,7 +61,7 @@ export const buildPopupHtml = (layerId: LayerId, properties: Record<string, unkn
 			const value = properties[fieldName];
 			return {
 				label: fieldSchema.label,
-				value: formatValue(fieldSchema, value),
+				value: formatFieldValue(fieldSchema, value),
 			};
 		})
 		.filter((row): row is { label: string; value: string } => row !== null);
