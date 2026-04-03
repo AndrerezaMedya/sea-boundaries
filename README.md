@@ -1,71 +1,94 @@
-# SEA-BANDL — Indonesia Sea Boundaries WebGIS
+# SEA-BANDL - Indonesia Sea Boundaries WebGIS
 
-WebGIS client-side berbasis Vite, React, dan MapLibre GL JS untuk eksplorasi batas maritim Indonesia. Dibangun sebagai proyek capstone ITB Teknik Geodesi 2025.
+WebGIS berbasis Vite, React, TypeScript, dan MapLibre untuk eksplorasi batas maritim Indonesia.
 
-**🌐 Live:** https://project1-seaboundaries.web.app
+Live: https://project1-seaboundaries.web.app
 
 ## Fitur Utama
 
-- **Ribbon UI** — bilah atas berisi tombol panel, toggle tabel, legend, koordinat, dan kontrol basemap/tema.
-- **15 layer batas maritim** — setiap layer ditampilkan dengan warna dan pola garis unik sesuai status hukumnya.
-- **Panel Layer** — aktifkan/nonaktifkan layer per kelompok maupun individual, dengan simbol visual.
-- **Query Builder** — filter fitur berbasis field menggunakan ekspresi AND/OR; tersimpan di `localStorage` antar sesi.
-- **Attribute Table** — tabel atribut responsif dengan highlight sinkron ke peta, zoom-to-feature, dan ekspor CSV.
-- **Geoprocessing** — operasi geometri (buffer, centroid, bounding box, simplify, convex hull, dll.) berbasis Turf.js.
-- **Import GeoJSON** — unggah layer pengguna dengan validasi geometri dan analisis irisan terhadap zona maritim.
-- **Pengukuran Geodesik** — alat dua titik menampilkan jarak dan azimut awal.
-- **Koordinat Kursor** — overlay pill di bagian bawah peta menampilkan koordinat real-time saat mouse bergerak.
-- **Basemap & Tema** — basemap OSM/Esri/Carto per mode terang/gelap; sinkronisasi otomatis saat tema berpindah.
-- **Stadia Maps Search** — pencarian tempat dengan fly-to peta.
-- **Toast notifikasi** dan persistensi state via Zustand/`localStorage`.
+- Portal multi-halaman:
+    - Beranda `/`
+    - Request Data `/request-data`
+    - Request Data Success `/request-data/success`
+    - User Guide `/user-guide`
+    - Peta WebGIS `/peta`
+- Ribbon topbar khusus halaman peta:
+    - Tombol Home (kembali ke beranda)
+    - Trigger panel Layer, Filter, Geo, Import
+    - Toggle Tabel Atribut
+    - Dropdown Tampilan (Legenda + Koordinat Kursor)
+    - CTA Request Data
+- 15 layer batas maritim dengan style spesifik per status hukum.
+- Query Builder (AND/OR + grouping) dengan persist filter di localStorage.
+- Tabel atribut sinkron dengan seleksi/hover peta + ekspor CSV.
+- Geoprocessing client-side berbasis Turf.js.
+- Import GeoJSON pengguna dengan validasi geometri.
+- Pencarian lokasi via Stadia Maps Search.
+- Basemap switcher custom thumbnail (OSM, OpenTopoMap, RBI, Esri Satellite).
+- Mode tema saat ini light-only (dark mode dinonaktifkan).
 
-## Layer Batas Maritim
+## Basemap dan Theme (Kondisi Saat Ini)
 
-| ID Layer | Kelompok | Keterangan |
-|---|---|---|
-| `laut_teritorial_sepakat` | Laut Teritorial | Disepakati (solid) |
-| `laut_teritorial_perlu` | Laut Teritorial | Perlu kesepakatan (putus-putus) |
-| `zee_sepakat` | ZEE | Disepakati |
-| `zee_sepakat_ratif` | ZEE | Disepakati & diratifikasi |
-| `zee_perlu` | ZEE | Perlu kesepakatan |
-| `landas_kontinen_sepakat` | Landas Kontinen | Disepakati |
-| `landas_kontinen_sepakat_ratif` | Landas Kontinen | Disepakati & diratifikasi |
-| `landas_kontinen_perlu` | Landas Kontinen | Perlu kesepakatan |
-| `landas_kontinen_ekstensi` | Landas Kontinen | Ekstensi (CLCS) |
-| `zona_tambahan` | Zona Tambahan | — |
-| `baseline` | Garis Pangkal | — |
-| `basepoints` | Titik Dasar | — |
-| `titik_perjanjian_lt` | Titik Perjanjian | Laut Teritorial |
-| `titik_perjanjian_lk` | Titik Perjanjian | Landas Kontinen |
-| `titik_perjanjian_zee` | Titik Perjanjian | ZEE |
+- Theme aplikasi dipaksa ke `light`.
+- Default basemap saat masuk peta: `Esri Satellite`.
+- Runtime switch basemap memakai kontrol thumbnail kustom di `controlsRuntime.ts`.
+- Proses purge raster menjaga urutan hapus layer lalu source agar tidak terjadi error source masih dipakai layer.
 
-## Memulai
+## Data Layer Maritim
 
-### Prasyarat
+Layer inti yang dibundel statis:
+
+- `laut_teritorial_sepakat`
+- `laut_teritorial_perlu`
+- `zee_sepakat`
+- `zee_sepakat_ratif`
+- `zee_perlu`
+- `landas_kontinen_sepakat`
+- `landas_kontinen_sepakat_ratif`
+- `landas_kontinen_perlu`
+- `landas_kontinen_ekstensi`
+- `zona_tambahan`
+- `baseline`
+- `basepoints`
+- `titik_perjanjian_lt`
+- `titik_perjanjian_lk`
+- `titik_perjanjian_zee`
+
+## Menjalankan Proyek
+
+Prasyarat:
 
 - Node.js 18+
 - npm 9+
 
-### Instalasi
+Instalasi:
 
 ```bash
 npm install
 ```
 
-### Server pengembangan
+Development:
 
 ```bash
 npm run dev
 ```
 
-Aplikasi berjalan di http://localhost:5173/ dengan hot module replacement.
-
-### Script quality
+Build produksi:
 
 ```bash
-npm run lint    # ESLint (TypeScript + React rules)
-npm run format  # Prettier format
-npm run build   # Type-check dan production bundle
+npm run build
+```
+
+Lint:
+
+```bash
+npm run lint
+```
+
+Format:
+
+```bash
+npm run format
 ```
 
 ## Konfigurasi Environment
@@ -73,63 +96,47 @@ npm run build   # Type-check dan production bundle
 Buat file `.env` di root proyek:
 
 ```env
-# Geocoding Stadia Maps (opsional, untuk batas request lebih tinggi)
+# Opsional: API key Stadia agar kuota search lebih tinggi
 VITE_STADIA_MAPS_API_KEY=your_stadia_maps_api_key
+
+# Opsional: style vector awal dari MapTiler
+VITE_MAPTILER_TOKEN=your_maptiler_token
 ```
 
-Tanpa key, basemap OSM raster dan pencarian Stadia Maps tetap berfungsi secara anonim.
+Tanpa variabel di atas, aplikasi tetap berjalan:
 
-## Data
-
-Data GeoJSON tersimpan di `src/data/` dan di-bundle secara statis saat build (via Vite `?raw` import). Untuk memperbarui data, lihat panduan lengkap di [docs/data-update-workflow.md](docs/data-update-workflow.md).
-
-Upload layer pengguna: WGS84 `FeatureCollection` dengan tipe geometri homogen. Dataset besar (>5.000 fitur) sebaiknya disederhanakan terlebih dahulu.
+- Search Stadia memakai anonymous access.
+- Style awal memakai raster fallback, lalu basemap runtime tetap dikelola oleh kontrol basemap aplikasi.
 
 ## Deploy (Firebase Hosting)
 
-1. Build:
-    ```bash
-    npm run build
-    ```
-2. Inisialisasi hosting (sekali):
-    ```bash
-    firebase init hosting
-    ```
-    - Public directory: `dist`
-    - Single-page app: **No**
-
-3. Deploy:
-    ```bash
-    firebase deploy
-    ```
-
-### Catatan Deployment
-
-- **Saat ini:** Firebase Hosting untuk frontend.
-- **Direncanakan:** VPS dengan GeoServer + PostGIS untuk layanan OGC (WMS/WFS/WPS).
+```bash
+npm run build
+firebase deploy --only hosting
+```
 
 ## Tech Stack
 
 - React 19 + TypeScript
 - Vite 7
-- MapLibre GL JS v5
+- MapLibre GL JS
 - TailwindCSS + shadcn/ui
-- Zustand (state management)
-- Turf.js (geoprocessing client-side)
-- PapaParse (ekspor CSV)
+- Zustand
+- Turf.js
+- React Router
 - Firebase Hosting
 
 ## Dokumentasi
 
-| Dokumen | Keterangan |
-|---|---|
-| [docs/architecture-overview.md](docs/architecture-overview.md) | Arsitektur sistem & rencana WPS/WFS/Auth |
-| [docs/README-general.md](docs/README-general.md) | Algoritma kerja aplikasi (alur inisialisasi, state, peta) |
-| [docs/README-query.md](docs/README-query.md) | Query Builder & filter expression secara mendalam |
-| [docs/data-update-workflow.md](docs/data-update-workflow.md) | Panduan pembaruan data GeoJSON |
-| [docs/rencana.md](docs/rencana.md) | Rencana teknis pengembangan (PostGIS, GeoServer, S-121) |
-| [CHANGELOG.md](CHANGELOG.md) | Riwayat perubahan |
+- [docs/architecture-overview.md](docs/architecture-overview.md)
+- [docs/README-general.md](docs/README-general.md)
+- [docs/README-query.md](docs/README-query.md)
+- [docs/PORTAL_INTEGRATION_STEPS.md](docs/PORTAL_INTEGRATION_STEPS.md)
+- [docs/REFACTOR_ROADMAP.md](docs/REFACTOR_ROADMAP.md)
+- [docs/CHANGELOG-session.md](docs/CHANGELOG-session.md)
+- [CHANGELOG.md](CHANGELOG.md)
 
-## Lisensi
+## Catatan
 
-Dataset bersifat demonstrasi. Ganti dengan data resmi untuk penggunaan produksi.
+- Folder `from-figma-ai` hanya sebagai referensi desain, bukan sumber runtime utama.
+- Roadmap backend (WFS/WPS/Auth) masih tahap perencanaan, implementasi runtime saat ini tetap client-first.
