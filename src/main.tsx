@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
 
 import App from '@/App';
 import { ToastManagerProvider, Toaster } from '@/components/ui/use-toast';
@@ -17,13 +18,9 @@ const ThemeInitializer = () => {
 
 	useEffect(() => {
 		const root = document.documentElement;
-		if (theme === 'dark') {
-			root.classList.add('dark');
-		} else {
-			root.classList.remove('dark');
-		}
-		root.setAttribute('data-theme', theme);
-		root.style.setProperty('color-scheme', theme);
+		root.classList.remove('dark');
+		root.setAttribute('data-theme', 'light');
+		root.style.setProperty('color-scheme', 'light');
 	}, [theme]);
 
 	return null;
@@ -31,10 +28,12 @@ const ThemeInitializer = () => {
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
 	<React.StrictMode>
-		<ToastManagerProvider>
-			<ThemeInitializer />
-			<App />
-			<Toaster />
-		</ToastManagerProvider>
+		<BrowserRouter>
+			<ToastManagerProvider>
+				<ThemeInitializer />
+				<App />
+				<Toaster />
+			</ToastManagerProvider>
+		</BrowserRouter>
 	</React.StrictMode>,
 );
