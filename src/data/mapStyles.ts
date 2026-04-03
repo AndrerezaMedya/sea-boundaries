@@ -1,4 +1,4 @@
-export type MapStyleKey = 'light' | 'dark';
+export type MapStyleKey = 'light';
 
 type VectorStyleDefinition = {
 	name: string;
@@ -13,12 +13,6 @@ export const mapStyles: Record<MapStyleKey, VectorStyleDefinition> = {
 		code: 'light',
 		url: '/styles/base.json',
 		image: '/icons/style-light.svg',
-	},
-	dark: {
-		name: 'Carto Dark Matter',
-		code: 'dark',
-		url: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-		image: '/icons/style-dark.svg',
 	},
 };
 

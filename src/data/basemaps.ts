@@ -1,4 +1,4 @@
-export type BasemapTheme = 'light' | 'dark';
+export type BasemapTheme = 'light';
 
 interface BaseBasemapDefinition {
 	id: string;
@@ -75,20 +75,6 @@ const rbiBasemap: RasterBasemapDefinition = {
 	previewTiles: ['https://tanahair.indonesia.go.id/portal-web/static/media/rbi.494852622726ecff0319.png'],
 };
 
-const cartoDarkMatter: VectorBasemapDefinition = {
-	id: 'darkMatter',
-	label: 'Carto Dark Matter',
-	kind: 'vector',
-	styleUrl: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-	attribution: '© CARTO',
-	previewTiles: [
-		'https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png',
-		'https://cartodb-basemaps-b.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png',
-		'https://cartodb-basemaps-c.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png',
-		'https://cartodb-basemaps-d.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png',
-	],
-};
-
 export const lightBasemaps: Record<string, BasemapDefinition> = {
 	osm: osmStandard,
 	rbi: rbiBasemap,
@@ -96,39 +82,23 @@ export const lightBasemaps: Record<string, BasemapDefinition> = {
 	esri: esriWorldImagery,
 };
 
-export const darkBasemaps: Record<string, BasemapDefinition> = {
-	darkMatter: cartoDarkMatter,
-	rbi: rbiBasemap,
-	topo: openTopoMap,
-	esri: esriWorldImagery,
-};
-
 export const BASEMAPS_BY_THEME: Record<BasemapTheme, Record<string, BasemapDefinition>> = {
 	light: lightBasemaps,
-	dark: darkBasemaps,
 };
 
 export const ALL_BASEMAPS: Record<string, BasemapDefinition> = {
 	...lightBasemaps,
-	darkMatter: cartoDarkMatter,
 };
 
 export const DEFAULT_BASEMAP_ID_BY_THEME: Record<BasemapTheme, string> = {
-	light: 'osm',
-	dark: 'darkMatter',
+	light: 'esri',
 };
 
 export const mapBasemapId = (id: string, targetTheme: BasemapTheme): string => {
-	if (targetTheme === 'dark') {
-		if (id === 'osm') {
-			return 'darkMatter';
-		}
-		return id;
+	if (targetTheme !== 'light') {
+		return 'esri';
 	}
-	if (id === 'darkMatter') {
-		return 'osm';
-	}
-	return id;
+	return lightBasemaps[id] ? id : 'esri';
 };
 
 export const getBasemapDefinition = (theme: BasemapTheme, id?: string): BasemapDefinition => {
