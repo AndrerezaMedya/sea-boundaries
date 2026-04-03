@@ -1,5 +1,38 @@
 # Changelog - Sea Boundaries WebGIS
 
+## Pembaruan April 2026
+
+### Fitur dan Perubahan Produk
+
+- Portal dan peta kini sepenuhnya konsisten dengan branding SEA-BANDL terbaru.
+- Landing page:
+    - tombol `Akses Fitur` pada kartu fitur dihapus,
+    - CTA utama dirapikan corner radius-nya,
+    - logo frame dibuat circular.
+- Halaman `/peta`:
+    - topbar menambahkan tombol Home di sisi kiri untuk kembali ke beranda,
+    - menu Data pada topbar diganti CTA kuning `Request Data`.
+
+### Basemap dan Theme
+
+- Dark mode dinonaktifkan (light-only runtime).
+- Default basemap ditetapkan ke `Esri Satellite`.
+- Kontrol basemap memakai custom thumbnail control.
+- Perbaikan stabilitas switch basemap:
+    - urutan purge raster diperbaiki agar layer lama dibersihkan dulu,
+    - source hanya dihapus jika tidak lagi direferensikan layer,
+    - memperbaiki error `Source "osm" cannot be removed while layer "osm-raster" is using it`.
+
+### Optimasi Struktur Kode
+
+- Runtime map dimodularisasi ke `src/components/map/*` (controls, basemap, bootstrap, sync, interactions).
+- Store layer direfaktor menjadi facade tipis `useLayers.ts` + module actions/effects pada `src/store/layers/*`.
+- Route-level lazy loading portal dipertahankan untuk menekan beban initial load.
+
+### Catatan Kompatibilitas
+
+- Beberapa catatan lama pada bagian historis (misalnya dark mode aktif dan beberapa detail layout lama) tetap dipertahankan sebagai rekam jejak, namun status runtime saat ini mengikuti bagian April 2026 ini.
+
 ## Pembaruan Maret 2026
 
 ### 🏗️ Refactor Arsitektur UI
@@ -35,23 +68,23 @@
 
 **Sekarang:** 15 layer individual dengan ID unik, masing-masing dengan warna dan pola garis berbeda:
 
-| ID Layer | Warna |
-|---|---|
-| `laut_teritorial_sepakat` | `#1d4ed8` (solid) |
-| `laut_teritorial_perlu` | `#1d4ed8` (dash) |
-| `zee_sepakat` | `#15803d` |
-| `zee_sepakat_ratif` | `#15803d` |
-| `zee_perlu` | `#15803d` (dash) |
-| `landas_kontinen_sepakat` | `#92400e` |
-| `landas_kontinen_sepakat_ratif` | `#92400e` |
-| `landas_kontinen_perlu` | `#92400e` (dash) |
-| `landas_kontinen_ekstensi` | `#92400e` (dot-dash) |
-| `zona_tambahan` | `#0891b2` |
-| `baseline` | `#1e293b` |
-| `basepoints` | `#475569` |
-| `titik_perjanjian_lt` | `#3730a3` |
-| `titik_perjanjian_lk` | `#3730a3` |
-| `titik_perjanjian_zee` | `#3730a3` |
+| ID Layer                        | Warna                |
+| ------------------------------- | -------------------- |
+| `laut_teritorial_sepakat`       | `#1d4ed8` (solid)    |
+| `laut_teritorial_perlu`         | `#1d4ed8` (dash)     |
+| `zee_sepakat`                   | `#15803d`            |
+| `zee_sepakat_ratif`             | `#15803d`            |
+| `zee_perlu`                     | `#15803d` (dash)     |
+| `landas_kontinen_sepakat`       | `#92400e`            |
+| `landas_kontinen_sepakat_ratif` | `#92400e`            |
+| `landas_kontinen_perlu`         | `#92400e` (dash)     |
+| `landas_kontinen_ekstensi`      | `#92400e` (dot-dash) |
+| `zona_tambahan`                 | `#0891b2`            |
+| `baseline`                      | `#1e293b`            |
+| `basepoints`                    | `#475569`            |
+| `titik_perjanjian_lt`           | `#3730a3`            |
+| `titik_perjanjian_lk`           | `#3730a3`            |
+| `titik_perjanjian_zee`          | `#3730a3`            |
 
 **File terdampak:** `src/components/Map.tsx`, `src/store/useUI.ts` (builderState, DEFAULT_PRESETS)
 
