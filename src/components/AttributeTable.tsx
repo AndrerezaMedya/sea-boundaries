@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Clipboard, Download, FilterIcon, Search, ZoomIn } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Check, ChevronDown, Clipboard, Download, FilterIcon, Layers, Search, ZoomIn } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/components/ui/use-toast';
 import { downloadAttributeCsv } from '@/lib/export';
 import { getLayerSchema } from '@/lib/schema';
-import type { SortDirection } from '@/lib/types';
+import type { LayerId, SortDirection, TableRow as TableRowData } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useLayersStore } from '@/store/useLayers';
 
@@ -16,37 +16,86 @@ const pillPrimaryClass =
 	'rounded-full bg-[color:var(--color-accent)] px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 disabled:opacity-60 disabled:text-white/80';
 const pillOutlineClass =
 	'rounded-full border border-[color:var(--color-border)] bg-[color:var(--color-panel)] px-4 py-1.5 text-xs font-semibold text-[color:var(--color-text)] transition hover:bg-[color:var(--color-panel-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-border)] disabled:opacity-90';
-const iconButtonClass =
-	'rounded-full text-[color:var(--color-muted)] transition hover:text-[color:var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-border)] disabled:text-[color:var(--color-muted)] disabled:opacity-80';
 const paginationButtonClass =
 	'rounded-full bg-[color:var(--color-accent)] px-4 py-1.5 text-xs font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 disabled:opacity-60 disabled:text-white/70';
 
 const AttributeTable = () => {
 	const { toast } = useToast();
 	const activeLayerId = useLayersStore((state) => state.activeLayerId);
-	const tableRows = useLayersStore((state) => state.tableRows);
-	const layerState = useLayersStore((state) => state.layers[activeLayerId]);
+	const layers = useLayersStore((state) => state.layers);
 	const setSelection = useLayersStore((state) => state.setSelection);
 	const requestZoomToIds = useLayersStore((state) => state.requestZoomToIds);
 	const setHoveredFeature = useLayersStore((state) => state.setHoveredFeature);
 
-	const schema = useMemo(() => getLayerSchema(activeLayerId), [activeLayerId]);
+	// Local layer selector — independent of the map's active layer
+	const [selectedLayerId, setSelectedLayerId] = useState<LayerId>(activeLayerId);
+	const [dropdownOpen, setDropdownOpen] = useState(false);
+	const dropdownRef = useRef<HTMLDivElement>(null);
+
+	// Close dropdown on outside click
+	useEffect(() => {
+		if (!dropdownOpen) return;
+		const handler = (e: MouseEvent) => {
+			if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+				setDropdownOpen(false);
+			}
+		};
+		document.addEventListener('mousedown', handler);
+		return () => document.removeEventListener('mousedown', handler);
+	}, [dropdownOpen]);
+
+	// Keep in sync only on first mount; after that user drives it themselves
+	useEffect(() => {
+		setSelectedLayerId(activeLayerId);
+	}, [activeLayerId]);
+
+	const layerState = layers[selectedLayerId];
+
+	// Derive tableRows directly from the selected layer's filtered data
+	const tableRows = useMemo<TableRowData[]>(() => {
+		if (!layerState) return [];
+		return layerState.filteredIds
+			.map((id) => {
+				const feature = layerState.featureIndex[id];
+				if (!feature) return null;
+				return { id, layerId: selectedLayerId, properties: feature.properties ?? {}, geometry: feature.geometry };
+			})
+			.filter((r): r is TableRowData => r !== null);
+	}, [layerState, selectedLayerId]);
+
+	// Sorted list of loaded layers for the dropdown
+	const layerOptions = useMemo(() => {
+		return Object.values(layers)
+			.filter((l) => l.data.features.length > 0)
+			.map((l) => ({ id: l.id, label: l.label }))
+			.sort((a, b) => a.label.localeCompare(b.label, 'id'));
+	}, [layers]);
+
+	const schema = useMemo(() => getLayerSchema(selectedLayerId), [selectedLayerId]);
 	const [searchTerm, setSearchTerm] = useState('');
 	const [page, setPage] = useState(0);
-	const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set(schema.fields.map((field) => field.name)));
+	// Per-layer column visibility: Map<layerId, Set<visibleFieldName>>
+	// If no entry exists for a layer, all columns are shown by default.
+	const [columnPrefsMap, setColumnPrefsMap] = useState<Map<string, Set<string>>>(new Map());
 	const [sortField, setSortField] = useState<string | null>(null);
 	const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
+	// Synchronously derive visible columns for the current layer
+	const visibleColumns = useMemo(() => {
+		const allFields = new Set(schema.fields.map((f) => f.name));
+		return columnPrefsMap.get(selectedLayerId) ?? allFields;
+	}, [schema, selectedLayerId, columnPrefsMap]);
 
 	const selectionIds = layerState?.selectionIds ?? [];
 	const hoveredId = layerState?.hoveredId ?? null;
 
+	// Reset search/sort/page when layer changes
 	useEffect(() => {
-		setVisibleColumns(new Set(schema.fields.map((field) => field.name)));
 		setPage(0);
 		setSortField(null);
 		setSortDirection('asc');
 		setSearchTerm('');
-	}, [schema]);
+	}, [selectedLayerId]);
 
 	const filteredRows = useMemo(() => {
 		const term = searchTerm.trim().toLowerCase();
@@ -87,14 +136,18 @@ const AttributeTable = () => {
 	const pagedRows = filteredRows.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE);
 
 	const toggleColumn = (column: string) => {
-		setVisibleColumns((previous) => {
-			const next = new Set(previous);
+		setColumnPrefsMap((prev) => {
+			// Initialise from full field list if no entry yet for this layer
+			const current = prev.get(selectedLayerId) ?? new Set(schema.fields.map((f) => f.name));
+			const next = new Set(current);
 			if (next.has(column)) {
 				next.delete(column);
 			} else {
 				next.add(column);
 			}
-			return next;
+			const map = new Map(prev);
+			map.set(selectedLayerId, next);
+			return map;
 		});
 	};
 
@@ -108,11 +161,11 @@ const AttributeTable = () => {
 	};
 
 	const handleSelectRow = (id: string) => {
-		setSelection(activeLayerId, selectionIds.includes(id) ? [] : [id]);
+		setSelection(selectedLayerId, selectionIds.includes(id) ? [] : [id]);
 	};
 
 	const handleZoomRow = (id: string) => {
-		requestZoomToIds(activeLayerId, [id], 120);
+		requestZoomToIds(selectedLayerId, [id], 120);
 	};
 
 	const handleZoomFiltered = () => {
@@ -124,7 +177,7 @@ const AttributeTable = () => {
 			});
 			return;
 		}
-		requestZoomToIds(activeLayerId, filteredRows.map((row) => row.id));
+		requestZoomToIds(selectedLayerId, filteredRows.map((row) => row.id));
 	};
 
 	const handleCopyRow = async (id: string) => {
@@ -143,18 +196,70 @@ const AttributeTable = () => {
 
 	const handleExport = () => {
 		const fields = schema.fields.map((field) => field.name).filter((field) => visibleColumns.has(field));
-		downloadAttributeCsv(activeLayerId, filteredRows, fields);
+		downloadAttributeCsv(selectedLayerId, filteredRows, fields);
 		toast({ title: 'CSV dibuat', description: `${filteredRows.length} baris diekspor.` });
 	};
 
 	return (
 		<div className='flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-md'>
+			{/* Layer selector row */}
+			<div
+				className='flex flex-shrink-0 items-center gap-2 border-b px-4 py-2.5'
+				style={{ backgroundColor: 'var(--color-panel)', borderColor: 'var(--color-border, #e2e8f0)' }}
+			>
+				<Layers className='h-4 w-4 shrink-0 text-[color:var(--color-accent)]' />
+				<span className='shrink-0 text-xs font-medium text-[color:var(--color-muted)]'>Layer</span>
+
+				{/* Custom dropdown */}
+				<div ref={dropdownRef} className='relative min-w-0 flex-1'>
+					<button
+						type='button'
+						onClick={() => setDropdownOpen((o) => !o)}
+						className='flex w-full items-center justify-between gap-2 rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-panel)] px-3 py-1.5 text-left text-xs font-semibold text-[color:var(--color-text)] shadow-sm transition hover:bg-[color:var(--color-panel-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-accent)]'
+					>
+						<span className='truncate'>
+							{layerOptions.find((o) => o.id === selectedLayerId)?.label ?? selectedLayerId}
+						</span>
+						<ChevronDown
+							className={cn('h-3.5 w-3.5 shrink-0 text-[color:var(--color-muted)] transition-transform duration-150', dropdownOpen && 'rotate-180')}
+						/>
+					</button>
+
+					{dropdownOpen && (
+						<div className='absolute left-0 top-full z-50 mt-1 max-h-64 w-full overflow-y-auto overscroll-contain rounded-xl border border-[color:var(--color-border)] bg-[color:var(--color-panel)] py-1 shadow-xl'>
+							{layerOptions.map((opt) => (
+								<button
+									key={opt.id}
+									type='button'
+									onClick={() => { setSelectedLayerId(opt.id as LayerId); setDropdownOpen(false); }}
+									className={cn(
+										'flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition',
+										opt.id === selectedLayerId
+											? 'bg-[color:var(--color-accent)] font-semibold text-white'
+											: 'text-[color:var(--color-text)] hover:bg-[color:var(--color-panel-muted)]',
+									)}
+								>
+									{opt.id === selectedLayerId
+										? <Check className='h-3.5 w-3.5 shrink-0' />
+										: <span className='h-3.5 w-3.5 shrink-0' />}
+									<span className='truncate'>{opt.label}</span>
+								</button>
+							))}
+						</div>
+					)}
+				</div>
+
+				<span className='shrink-0 rounded-full bg-[color:var(--color-panel-muted)] px-2 py-0.5 text-[10px] font-semibold text-[color:var(--color-muted)]'>
+					{tableRows.length.toLocaleString('id-ID')} baris
+				</span>
+			</div>
+
 			<div className='flex flex-shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-4 py-2'>
 				<h3 className='text-sm font-semibold text-[color:var(--color-text)]'>Attribute Table</h3>
 				<div className='flex items-center gap-2'>
 					<Button onClick={handleZoomFiltered} variant='outline' size='sm' className={cn('gap-1.5', pillOutlineClass)}>
 						<ZoomIn className='h-3.5 w-3.5' />
-						Zoom hasil
+						Zoom ke hasil
 					</Button>
 					<Button onClick={handleExport} variant='default' size='sm' className={cn('gap-1.5', pillPrimaryClass)}>
 						<Download className='h-3.5 w-3.5' />
@@ -222,23 +327,23 @@ const AttributeTable = () => {
 									return (
 										<TableRow
 											key={row.id}
-											onMouseEnter={() => setHoveredFeature(activeLayerId, row.id)}
-											onMouseLeave={() => setHoveredFeature(activeLayerId, null)}
+											onMouseEnter={() => setHoveredFeature(selectedLayerId, row.id)}
+											onMouseLeave={() => setHoveredFeature(selectedLayerId, null)}
 											className={cn(
 												'border-b border-slate-200 text-sm transition-colors',
 												isSelected ? 'bg-slate-900 text-white' : 'bg-white text-slate-800',
 												hoveredId === row.id && !isSelected ? 'bg-slate-100 text-slate-900' : undefined,
 											)}
 										>
-											<TableCell className='align-top'>
-												<div className='flex flex-col gap-1'>
-													<Button size='sm' variant='default' onClick={() => handleSelectRow(row.id)} className={pillPrimaryClass}>
-														{isSelected ? 'Batalkan' : 'Pilih'}
+											<TableCell className='py-1 pl-3 pr-2'>
+												<div className='flex items-center gap-1'>
+													<Button size='sm' variant='default' onClick={() => handleSelectRow(row.id)} className='h-6 rounded-full bg-[color:var(--color-accent)] px-2.5 text-[11px] font-semibold text-white transition hover:opacity-90'>
+														{isSelected ? 'Batal' : 'Pilih'}
 													</Button>
-													<Button size='sm' variant='outline' onClick={() => handleZoomRow(row.id)} className={pillOutlineClass}>
+													<Button size='sm' variant='outline' onClick={() => handleZoomRow(row.id)} className='h-6 rounded-full border border-[color:var(--color-border)] px-2.5 text-[11px] font-semibold text-[color:var(--color-text)] transition hover:bg-[color:var(--color-panel-muted)]'>
 														Zoom
 													</Button>
-													<Button size='sm' variant='ghost' onClick={() => handleCopyRow(row.id)} className={cn('px-0', iconButtonClass)}>
+													<Button size='sm' variant='ghost' onClick={() => handleCopyRow(row.id)} className='h-6 w-6 rounded-full p-0 text-[color:var(--color-muted)] transition hover:text-[color:var(--color-text)]'>
 														<Clipboard className='h-3.5 w-3.5' />
 													</Button>
 												</div>
@@ -257,7 +362,7 @@ const AttributeTable = () => {
 													return (
 														<TableCell
 															key={field.name}
-															className={cn('whitespace-nowrap align-top text-sm', isSelected ? 'text-white' : 'text-slate-800')}
+															className={cn('whitespace-nowrap py-1 text-xs', isSelected ? 'text-white' : 'text-slate-800')}
 														>
 															{displayValue}
 														</TableCell>
