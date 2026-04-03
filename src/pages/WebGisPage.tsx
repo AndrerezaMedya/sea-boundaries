@@ -11,26 +11,26 @@ import TablePanel from '@/components/panels/TablePanel';
 import { useLayersStore } from '@/store/useLayers';
 
 const WebGisPage = () => {
-	const loadInitialFilters = useLayersStore((state) => state.loadInitialFilters);
+    const loadInitialFilters = useLayersStore((state) => state.loadInitialFilters);
 
-	useEffect(() => {
-		loadInitialFilters();
-	}, [loadInitialFilters]);
+    useEffect(() => {
+        loadInitialFilters();
+    }, [loadInitialFilters]);
 
-	return (
-		<div className='app-theme flex h-screen flex-col overflow-hidden'>
-			<Ribbon />
-			<div className='relative flex-1 overflow-hidden'>
-				<MapView />
-				<LayerPanel />
-				<FilterPanel />
-				<GeoPanel />
-				<ImportPanel />
-				<TablePanel />
-				<LegendFloating />
-			</div>
-		</div>
-	);
+    return (
+        <div className='app-theme flex h-screen flex-col overflow-hidden'>
+            <Ribbon />
+            <div className='relative flex-1 overflow-hidden'>
+                <MapView />
+                <LayerPanel />
+                <FilterPanel />
+                <GeoPanel />
+                <ImportPanel />
+                <TablePanel />
+                <LegendFloating />
+            </div>
+        </div>
+    );
 };
 
 export default WebGisPage;
