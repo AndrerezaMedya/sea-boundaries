@@ -22,19 +22,15 @@ export interface VectorBasemapDefinition extends BaseBasemapDefinition {
 
 export type BasemapDefinition = RasterBasemapDefinition | VectorBasemapDefinition;
 
-const osmStandard: RasterBasemapDefinition = {
+const esriLightGray: RasterBasemapDefinition = {
 	id: 'osm',
-	label: 'OSM Standard',
+	label: 'ESRI Light Gray',
 	kind: 'raster',
-	tiles: [
-		'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
-		'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
-		'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
-	],
-	attribution: '© OpenStreetMap contributors',
+	tiles: ['https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}'],
+	attribution: 'Source: Esri, HERE, Garmin, FAO, NOAA, USGS, EPA',
 	tileSize: 256,
 	minZoom: 0,
-	maxZoom: 19,
+	maxZoom: 16,
 };
 
 const openTopoMap: RasterBasemapDefinition = {
@@ -76,7 +72,7 @@ const rbiBasemap: RasterBasemapDefinition = {
 };
 
 export const lightBasemaps: Record<string, BasemapDefinition> = {
-	osm: osmStandard,
+	osm: esriLightGray,
 	rbi: rbiBasemap,
 	topo: openTopoMap,
 	esri: esriWorldImagery,
