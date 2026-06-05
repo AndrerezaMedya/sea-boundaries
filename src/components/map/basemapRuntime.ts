@@ -10,6 +10,7 @@ import {
 import { RASTER_LAYER_PREFIX, RASTER_SOURCE_PREFIX } from '@/components/map/styleState';
 
 type RasterBasemapDefinition = Extract<BasemapDefinition, { kind: 'raster' }>;
+const INITIAL_BASEMAP_ID = 'default-basemap';
 
 export type BasemapsControlOptionsWithCompact = MapLibreBasemapsControlOptions & { compact?: boolean };
 
@@ -90,8 +91,10 @@ export const purgeRasterBasemapArtifacts = (map: MapLibreMap, rasterBasemapIdSet
 			: '';
 		const shouldRemove =
 			layer.type === 'raster' && (
+				layer.id === INITIAL_BASEMAP_ID ||
 				layer.id.startsWith(RASTER_LAYER_PREFIX) ||
 				rasterBasemapIdSet.has(layer.id) ||
+				layerSourceId === INITIAL_BASEMAP_ID ||
 				layerSourceId.startsWith(RASTER_SOURCE_PREFIX) ||
 				rasterBasemapIdSet.has(layerSourceId)
 			);
@@ -113,7 +116,10 @@ export const purgeRasterBasemapArtifacts = (map: MapLibreMap, rasterBasemapIdSet
 
 	const existingSources = Object.keys(map.getStyle()?.sources ?? {});
 	existingSources.forEach((sourceId) => {
-		const shouldRemove = sourceId.startsWith(RASTER_SOURCE_PREFIX) || rasterBasemapIdSet.has(sourceId);
+		const shouldRemove =
+			sourceId === INITIAL_BASEMAP_ID ||
+			sourceId.startsWith(RASTER_SOURCE_PREFIX) ||
+			rasterBasemapIdSet.has(sourceId);
 		if (shouldRemove && !sourceIdsStillInUse.has(sourceId)) {
 			try {
 				map.removeSource(sourceId);
