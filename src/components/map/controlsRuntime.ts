@@ -1,4 +1,4 @@
-import type { IControl, Map as MapLibreMap } from 'maplibre-gl';
+import type { Map as MapLibreMap } from 'maplibre-gl';
 
 import {
 	DEFAULT_BASEMAP_ID_BY_THEME,
@@ -160,7 +160,7 @@ export const setupMapControls = (deps: SetupMapControlsDeps): SetupMapControlsRe
 		initialBasemapId: currentBasemapIdRef.current,
 		onSelect: (id) => ensureBasemapLayers(id, { theme: currentThemeRef.current, forceReinitialize: true }),
 	});
-	map.addControl(basemapControl as IControl, 'top-left');
+	// map.addControl(basemapControl as IControl, 'top-left');
 
 	const purgeRasterBasemapArtifacts = () => {
 		purgeRasterBasemapArtifactsRuntime(map, rasterBasemapIdSet);
