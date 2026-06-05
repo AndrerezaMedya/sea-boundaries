@@ -1,16 +1,19 @@
 import type { Map as MapLibreMap, MapLayerMouseEvent, Popup } from 'maplibre-gl';
 
+import { isTitikPerjanjianLayer, resolveTitikPerjanjianLayerId } from '@/lib/agreementPointKind';
+import { readFeatureRowId } from '@/lib/featureId';
+import { getActiveLocale } from '@/i18n/locale';
+import { t } from '@/i18n/translate';
 import { buildPopupHtml } from '@/lib/map';
-import { getLayerSchema } from '@/lib/schema';
-import type { FeatureWithProps, LayerId } from '@/lib/types';
+import { normaliseFeatureProperties } from '@/lib/featureId';
+import type { CoreLayerId, FeatureWithProps, LayerId } from '@/lib/types';
 
 const popupButtonClass =
-	'inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500';
+	'inline-flex flex-1 justify-center items-center gap-1.5 rounded-full bg-[color:var(--color-panel-muted)] px-3 py-2 text-[11px] font-bold text-[color:var(--color-text)] shadow-sm transition-all duration-200 hover:bg-[color:var(--color-accent-soft)] hover:text-[color:var(--color-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-accent)]';
 
 interface FeatureClickHandlerDeps {
 	getMap: () => MapLibreMap | null;
 	getPopup: () => Popup | null;
-	getCurrentSelectionIds: (layerId: LayerId) => string[];
 	setSelection: (layerId: LayerId, featureIds: string[]) => void;
 	setActiveLayer: (layerId: LayerId) => void;
 	requestZoomToIds: (layerId: LayerId, featureIds: string[], padding?: number) => void;
@@ -25,36 +28,34 @@ export const createFeatureClickHandler = (deps: FeatureClickHandlerDeps) => {
 			return;
 		}
 		const feature = event.features?.[0] as FeatureWithProps | undefined;
-		if (!feature || feature.id === undefined || feature.id === null) {
+		if (!feature) {
 			popupInstance.remove();
 			return;
 		}
 
-		const schema = getLayerSchema(layerId);
-		const properties = feature.properties ?? {};
-		const featureId =
-			properties[schema.primaryKey] !== undefined && properties[schema.primaryKey] !== null
-				? String(properties[schema.primaryKey])
-				: String(feature.id);
+		const properties = normaliseFeatureProperties(feature.properties ?? {});
+		const fuid = String(properties.fuid ?? '');
+		const displayLayer: LayerId = isTitikPerjanjianLayer(layerId)
+			? resolveTitikPerjanjianLayerId(fuid, layerId as CoreLayerId)
+			: layerId;
+		const featureId = readFeatureRowId(displayLayer, properties);
 
-		const currentSelection = deps.getCurrentSelectionIds(layerId);
-		const isAlreadySelected = currentSelection.includes(featureId);
-		if (!isAlreadySelected || currentSelection.length > 1) {
-			deps.setSelection(layerId, [featureId]);
-		}
-		deps.setActiveLayer(layerId);
+		// Track selection for attribute table / detail — without changing map symbology.
+		deps.setSelection(displayLayer, [featureId]);
+		deps.setActiveLayer(displayLayer);
 
+		const locale = getActiveLocale();
 		const popupHtml = `
 			<div class="popup-content">
-				${buildPopupHtml(layerId, feature.properties ?? {})}
-				<div class="mt-3 pt-3 border-t border-slate-200 flex flex-wrap gap-2">
-					<button class="${popupButtonClass}" data-action="detail" data-layer="${layerId}" data-id="${featureId}" title="Buka detail lengkap atribut fitur">
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-						Lihat di Tabel Atribut
+				${buildPopupHtml(displayLayer, properties, locale)}
+				<div class="mt-4 flex flex-wrap gap-2">
+					<button class="${popupButtonClass}" data-action="detail" data-layer="${displayLayer}" data-id="${featureId}" title="${t(locale, 'popup.detailTitle')}">
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+						${t(locale, 'popup.detail')}
 					</button>
-					<button class="${popupButtonClass}" data-action="zoom" data-layer="${layerId}" data-id="${featureId}" title="Zoom ke fitur ini">
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-						Zoom
+					<button class="${popupButtonClass}" data-action="zoom" data-layer="${displayLayer}" data-id="${featureId}" title="${t(locale, 'popup.zoomTitle')}">
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+						${t(locale, 'popup.zoom')}
 					</button>
 				</div>
 			</div>
