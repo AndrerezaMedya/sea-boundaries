@@ -155,6 +155,9 @@ docs/Laporan_TA/
 # --- Catatan diskusi AI sementara (bukan dokumentasi resmi) ---
 docs/temp_diskusiAI.md
 
+# --- Gambar/aset lokal dokumentasi ---
+docs/img/
+
 # --- Folder artifacts AI/editor lokal ---
 artifacts/
 
