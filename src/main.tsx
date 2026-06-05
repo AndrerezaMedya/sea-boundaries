@@ -10,10 +10,9 @@ import '@/styles/tailwind.css';
 import '@/styles/globals.css';
 import '@/styles/theme.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import '@stadiamaps/maplibre-search-box/dist/maplibre-search-box.css';
 import 'maplibre-gl-basemaps/lib/basemaps.css';
 
-const ThemeInitializer = () => {
+export const ThemeInitializer = () => {
 	const theme = useThemeStore((state) => state.theme);
 
 	useEffect(() => {

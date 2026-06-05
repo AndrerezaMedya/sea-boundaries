@@ -6,6 +6,6 @@ declare module '*.geojson?raw' {
 }
 
 interface ImportMetaEnv {
-	readonly VITE_STADIA_MAPS_API_KEY?: string;
+	readonly VITE_API_BASE?: string;
 }
 
