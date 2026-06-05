@@ -1,5 +1,7 @@
 # WebGIS Architecture: Current vs Future (WPS/WFS/Auth)
 
+> **Pembaruan 2026-05-26:** Kebijakan akses data terbaru (WebGIS tanpa login; data utuh via permintaan resmi; tutup celah API display) didokumentasikan di **[DATA_ACCESS_SECURITY_PLAN.md](./DATA_ACCESS_SECURITY_PLAN.md)**. Bagian “VPS”, “login + WFS untuk publik”, dan `useAuth` di bawah ini **bersifat historis** kecuali disebut lain.
+
 This doc summarizes the full tech stack, the current state of the WebGIS, and the planned evolution to add WPS (JTS/GeoServer), WFS downloads for authorized users, and authentication/authorization. Mermaid diagrams included.
 
 ## Tech Stack
