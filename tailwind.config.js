@@ -6,7 +6,6 @@ export default {
 		extend: {
 			fontFamily: {
 				sans: ['Plus Jakarta Sans', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
-				display: ['Space Grotesk', 'Plus Jakarta Sans', 'system-ui', 'sans-serif'],
 			},
 			colors: {
 				border: 'hsl(var(--border))',
