@@ -1,48 +1,12 @@
 import type { Feature, Geometry } from 'geojson';
 
-import basepointsRaw from '../../data/pembaharuan/TitikDasar.geojson?raw';
-import baselineRaw from '../../data/pembaharuan/GarisPangkal.geojson?raw';
-import ltSepakatRaw from '../../data/pembaharuan/LautTeritorial_Sepakat.geojson?raw';
-import ltPerluRaw from '../../data/pembaharuan/LautTeritorial_PerluKesepakatan.geojson?raw';
-import zeeSepakatRaw from '../../data/pembaharuan/BZEE_Sepakat.geojson?raw';
-import zeeSepakatRatifRaw from '../../data/pembaharuan/BZEE_SepakatPerluRatif.geojson?raw';
-import zeePerluRaw from '../../data/pembaharuan/BZEE_PerluKesepakatan.geojson?raw';
-import lkSepakatRaw from '../../data/pembaharuan/LandasKontinen_Sepakat.geojson?raw';
-import lkSepakatRatifRaw from '../../data/pembaharuan/LandasKontinen_SepakatPerluRatif.geojson?raw';
-import lkPerluRaw from '../../data/pembaharuan/LandasKontinen_PerluKesepakatan.geojson?raw';
-import lkEkstensiRaw from '../../data/pembaharuan/LandasKontinenEkstensi.geojson?raw';
-import zonaTambahanRaw from '../../data/pembaharuan/ZonaTambahan.geojson?raw';
-import tpLtRaw from '../../data/pembaharuan/TitikPerjanjian_LautTeritorial.geojson?raw';
-import tpLkRaw from '../../data/pembaharuan/TitikPerjanjian_LandasKontinen.geojson?raw';
-import tpZeeRaw from '../../data/pembaharuan/TitikPerjanjian_BZEE.geojson?raw';
+import { fetchLayerData, fetchLayersInBbox } from './apiClient';
+import type { Bbox } from './bbox';
+import { expandBbox, INDONESIA_BBOX } from './bbox';
+import { isMvtDisplayMode } from '@/lib/mapDisplay';
 import { DATE_FIELDS_BY_LAYER, LAYER_SCHEMAS } from '@/lib/schema';
+import { FEATURE_ROW_ID_PROP, normaliseFeatureProperties, resolveFeatureRowId } from '@/lib/featureId';
 import type { CoreLayerId, FeatureCollectionWithProps, FeatureWithProps } from '@/lib/types';
-
-const rawCollections: Record<CoreLayerId, string> = {
-	basepoints: basepointsRaw,
-	baseline: baselineRaw,
-	laut_teritorial_sepakat: ltSepakatRaw,
-	laut_teritorial_perlu: ltPerluRaw,
-	zee_sepakat: zeeSepakatRaw,
-	zee_sepakat_ratif: zeeSepakatRatifRaw,
-	zee_perlu: zeePerluRaw,
-	landas_kontinen_sepakat: lkSepakatRaw,
-	landas_kontinen_sepakat_ratif: lkSepakatRatifRaw,
-	landas_kontinen_perlu: lkPerluRaw,
-	landas_kontinen_ekstensi: lkEkstensiRaw,
-	zona_tambahan: zonaTambahanRaw,
-	titik_perjanjian_lt: tpLtRaw,
-	titik_perjanjian_lk: tpLkRaw,
-	titik_perjanjian_zee: tpZeeRaw,
-};
-
-const parseRawCollection = (raw: string): Feature<Geometry, Record<string, unknown>>[] => {
-	const parsed = JSON.parse(raw);
-	if (!parsed || parsed.type !== 'FeatureCollection' || !Array.isArray(parsed.features)) {
-		throw new Error('GeoJSON tidak valid. Pastikan format FeatureCollection.');
-	}
-	return parsed.features as Feature<Geometry, Record<string, unknown>>[];
-};
 
 const toTimestamp = (value: unknown): number | null => {
 	if (value instanceof Date) {
@@ -84,7 +48,7 @@ const normaliseFeature = (
 		throw new Error(`Fitur pada layer ${layerId} tidak memiliki geometry.`);
 	}
 	const schema = LAYER_SCHEMAS[layerId];
-	const properties: Record<string, unknown> = { ...(feature.properties ?? {}) };
+	const properties: Record<string, unknown> = normaliseFeatureProperties({ ...(feature.properties ?? {}) });
 	const dateFields = new Set(DATE_FIELDS_BY_LAYER[layerId] ?? []);
 
 	schema.fields.forEach((field) => {
@@ -120,9 +84,8 @@ const normaliseFeature = (
 		}
 	});
 
-	const primaryKey = schema.primaryKey;
-	const rawId = properties[primaryKey] ?? feature.id ?? (properties as Record<string, unknown>).fid;
-	const featureId = rawId === undefined || rawId === null ? `${layerId}-${index}` : String(rawId);
+	const featureId = resolveFeatureRowId(layerId, properties, index);
+	properties[FEATURE_ROW_ID_PROP] = featureId;
 
 	return {
 		...feature,
@@ -131,12 +94,28 @@ const normaliseFeature = (
 	} as FeatureWithProps;
 };
 
-export const loadLayerCollections = (): Record<CoreLayerId, FeatureCollectionWithProps> => {
+/** Load one layer for attribute table (GeoJSON: national bbox; MVT: no bbox — filtered client-side). */
+export const loadLayerCollectionForBbox = async (
+	layerId: CoreLayerId,
+	bbox?: Bbox,
+): Promise<FeatureCollectionWithProps> => {
+	const queryBbox = isMvtDisplayMode() ? undefined : (bbox ?? expandBbox(INDONESIA_BBOX));
+	const raw = await fetchLayerData(layerId, queryBbox);
+	const features = (raw.features || []).map((feature, index) =>
+		normaliseFeature(layerId, feature, index),
+	) as FeatureWithProps[];
+	return { type: 'FeatureCollection', features };
+};
+
+/** Load all core layers for a map bounding box (display channel). */
+export const loadLayerCollections = async (
+	bbox: Bbox,
+): Promise<Record<CoreLayerId, FeatureCollectionWithProps>> => {
+	const rawCollections = await fetchLayersInBbox(bbox);
 	const result: Partial<Record<CoreLayerId, FeatureCollectionWithProps>> = {};
 
 	(Object.keys(rawCollections) as CoreLayerId[]).forEach((layerId) => {
-		const raw = rawCollections[layerId];
-		const features = parseRawCollection(raw).map((feature, index) =>
+		const features = (rawCollections[layerId]?.features || []).map((feature, index) =>
 			normaliseFeature(layerId, feature, index),
 		) as FeatureWithProps[];
 		result[layerId] = {
