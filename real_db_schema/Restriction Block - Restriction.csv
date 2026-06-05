@@ -1,0 +1,12 @@
+rrrID,restrictionType,partyRequired,rightRestrictionResponsibilityDescription,rightRestrictionResponsibilityShare,rightRestrictionResponsibilityShareCheck,pID
+RESTRICTION-001,territorialSeaMax12NM,TRUE,"The breadth of the Territorial Sea shall not exceed 12 nautical miles from the baseline.",1,TRUE,IDN
+RESTRICTION-002,eezMax200NM,TRUE,"The breadth of the Exclusive Economic Zone shall not exceed 200 nautical miles from the baseline.",1,TRUE,IDN
+RESTRICTION-003,continentalShelfMax200NM,TRUE,"The Continental Shelf shall extend up to a maximum of 200 nautical miles from the baseline.",1,TRUE,IDN
+RESTRICTION-004,maximumExtent24NM,TRUE,"The breadth of the Contiguous Zone shall not exceed 24 nautical miles from the baseline.",1,TRUE,IDN
+RESTRICTION-005,continentalShelfMax,TRUE,"The outer limits of the continental shelf shall not exceed 350 nautical miles from the baseline and shall not exceed 100 nautical miles from the 2,500-meter isobath.",1,TRUE,IDN
+RESTRICTION-006,internalWaterResc,TRUE,"All waters located on the landward side of the baseline, such as ports, rivers, lakes, canals, and navigable waters.",1,TRUE,IDN
+RESTRICTION-007,archipelagicWaterResc,TRUE,"Waters enclosed by archipelagic baselines (with a maximum length of 100 nautical miles) connecting the outermost islands of an archipelagic State (Ratio between Water and Land is 9:1)",1,TRUE,IDN
+RESTRICTION-008,archipelagicSeaLanesPassResc,TRUE,"The width of the Indonesian Archipelagic Sea Lanes (IASL/ALKI) generally extends 25 nautical miles to the right and 25 nautical miles to the left of the axis line, resulting in a total width of approximately 50 nautical miles. (Based on IMO provisions and UNCLOS 1982 implementation)",1,TRUE,IDN
+RESTRICTION-009,authorizedAccess,TRUE,"Fishing vessels shall not fish in areas subject to the enforcement jurisdiction of the other Party unless authorized under applicable agreements, arrangements, or laws.",1,TRUE,IDN
+RESTRICTION-010,licenseCompliance,TRUE,"Fishing vessels authorized to operate in areas subject to the enforcement jurisdiction of the other Party shall comply with the applicable laws, licence terms, and conditions of that Party.",1,TRUE,IDN
+RESTRICTION-011,accessTermsAndConditions,TRUE,"Access to fisheries resources under the jurisdiction of another Party shall be subject to agreed terms and conditions, including vessel position recording, catch and effort reporting, licence requirements, observers, and access fees.",1,TRUE,IDN
