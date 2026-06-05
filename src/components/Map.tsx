@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import maplibregl, { Map as MapLibreMap, NavigationControl, Popup, ScaleControl } from 'maplibre-gl';
-import { MapLibreSearchControl } from '@stadiamaps/maplibre-search-box';
 
 import FeatureDetailModal from '@/components/FeatureDetailModal';
 import {
@@ -10,13 +9,22 @@ import {
 import type { BasemapTheme } from '@/data/basemaps';
 import { ALL_LAYER_IDS, mapLayerConfigs } from '@/components/map/layerConfigs';
 import { setupMapControls } from '@/components/map/controlsRuntime';
+import { registerIhoSymbolImages } from '@/components/map/ihoSymbology';
 import { bindLayerInteractions } from '@/components/map/layerInteractions';
-import { ensureMapLayerStack } from '@/components/map/sourceBootstrap';
+import { ensureCombinedMvtSources, ensureMapLayerStack } from '@/components/map/sourceBootstrap';
+import { getDisplayToken } from '@/lib/displaySession';
+import { applySymbologyMode } from '@/components/map/applySymbology';
 import { createFeatureClickHandler } from '@/components/map/popupInteraction';
+import { syncGeoResultLayer } from '@/components/map/geoResultLayer';
 import { fitMapToFeatures, syncMapWithState } from '@/components/map/runtimeSync';
+import { syncMvtTileReload } from '@/lib/mvtSourceSync';
 import { MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM, getBaseMapStyle } from '@/lib/map';
+import { isMvtDisplayMode } from '@/lib/mapDisplay';
 import type { FeatureWithProps, LayerId } from '@/lib/types';
-import { useLayersStore } from '@/store/useLayers';
+import { useViewportAttributes } from '@/hooks/useViewportAttributes';
+import { useGeoResultStore } from '@/store/useGeoResult';
+import { useLayersStore } from '@/store/useLayersStore';
+import { useLocaleStore } from '@/store/useLocale';
 import { useUIStore } from '@/store/useUI';
 
 const MapView = () => {
@@ -29,6 +37,9 @@ const MapView = () => {
 		featureId: null,
 	});
 	const mapReadyRef = useRef(false);
+	const [mapInstance, setMapInstance] = useState<MapLibreMap | null>(null);
+	const [mapReady, setMapReady] = useState(false);
+	const activeLayerId = useLayersStore((state) => state.activeLayerId);
 	const initialBasemapTheme: BasemapTheme = 'light';
 	const initialBasemapId = DEFAULT_BASEMAP_ID_BY_THEME[initialBasemapTheme];
 	const initialBasemapDefinition = getBasemapDefinition(initialBasemapTheme, initialBasemapId);
@@ -47,16 +58,40 @@ const MapView = () => {
 	const consumeZoomRequest = useLayersStore((state) => state.consumeZoomRequest);
 	const getFeatureById = useLayersStore((state) => state.getFeatureById);
 	const setSelection = useLayersStore((state) => state.setSelection);
-	const setHoveredFeature = useLayersStore((state) => state.setHoveredFeature);
 	const setActiveLayer = useLayersStore((state) => state.setActiveLayer);
 	const requestZoomToIds = useLayersStore((state) => state.requestZoomToIds);
 	const setActiveTab = useUIStore((state) => state.setActiveTab);
+	const activeBasemapId = useUIStore((state) => state.activeBasemapId);
+	const setActiveBasemapId = useUIStore((state) => state.setActiveBasemapId);
+	const locale = useLocaleStore((state) => state.locale);
 	const showCoordinates = useUIStore((state) => state.showCoordinates);
+	const symbologyMode = useUIStore((state) => state.symbologyMode);
+	const attributeRefreshTargets = useLayersStore((state) => state.attributeRefreshTargets);
+	const clearAttributeRefreshTargets = useLayersStore((state) => state.clearAttributeRefreshTargets);
+	const refreshActiveLayerAttributes = useLayersStore((state) => state.refreshActiveLayerAttributes);
+	const geoResultCollection = useGeoResultStore((state) => state.collection);
+	const geoResultVisible = useGeoResultStore((state) => state.visible);
 
 	const [coords, setCoords] = useState<{ lng: number; lat: number } | null>(null);
 	const showCoordinatesRef = useRef(showCoordinates);
+	const mvtVisibilityRef = useRef<ReturnType<typeof syncMvtTileReload> | null>(null);
+	const ensureBasemapLayersRef = useRef<((id: string, opts?: any) => void) | null>(null);
 	// Keep ref in sync so the stable mousemove closure sees latest toggle
 	showCoordinatesRef.current = showCoordinates;
+
+	useViewportAttributes(mapInstance, mapReady, activeLayerId);
+
+	useEffect(() => {
+		if (!mapReadyRef.current || !mapRef.current) {
+			return;
+		}
+		syncGeoResultLayer(mapRef.current, geoResultCollection, geoResultVisible);
+	}, [geoResultCollection, geoResultVisible, mapReady]);
+
+	// Popup HTML is static until the feature is clicked again — close when language changes.
+	useEffect(() => {
+		popupRef.current?.remove();
+	}, [locale]);
 
 	useEffect(() => {
 		if (!containerRef.current) {
@@ -68,6 +103,19 @@ const MapView = () => {
 			style: getBaseMapStyle(),
 			center: MAP_DEFAULT_CENTER,
 			zoom: MAP_DEFAULT_ZOOM,
+			transformRequest: (url) => {
+				if (!isMvtDisplayMode() || !url.includes('/api/tiles/')) {
+					return { url };
+				}
+				const token = getDisplayToken();
+				if (!token) {
+					return { url };
+				}
+				return {
+					url,
+					headers: { 'X-Display-Token': token },
+				};
+			},
 		});
 		mapRef.current = map;
 
@@ -95,66 +143,9 @@ const MapView = () => {
 		map.on('mousemove', handleMapMouseMove);
 		map.on('mouseleave', handleMapMouseLeave);
 
-		const accessibilityCleanup: Array<() => void> = [];
-
-		const searchControl = new MapLibreSearchControl({
-			useMapFocusPoint: true,
-			mapFocusPointMinZoom: 5,
-			maxResults: 8,
-			minWaitPeriodMs: 150,
-			onResultSelected: () => {
-				popup.remove();
-			},
-		});
-		const controlWithApi = searchControl as unknown as {
-			api?: {
-				configuration?: {
-					configuration?: Record<string, unknown>;
-					config?: Record<string, unknown>;
-				};
-			};
-		};
-		const stadiaApiKey = import.meta.env.VITE_STADIA_MAPS_API_KEY;
-		if (stadiaApiKey && controlWithApi.api?.configuration) {
-			const configWrapper = controlWithApi.api.configuration;
-			const baseConfig = (configWrapper.configuration ?? {}) as Record<string, unknown>;
-			const nextConfig = {
-				...baseConfig,
-				apiKey: stadiaApiKey,
-			};
-			try {
-				// prefer setter when available to preserve internal observers
-				configWrapper.config = nextConfig;
-			} catch {
-				// fallback to direct mutation if setter is unavailable in future versions
-				configWrapper.configuration = nextConfig;
-			}
-		} else if (!stadiaApiKey) {
-			console.warn('VITE_STADIA_MAPS_API_KEY is not defined; Stadia Maps search will use anonymous access.');
-		}
-		map.addControl(searchControl, 'top-left');
-
-		const searchContainer = typeof searchControl.getContainer === 'function' ? searchControl.getContainer() : null;
-		if (searchContainer) {
-			searchContainer.setAttribute('role', 'search');
-			searchContainer.setAttribute('aria-label', 'Pencarian lokasi Stadia Maps');
-			const searchInput = searchContainer.querySelector('input');
-			if (searchInput) {
-				searchInput.setAttribute('aria-label', 'Cari lokasi di peta');
-				const keyHandler = (event: KeyboardEvent) => {
-					if (event.key === 'Escape') {
-						(event.currentTarget as HTMLInputElement).blur();
-					}
-				};
-				searchInput.addEventListener('keydown', keyHandler);
-				accessibilityCleanup.push(() => searchInput.removeEventListener('keydown', keyHandler));
-			}
-		}
-
 		const handleFeatureClick = createFeatureClickHandler({
 			getMap: () => mapRef.current,
 			getPopup: () => popupRef.current,
-			getCurrentSelectionIds: (layerId) => useLayersStore.getState().layers[layerId]?.selectionIds ?? [],
 			setSelection,
 			setActiveLayer,
 			requestZoomToIds,
@@ -167,7 +158,7 @@ const MapView = () => {
 			ALL_LAYER_IDS.forEach((layerId) => {
 				const configs = mapLayerConfigs[layerId] ?? [];
 				configs.forEach((config) => {
-					ensureMapLayerStack(map, config);
+					ensureMapLayerStack(map, layerId, config);
 					const interactiveLayers = [
 						config.baseLayerId,
 						config.filteredLayerId,
@@ -175,9 +166,6 @@ const MapView = () => {
 						config.hoverLayerId,
 					];
 					bindLayerInteractions(map, layerId, interactiveLayers, {
-						getCurrentHoveredId: (targetLayerId) =>
-							useLayersStore.getState().layers[targetLayerId]?.hoveredId ?? null,
-						setHoveredFeature,
 						handleFeatureClick,
 					});
 				});
@@ -192,19 +180,30 @@ const MapView = () => {
 			currentBasemapKindRef,
 			currentVectorStyleRef,
 			onReinitialize: () => {
+				registerIhoSymbolImages(map);
 				initialiseSources();
-				syncMapWithState(map, useLayersStore.getState().layers);
+				syncMapWithState(map, useLayersStore.getState().layers, useUIStore.getState().symbologyMode);
 			},
 		});
+		ensureBasemapLayersRef.current = controls.ensureBasemapLayers;
 
 		map.on('load', () => {
 			mapReadyRef.current = true;
-			controls.ensureBasemapLayers(currentBasemapIdRef.current, {
+			setMapReady(true);
+			setMapInstance(map);
+			controls.ensureBasemapLayers(activeBasemapId ?? currentBasemapIdRef.current, {
 				theme: currentThemeRef.current,
 				forceReinitialize: true,
 			});
+			if (!activeBasemapId) setActiveBasemapId(currentBasemapIdRef.current);
+			registerIhoSymbolImages(map);
+			ensureCombinedMvtSources(map);
 			initialiseSources();
-			syncMapWithState(map, useLayersStore.getState().layers);
+			const mode = useUIStore.getState().symbologyMode;
+			const layers = useLayersStore.getState().layers;
+			syncMapWithState(map, layers, mode);
+			applySymbologyMode(map, mode);
+			mvtVisibilityRef.current = syncMvtTileReload(map, layers, null);
 		});
 
 		const resize = () => map.resize();
@@ -212,27 +211,52 @@ const MapView = () => {
 
 		return () => {
 			window.removeEventListener('resize', resize);
-			accessibilityCleanup.forEach((fn) => fn());
 			controls.cleanup();
 			map.off('mousemove', handleMapMouseMove);
 			map.off('mouseleave', handleMapMouseLeave);
 			map.removeControl(navigationControl);
 			map.removeControl(controls.basemapControl);
-			map.removeControl(searchControl);
 			popup.remove();
 			map.remove();
 			mapReadyRef.current = false;
+			setMapReady(false);
+			setMapInstance(null);
 			mapRef.current = null;
 			popupRef.current = null;
 		};
-	}, [requestZoomToIds, setActiveLayer, setActiveTab, setHoveredFeature, setSelection]);
+	}, [requestZoomToIds, setActiveLayer, setActiveTab, setSelection, activeBasemapId, setActiveBasemapId]);
 
 	useEffect(() => {
 		if (!mapReadyRef.current || !mapRef.current) {
 			return;
 		}
-		syncMapWithState(mapRef.current, layersState);
-	}, [layersState]);
+		const map = mapRef.current;
+		syncMapWithState(map, layersState, symbologyMode);
+		applySymbologyMode(map, symbologyMode);
+		mvtVisibilityRef.current = syncMvtTileReload(map, layersState, mvtVisibilityRef.current);
+	}, [layersState, symbologyMode]);
+
+	useEffect(() => {
+		if (!mapReadyRef.current || !mapRef.current || !attributeRefreshTargets?.length || !isMvtDisplayMode()) {
+			return;
+		}
+		void (async () => {
+			for (const layerId of attributeRefreshTargets) {
+				await refreshActiveLayerAttributes(layerId);
+			}
+			clearAttributeRefreshTargets();
+		})();
+	}, [
+		attributeRefreshTargets,
+		refreshActiveLayerAttributes,
+		clearAttributeRefreshTargets,
+	]);
+
+	useEffect(() => {
+		if (activeBasemapId && ensureBasemapLayersRef.current) {
+			ensureBasemapLayersRef.current(activeBasemapId);
+		}
+	}, [activeBasemapId]);
 
 	useEffect(() => {
 		if (!mapReadyRef.current || !mapRef.current || !pendingZoom) {
@@ -282,15 +306,23 @@ const MapView = () => {
 			<div ref={containerRef} className='h-full w-full' />
 			{showCoordinates && coords && (
 				<div
-					className='pointer-events-none absolute bottom-8 left-1/2 z-20 -translate-x-1/2 rounded-md border px-2.5 py-1 text-[11px] font-mono tabular-nums shadow-sm backdrop-blur-sm'
+					className='pointer-events-none absolute left-1/2 top-[3.6rem] z-20 flex max-w-[calc(100vw-1.5rem)] -translate-x-1/2 items-center gap-2 rounded-full border border-[color:var(--color-border)] px-3 py-1.5 text-[11px] font-semibold tabular-nums shadow-lg backdrop-blur-md transition-all sm:top-auto sm:bottom-8 sm:gap-2.5 sm:px-4 sm:text-xs md:max-w-none'
 					style={{
-						backgroundColor: 'rgba(var(--color-panel-rgb, 255 255 255) / 0.88)',
-						borderColor: 'var(--color-border, #e2e8f0)',
+						backgroundColor: 'var(--color-panel)',
 						color: 'var(--color-text)',
 					}}
 				>
-					{coords.lat >= 0 ? `${coords.lat.toFixed(6)}°N` : `${Math.abs(coords.lat).toFixed(6)}°S`}&nbsp;&nbsp;
-					{coords.lng >= 0 ? `${coords.lng.toFixed(6)}°E` : `${Math.abs(coords.lng).toFixed(6)}°W`}
+					<div className='flex items-center justify-center rounded-full bg-[color:var(--color-panel-muted)] p-1 text-[color:var(--color-accent)]'>
+						<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='h-3 w-3'>
+							<path d='M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z' />
+							<circle cx='12' cy='10' r='3' />
+						</svg>
+					</div>
+					<div className='flex items-center gap-3 tracking-wide'>
+						<span>{coords.lat >= 0 ? `${coords.lat.toFixed(3)}°N` : `${Math.abs(coords.lat).toFixed(3)}°S`}</span>
+						<span className='text-[color:var(--color-muted)] opacity-50'>|</span>
+						<span>{coords.lng >= 0 ? `${coords.lng.toFixed(3)}°E` : `${Math.abs(coords.lng).toFixed(3)}°W`}</span>
+					</div>
 				</div>
 			)}
 			{modalState.isOpen && modalState.layerId && modalState.featureId && (
