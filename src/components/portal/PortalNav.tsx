@@ -1,23 +1,85 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Globe } from 'lucide-react';
+import { useWebGisT } from '@/i18n/useWebGisT';
+import { useLocaleStore } from '@/store/useLocale';
 
-const navItems = [
-    { to: '/', label: 'Beranda' },
-    { to: '/request-data', label: 'Request Data' },
-    { to: '/user-guide', label: 'Petunjuk Penggunaan' },
-];
+type HomeSurfaceMode = 'heroDark' | 'lightSections' | 'deepBlueSections';
 
 const PortalNav = () => {
+    const { t } = useWebGisT();
+    const { locale, setLocale } = useLocaleStore();
     const location = useLocation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const isBlueMode = location.pathname.startsWith('/request-data') || location.pathname.startsWith('/user-guide');
+    const [homeSurfaceMode, setHomeSurfaceMode] = useState<HomeSurfaceMode>('heroDark');
+    const isBlueMode = false;
     const isHomeRoute = location.pathname === '/';
+    const isAdaptiveRoute = (isHomeRoute || location.pathname === '/request-data' || location.pathname === '/user-guide') && !isBlueMode;
     const mobileMenuId = 'portal-mobile-menu';
+
+    const navItems = useMemo(() => [
+        { to: '/', label: t('portalNav.home') },
+        { to: '/request-data', label: t('portalNav.requestData') },
+        { to: '/user-guide', label: t('portalNav.userGuide') },
+    ], [t]);
+
+    const toggleLocale = () => setLocale(locale === 'id' ? 'en' : 'id');
 
     useEffect(() => {
         setIsMobileMenuOpen(false);
     }, [location.pathname]);
+
+    useEffect(() => {
+        if (!isAdaptiveRoute) {
+            setHomeSurfaceMode('heroDark');
+            return;
+        }
+
+        const heroSection = document.getElementById('hero');
+        const deepBlueSection = document.getElementById('home-deep-zone');
+        if (!heroSection) return;
+
+        let frameId: number | null = null;
+        const triggerY = 104;
+
+        const evaluateSurfaceMode = () => {
+            const deepRect = deepBlueSection?.getBoundingClientRect();
+            const heroRect = heroSection.getBoundingClientRect();
+
+            // Trigger blue mode when close to the deep blue section (within 60px tolerance)
+            if (deepRect && deepRect.top < window.innerHeight && deepRect.top <= triggerY - 40) {
+                setHomeSurfaceMode('deepBlueSections');
+                return;
+            }
+
+            if (heroRect.bottom <= triggerY) {
+                setHomeSurfaceMode('lightSections');
+                return;
+            }
+
+            setHomeSurfaceMode('heroDark');
+        };
+
+        const onScrollOrResize = () => {
+            if (frameId !== null) return;
+            frameId = window.requestAnimationFrame(() => {
+                frameId = null;
+                evaluateSurfaceMode();
+            });
+        };
+
+        evaluateSurfaceMode();
+        window.addEventListener('scroll', onScrollOrResize, { passive: true });
+        window.addEventListener('resize', onScrollOrResize);
+
+        return () => {
+            if (frameId !== null) {
+                window.cancelAnimationFrame(frameId);
+            }
+            window.removeEventListener('scroll', onScrollOrResize);
+            window.removeEventListener('resize', onScrollOrResize);
+        };
+    }, [isAdaptiveRoute]);
 
     const isItemActive = (to: string) => {
         if (to === '/') {
@@ -34,9 +96,16 @@ const PortalNav = () => {
             ].join(' ');
         }
 
-        if (isHomeRoute) {
+        if (isAdaptiveRoute) {
+            if (homeSurfaceMode === 'lightSections') {
+                return [
+                    'rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#111FA2] focus-visible:ring-offset-1 focus-visible:ring-offset-white',
+                    active ? 'bg-[#111FA2] text-white shadow-md shadow-[#111FA2]/20' : 'text-[#11206f] hover:bg-[#111FA2]/10 hover:text-[#0c1762]',
+                ].join(' ');
+            }
+
             return [
-                'rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-1 focus-visible:ring-offset-[#0b1d7a]',
+                'rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-1 focus-visible:ring-offset-[#0b1d7a]',
                 active ? 'bg-white/25 text-white shadow-inner shadow-[#9fc8ff]/35' : 'text-white/90 hover:bg-white/15 hover:text-white',
             ].join(' ');
         }
@@ -53,15 +122,17 @@ const PortalNav = () => {
         'fixed left-0 right-0 top-0 z-40',
         isBlueMode
             ? 'border-b border-[#0f1988] bg-[#111FA2]/95 backdrop-blur'
-            : isHomeRoute
-              ? 'bg-transparent pt-3'
-              : 'border-b border-slate-200 bg-white/95 backdrop-blur',
+            : isAdaptiveRoute
+                ? 'bg-transparent pt-3'
+                : 'border-b border-slate-200/80 bg-white/100 backdrop-blur-2xl supports-[backdrop-filter]:bg-white/58',
     ].join(' ');
 
     const navBarShellClassName = [
-        'flex h-16 items-center justify-between',
-        isHomeRoute && !isBlueMode
-            ? 'rounded-2xl border border-white/25 bg-[#0b1d7a]/48 px-4 shadow-[0_18px_38px_rgba(3,24,89,0.36)] backdrop-blur-xl sm:px-5'
+        'flex h-16 items-center justify-between transition-[background-color,border-color,box-shadow,color] duration-300',
+        isAdaptiveRoute
+            ? homeSurfaceMode === 'lightSections'
+                ? 'rounded-2xl border border-[#c7d7f6]/85 bg-white/64 px-4 shadow-[0_14px_30px_rgba(17,31,107,0.14)] backdrop-blur-3xl supports-[backdrop-filter]:bg-white/55 sm:px-5'
+                : 'rounded-2xl border border-white/25 bg-[#0b1d7a]/48 px-4 shadow-[0_18px_38px_rgba(3,24,89,0.36)] backdrop-blur-xl sm:px-5'
             : '',
     ].join(' ');
 
@@ -70,12 +141,32 @@ const PortalNav = () => {
             <div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8'>
                 <div className={navBarShellClassName}>
                     <div className='flex items-center gap-3'>
-                        <div className={['h-10 w-10 overflow-hidden rounded-full border', isBlueMode || isHomeRoute ? 'border-white/20' : 'border-slate-200'].join(' ')}>
+                        <div className={['h-10 w-10 overflow-hidden rounded-full border transition-colors duration-300', isBlueMode || (isAdaptiveRoute && homeSurfaceMode !== 'lightSections') ? 'border-white/20' : 'border-slate-200'].join(' ')}>
                             <img src='/docs/logo_sea-bandl.png' alt='Logo SEA-BANDL' className='h-full w-full object-cover' />
                         </div>
                         <div className='leading-tight'>
-                            <p className={['text-sm font-bold', isBlueMode || isHomeRoute ? 'text-white' : 'text-[#111FA2]'].join(' ')}>SEA-BANDL</p>
-                            <p className={['text-[10px]', isBlueMode ? 'text-[#FFDE42]' : isHomeRoute ? 'text-[#b8dbff]' : 'text-[#5478FF]'].join(' ')}>Sea Boundaries and Limits</p>
+                            <p
+                                className={[
+                                    'text-sm font-bold transition-colors duration-300',
+                                    isBlueMode || (isAdaptiveRoute && homeSurfaceMode !== 'lightSections') ? 'text-white' : 'text-[#111FA2]',
+                                ].join(' ')}
+                            >
+                                SEA-BANDL
+                            </p>
+                            <p
+                                className={[
+                                    'text-[10px] transition-colors duration-300',
+                                    isBlueMode
+                                        ? 'text-[#FFDE42]'
+                                        : isAdaptiveRoute
+                                            ? homeSurfaceMode === 'lightSections'
+                                                ? 'text-[#4b69d9]'
+                                                : 'text-[#b8dbff]'
+                                            : 'text-[#5478FF]',
+                                ].join(' ')}
+                            >
+                                {t('portalNav.tagline')}
+                            </p>
                         </div>
                     </div>
 
@@ -90,6 +181,21 @@ const PortalNav = () => {
                             </Link>
                         ))}
 
+                        <button
+                            type='button'
+                            onClick={toggleLocale}
+                            className={[
+                                'ml-2 flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#111FA2] focus-visible:ring-offset-1',
+                                isBlueMode || (isAdaptiveRoute && homeSurfaceMode !== 'lightSections')
+                                    ? 'text-white/90 hover:bg-white/15 hover:text-white focus-visible:ring-white focus-visible:ring-offset-[#0f1988]'
+                                    : 'text-[#111FA2] hover:bg-[#111FA2]/10 hover:text-[#0d1780]',
+                            ].join(' ')}
+                            aria-label='Toggle Language'
+                        >
+                            <Globe className='h-4 w-4' />
+                            <span className="uppercase">{locale}</span>
+                        </button>
+
                         <Link
                             to='/peta'
                             className={[
@@ -99,7 +205,7 @@ const PortalNav = () => {
                                     : 'shadow-md hover:shadow-lg focus-visible:ring-offset-white',
                             ].join(' ')}
                         >
-                            Akses Peta
+                            {t('portalNav.accessMap')}
                         </Link>
                     </nav>
 
@@ -107,8 +213,8 @@ const PortalNav = () => {
                         type='button'
                         onClick={() => setIsMobileMenuOpen((prev) => !prev)}
                         className={[
-                            'rounded-xl p-2 lg:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-1',
-                            isBlueMode || isHomeRoute ? 'text-white hover:bg-white/15' : 'text-[#111FA2] hover:bg-slate-100',
+                            'rounded-xl p-2 lg:hidden transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-1',
+                            isBlueMode || (isAdaptiveRoute && homeSurfaceMode !== 'lightSections') ? 'text-white hover:bg-white/15' : 'text-[#111FA2] hover:bg-slate-100',
                         ].join(' ')}
                         aria-controls={mobileMenuId}
                         aria-expanded={isMobileMenuOpen}
@@ -125,9 +231,11 @@ const PortalNav = () => {
                             'py-3 lg:hidden',
                             isBlueMode
                                 ? 'border-t border-white/20'
-                                : isHomeRoute
-                                  ? 'mt-1 rounded-b-2xl border border-white/20 border-t-0 bg-[#0b1d7a]/52 px-3 backdrop-blur-xl'
-                                  : 'border-t border-slate-200',
+                                : isAdaptiveRoute
+                                    ? homeSurfaceMode === 'lightSections'
+                                        ? 'mt-1 rounded-b-2xl border border-[#c7d7f6] border-t-0 bg-white/92 px-3 backdrop-blur-xl'
+                                        : 'mt-1 rounded-b-2xl border border-white/20 border-t-0 bg-[#0b1d7a]/52 px-3 backdrop-blur-xl'
+                                    : 'border-t border-slate-200',
                         ].join(' ')}
                     >
                         <div className='grid gap-1'>
@@ -136,19 +244,33 @@ const PortalNav = () => {
                                     key={item.to}
                                     to={item.to}
                                     className={[
-                                        'rounded-xl px-3 py-2 text-sm font-semibold transition-colors',
-                                        isBlueMode || isHomeRoute
+                                        'rounded-xl px-3 py-2 text-sm font-semibold transition-colors duration-300',
+                                        isBlueMode || (isAdaptiveRoute && homeSurfaceMode !== 'lightSections')
                                             ? isItemActive(item.to)
                                                 ? 'bg-white/18 text-white'
                                                 : 'text-white/90 hover:bg-white/15'
                                             : isItemActive(item.to)
-                                              ? 'bg-[#111FA2] text-white'
-                                              : 'text-[#111FA2] hover:bg-slate-100',
+                                                ? 'bg-[#111FA2] text-white'
+                                                : 'text-[#111FA2] hover:bg-slate-100',
                                     ].join(' ')}
                                 >
                                     {item.label}
                                 </Link>
                             ))}
+
+                            <button
+                                type='button'
+                                onClick={toggleLocale}
+                                className={[
+                                    'rounded-xl px-3 py-2 text-sm font-semibold transition-colors duration-300 flex items-center gap-2',
+                                    isBlueMode || (isAdaptiveRoute && homeSurfaceMode !== 'lightSections')
+                                        ? 'text-white/90 hover:bg-white/15'
+                                        : 'text-[#111FA2] hover:bg-slate-100',
+                                ].join(' ')}
+                            >
+                                <Globe className='h-4 w-4' />
+                                <span className="uppercase">{locale === 'id' ? 'English' : 'Indonesia'}</span>
+                            </button>
 
                             <Link
                                 to='/peta'
@@ -157,7 +279,7 @@ const PortalNav = () => {
                                     isHomeRoute ? 'shadow-[0_12px_24px_rgba(255,222,66,0.44)]' : '',
                                 ].join(' ')}
                             >
-                                Akses Peta
+                                {t('portalNav.accessMap')}
                             </Link>
                         </div>
                     </div>
