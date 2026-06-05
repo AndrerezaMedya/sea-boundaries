@@ -6,28 +6,54 @@ import { USER_LAYER_ID } from '@/lib/types';
 
 // ── Simple Filter (friendly, cross-layer) ───────────────────────────────────
 export interface SimpleFilterState {
-	tipeBatas: string[];         // layer-group keys
-	statusKesepakatan: string[]; // StatusLaut values
-	batasNegara: string[];       // Batas_Ngr values
-	statusLaut: string[];        // Jenis field values (Unilateral/Bilateral/Trilateral)
-	tahunPerjanjianMin: string;
-	tahunPerjanjianMax: string;
-	tahunRatifikasiMin: string;
-	tahunRatifikasiMax: string;
-	perairan: string[];          // Perairan values (basepoints/baseline only)
+	// Layer visibility selector (tipe batas laut)
+	tipeBatas: string[];
+	// `status` on line limits vs point locations (separate vocabularies in DB)
+	statusLimit: string[];
+	statusPoint: string[];
+	// `limit_object_type` field — applies to limit layers only
+	limitObjectType: string[];
+	// `location_type_list` field — applies to location layers only
+	locationType: string[];
+	// `point_location` field — applies to location layers only
+	pointLocation: string[];
+	// `horizontal_datum` field — common
+	horizontalDatum: string[];
 }
 
 const defaultSimpleFilter = (): SimpleFilterState => ({
 	tipeBatas: [],
-	statusKesepakatan: [],
-	batasNegara: [],
-	statusLaut: [],
-	tahunPerjanjianMin: '',
-	tahunPerjanjianMax: '',
-	tahunRatifikasiMin: '',
-	tahunRatifikasiMax: '',
-	perairan: [],
+	statusLimit: [],
+	statusPoint: [],
+	limitObjectType: [],
+	locationType: [],
+	pointLocation: [],
+	horizontalDatum: [],
 });
+
+// Migrate / defend against stale persisted shape so reads never crash on undefined fields.
+const normalizeSimpleFilter = (raw: unknown): SimpleFilterState => {
+	const base = defaultSimpleFilter();
+	if (!raw || typeof raw !== 'object') return base;
+	const src = raw as Record<string, unknown>;
+	const keepArr = (k: keyof SimpleFilterState): string[] => {
+		const v = src[k];
+		return Array.isArray(v) ? (v.filter((x) => typeof x === 'string') as string[]) : base[k];
+	};
+	const legacyStatus = Array.isArray(src.status)
+		? (src.status as unknown[]).filter((x): x is string => typeof x === 'string')
+		: [];
+	const statusLimitNext = keepArr('statusLimit');
+	return {
+		tipeBatas: keepArr('tipeBatas'),
+		statusLimit: statusLimitNext.length > 0 ? statusLimitNext : legacyStatus,
+		statusPoint: keepArr('statusPoint'),
+		limitObjectType: keepArr('limitObjectType'),
+		locationType: keepArr('locationType'),
+		pointLocation: keepArr('pointLocation'),
+		horizontalDatum: keepArr('horizontalDatum'),
+	};
+};
 
 const STORAGE_KEY = 'sea-boundaries:ui';
 
@@ -40,20 +66,16 @@ const emptyDefinition = (): FilterDefinition => ({
 
 const createEmptyBuilderState = (): Record<LayerId, FilterDefinition> => ({
 	basepoints: emptyDefinition(),
-	baseline: emptyDefinition(),
-	laut_teritorial_sepakat: emptyDefinition(),
-	laut_teritorial_perlu: emptyDefinition(),
-	zee_sepakat: emptyDefinition(),
-	zee_sepakat_ratif: emptyDefinition(),
-	zee_perlu: emptyDefinition(),
-	landas_kontinen_sepakat: emptyDefinition(),
-	landas_kontinen_sepakat_ratif: emptyDefinition(),
-	landas_kontinen_perlu: emptyDefinition(),
 	landas_kontinen_ekstensi: emptyDefinition(),
-	zona_tambahan: emptyDefinition(),
 	titik_perjanjian_lt: emptyDefinition(),
 	titik_perjanjian_lk: emptyDefinition(),
 	titik_perjanjian_zee: emptyDefinition(),
+	territorial_sea: emptyDefinition(),
+	contiguous_zone: emptyDefinition(),
+	eez_limit: emptyDefinition(),
+	continental_shelf: emptyDefinition(),
+	fisheries: emptyDefinition(),
+	baseline: emptyDefinition(),
 	[USER_LAYER_ID]: emptyDefinition(),
 });
 
@@ -79,69 +101,69 @@ const makeId = () => Math.random().toString(36).slice(2, 10);
 
 const DEFAULT_PRESETS: PresetDefinition[] = [
 	{
-		id: 'preset-batas-australia',
-		name: 'Batas_Ngr = "Australia"',
-		layerId: 'zee_sepakat',
+		id: 'preset-eez-australia',
+		name: 'ZEE — Indonesia - Australia',
+		layerId: 'eez_limit',
 		createdAt: '2025-01-01T00:00:00.000Z',
-		definition: {
-			join: 'all',
-			conditions: [
-				{
-					id: 'cond-batas-aus',
-					field: 'Batas_Ngr',
-					operator: '=',
-					value: 'Australia',
-					type: 'string',
-				},
-			],
-		},
+		definition: { join: 'all', conditions: [{ id: 'cond-eez-au', field: 'Country', operator: 'contains', value: 'Australia', type: 'string' }] },
 	},
 	{
-		id: 'preset-tipezona-status',
-		name: 'TipeZona & StatusLaut',
-		layerId: 'laut_teritorial_sepakat',
+		id: 'preset-eez-need-agreement',
+		name: 'ZEE — Perlu Kesepakatan',
+		layerId: 'eez_limit',
 		createdAt: '2025-01-01T00:00:00.000Z',
-		definition: {
-			join: 'all',
-			conditions: [
-				{
-					id: 'cond-tipezona',
-					field: 'TipeZona',
-					operator: '=',
-					value: 'Batas Landas Kontinen',
-					type: 'string',
-				},
-				{
-					id: 'cond-statuslaut',
-					field: 'StatusLaut',
-					operator: '=',
-					value: 'Perlu Kesepakatan',
-					type: 'string',
-				},
-			],
-		},
+		definition: { join: 'all', conditions: [{ id: 'cond-eez-need', field: 'Status', operator: '=', value: 'Need Agreement', type: 'string' }] },
 	},
 	{
-		id: 'preset-ratif-before-2000',
-		name: 'Ratif_Thn < 2000',
-		layerId: 'landas_kontinen_sepakat',
+		id: 'preset-eez-natuna',
+		name: 'ZEE — Laut Natuna',
+		layerId: 'eez_limit',
 		createdAt: '2025-01-01T00:00:00.000Z',
-		definition: {
-			join: 'all',
-			conditions: [
-				{
-					id: 'cond-ratif',
-					field: 'Ratif_Thn',
-					operator: '<',
-					value: 2000,
-					type: 'number',
-				},
-			],
-		},
+		definition: { join: 'all', conditions: [{ id: 'cond-eez-natuna', field: 'Location', operator: '=', value: 'Natuna Sea', type: 'string' }] },
+	},
+	{
+		id: 'preset-eez-intl-boundary',
+		name: 'ZEE — International Boundary',
+		layerId: 'eez_limit',
+		createdAt: '2025-01-01T00:00:00.000Z',
+		definition: { join: 'all', conditions: [{ id: 'cond-eez-intl', field: 'Limit Type', operator: '=', value: 'International Boundary', type: 'string' }] },
+	},
+	{
+		id: 'preset-ts-need-agreement',
+		name: 'Laut Teritorial — Perlu Kesepakatan',
+		layerId: 'territorial_sea',
+		createdAt: '2025-01-01T00:00:00.000Z',
+		definition: { join: 'all', conditions: [{ id: 'cond-ts-need', field: 'Status', operator: '=', value: 'Need Agreement', type: 'string' }] },
+	},
+	{
+		id: 'preset-ts-outer-limit',
+		name: 'Laut Teritorial — Outer Limit',
+		layerId: 'territorial_sea',
+		createdAt: '2025-01-01T00:00:00.000Z',
+		definition: { join: 'all', conditions: [{ id: 'cond-ts-outer', field: 'Limit Type', operator: '=', value: 'Outer Limit of Territorial Sea', type: 'string' }] },
+	},
+	{
+		id: 'preset-cs-agreement',
+		name: 'Landas Kontinen — Telah Disepakati',
+		layerId: 'continental_shelf',
+		createdAt: '2025-01-01T00:00:00.000Z',
+		definition: { join: 'all', conditions: [{ id: 'cond-cs-agr', field: 'Status', operator: '=', value: 'Agreement', type: 'string' }] },
+	},
+	{
+		id: 'preset-cs-not-ratified',
+		name: 'Landas Kontinen — Belum Diratifikasi',
+		layerId: 'continental_shelf',
+		createdAt: '2025-01-01T00:00:00.000Z',
+		definition: { join: 'all', conditions: [{ id: 'cond-cs-ratif', field: 'Status', operator: '=', value: 'Not Ratified Yet', type: 'string' }] },
 	},
 ];
 
-export type ActivePanel = 'layers' | 'filter' | 'geoprocessing' | 'import';
+export type ActivePanel = 'layers' | 'filter' | 'geoprocessing' | 'basemap';
+
+export type SymbologyMode = 'iho' | 'easyRead';
+
+/** Attribute filter targets line limits vs point locations (mutually exclusive on apply). */
+export type FilterTarget = 'limit' | 'point';
 
 interface UIStoreState {
 	sidebarOpen: boolean;
@@ -149,10 +171,12 @@ interface UIStoreState {
 	builderState: Record<LayerId, FilterDefinition>;
 	presets: PresetDefinition[];
 	activePanel: ActivePanel | null;
-	tableOpen: boolean;
 	legendOpen: boolean;
 	showCoordinates: boolean;
+	symbologyMode: SymbologyMode;
 	simpleFilter: SimpleFilterState;
+	filterTarget: FilterTarget;
+	activeBasemapId: string | null;
 	setSidebarOpen: (open: boolean) => void;
 	toggleSidebar: () => void;
 	setActiveTab: (tab: SidebarTab) => void;
@@ -165,12 +189,13 @@ interface UIStoreState {
 	restoreDefaultPresets: () => void;
 	setActivePanel: (panel: ActivePanel | null) => void;
 	togglePanel: (panel: ActivePanel) => void;
-	setTableOpen: (open: boolean) => void;
-	toggleTable: () => void;
 	setLegendOpen: (open: boolean) => void;
 	setShowCoordinates: (show: boolean) => void;
+	setSymbologyMode: (mode: SymbologyMode) => void;
 	setSimpleFilter: (patch: Partial<SimpleFilterState>) => void;
 	resetSimpleFilter: () => void;
+	setFilterTarget: (target: FilterTarget) => void;
+	setActiveBasemapId: (id: string | null) => void;
 }
 
 export const useUIStore = create(
@@ -179,10 +204,12 @@ export const useUIStore = create(
 			sidebarOpen: false,
 			activeTab: 'query',
 			activePanel: null,
-			tableOpen: false,
 			legendOpen: true,
 			showCoordinates: true,
+			symbologyMode: 'iho',
 			simpleFilter: defaultSimpleFilter(),
+			filterTarget: 'limit',
+			activeBasemapId: null,
 			builderState: createEmptyBuilderState(),
 			presets: DEFAULT_PRESETS.map((preset) => ({
 				...preset,
@@ -251,16 +278,17 @@ export const useUIStore = create(
 			},
 			setActivePanel: (panel) => set({ activePanel: panel }),
 			togglePanel: (panel) => set((state) => ({ activePanel: state.activePanel === panel ? null : panel })),
-			setTableOpen: (open) => set({ tableOpen: open }),
-			toggleTable: () => set((state) => ({ tableOpen: !state.tableOpen })),
 			setLegendOpen: (open) => set({ legendOpen: open }),
 			setShowCoordinates: (show) => set({ showCoordinates: show }),
+			setSymbologyMode: (mode) => set({ symbologyMode: mode }),
 			setSimpleFilter: (patch) => set((state) => ({ simpleFilter: { ...state.simpleFilter, ...patch } })),
 			resetSimpleFilter: () => set({ simpleFilter: defaultSimpleFilter() }),
+			setFilterTarget: (target) => set({ filterTarget: target }),
+			setActiveBasemapId: (id) => set({ activeBasemapId: id }),
 		}),
 		{
 			name: STORAGE_KEY,
-			version: 1,
+			version: 3,
 			onRehydrateStorage: () => (state) => {
 				if (!state) {
 					return;
@@ -270,8 +298,10 @@ export const useUIStore = create(
 					...createEmptyBuilderState(),
 					...builder,
 				};
-				if (!state.simpleFilter) {
-					state.simpleFilter = defaultSimpleFilter();
+				state.simpleFilter = normalizeSimpleFilter(state.simpleFilter);
+				state.filterTarget = state.filterTarget === 'point' ? 'point' : 'limit';
+				if ((state.activePanel as string | null) === 'import') {
+					state.activePanel = null;
 				}
 				if (!state.presets || state.presets.length === 0) {
 					state.presets = DEFAULT_PRESETS.map((preset) => ({
