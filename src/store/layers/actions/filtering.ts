@@ -27,6 +27,6 @@ export const clearFilterOnLayer = (layer: LayerRuntimeState): LayerRuntimeState 
 		filter: null,
 		filterExpression: ['all'] as FilterExpression,
 		filteredIds: allIds,
-		selectionIds: [],
+		selectionIds: layer.selectionIds,
 	};
 };
