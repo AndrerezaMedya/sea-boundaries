@@ -1,5 +1,16 @@
 # Changelog - Sea Boundaries WebGIS
 
+## Pembaruan Mei 2026
+
+### Geoprocessing (PostGIS BFF)
+
+- Panel geoprocessing (capstone): **hitung panjang**, **hitung luas**, **buffer** via `POST /api/geo/*` (bukan Turf.js pada layer inti).
+- Bbox **opsional** — analisis dapat pada seluruh layer dengan batas `GEO_MAX_FEATURES` (default 500).
+- Hasil geometri: layer sementara oranye di peta, toggle tampil/sembunyi, zoom otomatis ke hasil.
+- Seleksi peta → FUID untuk MVT (tanpa `featureIndex` di viewport).
+- `GET /api/geo/info` (v2, `bboxRequired: false`) untuk cek kompatibilitas backend.
+- Dokumentasi: `docs/API_REFERENCE.md`, `docs/GEOPROCESSING_IMPLEMENTATION_PLAN.md`.
+
 ## Pembaruan April 2026
 
 ### Fitur dan Perubahan Produk
