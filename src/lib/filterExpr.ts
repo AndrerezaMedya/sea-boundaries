@@ -1,4 +1,5 @@
 import { getFieldSchema } from '@/lib/schema';
+import { classifyStatusTier, statusPropertyExpression, type StatusSymbologyTier } from '@/lib/statusSymbology';
 import type {
 	FieldSchema,
 	FilterDefinition,
@@ -98,11 +99,39 @@ const buildNumericExpression = (
 	}
 };
 
+const isStatusField = (field: FieldSchema): boolean => field.name.toLowerCase() === 'status';
+
+const buildStatusInExpression = (labels: string[]): FilterExpression => {
+	const statusValue = statusPropertyExpression();
+	const lowerLabels = labels.map((l) => normaliseString(l).toLowerCase());
+	if (lowerLabels.length === 0) return ['==', statusValue, '__no-match__'];
+	if (lowerLabels.length === 1) return ['==', statusValue, lowerLabels[0]];
+	return ['any', ...lowerLabels.map((l) => ['==', statusValue, l])] as FilterExpression;
+};
+
 const buildStringExpression = (
 	field: FieldSchema,
 	op: FilterCondition['operator'],
 	value: string | string[],
 ): FilterExpression => {
+	if (isStatusField(field)) {
+		const statusValue = statusPropertyExpression();
+		switch (op) {
+			case '=':
+				return ['==', statusValue, normaliseString(value).toLowerCase()];
+			case '!=':
+				return ['!=', statusValue, normaliseString(value).toLowerCase()];
+			case 'contains':
+				return ['in', normaliseString(value).toLowerCase(), statusValue];
+			case 'in': {
+				const labels = Array.isArray(value) ? value : [value];
+				return buildStatusInExpression(labels);
+			}
+			default:
+				return ['==', statusValue, normaliseString(value).toLowerCase()];
+		}
+	}
+
 	const accessor = ['coalesce', ['get', resolveAccessor(field)], ''];
 	switch (op) {
 		case '=':
@@ -110,19 +139,23 @@ const buildStringExpression = (
 		case '!=':
 			return ['!=', accessor, value];
 		case 'contains':
-			return ['in', ['downcase', accessor], ['literal', [normaliseString(value).toLowerCase()]]];
+			// ['in', needle, haystack]: checks if needle is a substring of haystack.
+			// NOTE: needle must be first, haystack (the field value) second.
+			return ['in', normaliseString(value).toLowerCase(), ['downcase', accessor]];
 		case 'startsWith':
 			return [
 				'all',
-				['>=', ['index-of', ['literal', normaliseString(value)], accessor], 0],
-				['==', ['slice', accessor, 0, normaliseString(value).length], normaliseString(value)],
+				['>=', ['index-of', ['literal', normaliseString(value)], ['downcase', accessor]], 0],
+				['==', ['slice', ['downcase', accessor], 0, normaliseString(value).length], normaliseString(value)],
 			];
 		case 'in': {
 			const labels = Array.isArray(value) ? value : [value];
 			if (labels.length === 0) return ['==', accessor, '__no-match__'];
-			if (labels.length === 1) return ['==', accessor, labels[0]];
-			// MapLibre 'match' requires labels as a plain array, NOT ['literal', [...]]
-			return ['match', accessor, labels, true, false];
+
+			const lowerLabels = labels.map((l) => normaliseString(l).toLowerCase());
+			const downcased = ['downcase', accessor] as FilterExpression;
+			if (lowerLabels.length === 1) return ['==', downcased, lowerLabels[0]];
+			return ['any', ...lowerLabels.map((l) => ['==', downcased, l])] as FilterExpression;
 		}
 		default:
 			return ['==', accessor, value];
@@ -229,6 +262,12 @@ const evaluateString = (
 	}
 };
 
+const evaluateStatusIn = (selected: string[], featureValue: unknown): boolean => {
+	const text = normaliseString(featureValue).toLowerCase();
+	if (!text) return false;
+	return selected.some((label) => normaliseString(label).toLowerCase() === text);
+};
+
 const evaluateCondition = (layerId: LayerId, feature: FeatureWithProps, condition: FilterCondition): boolean => {
 	const field = getFieldSchema(layerId, condition.field);
 	if (!field) {
@@ -236,7 +275,17 @@ const evaluateCondition = (layerId: LayerId, feature: FeatureWithProps, conditio
 	}
 	const properties = feature.properties ?? {};
 	const accessor = resolveAccessor(field);
-	const rawValue = properties[accessor] ?? properties[condition.field];
+	const rawValue =
+		properties[accessor] ??
+		properties[condition.field] ??
+		properties[field.name] ??
+		properties[field.name.toLowerCase()];
+	if (field.name.toLowerCase() === 'status' && condition.operator === 'in') {
+		const selected = Array.isArray(condition.value)
+			? condition.value.map((item) => normaliseString(item))
+			: [normaliseString(condition.value)];
+		return evaluateStatusIn(selected, rawValue);
+	}
 	if (field.type === 'number') {
 		const primary = toNumber(condition.value);
 		const secondary = toNumber(condition.value2);
@@ -276,12 +325,36 @@ export const featureMatchesFilter = (
 	return evaluateConditionList(layerId, feature, definition.conditions, definition.join);
 };
 
+import { FEATURE_ROW_ID_PROP } from '@/lib/featureId';
+
+/** Symbology tiers implied by a status `in` filter (for map layer visibility). */
+export const getStatusFilterTiers = (definition: FilterDefinition | null): Set<StatusSymbologyTier> | null => {
+	if (!definition) return null;
+	const statusCond = definition.conditions.find(
+		(c) => c.field.toLowerCase() === 'status' && c.operator === 'in',
+	);
+	if (!statusCond) return null;
+	const values = Array.isArray(statusCond.value) ? statusCond.value : [statusCond.value];
+	const tiers = new Set<StatusSymbologyTier>();
+	for (const value of values) {
+		tiers.add(classifyStatusTier(value));
+	}
+	return tiers.size > 0 ? tiers : null;
+};
+
+export const definitionWithoutStatus = (definition: FilterDefinition): FilterDefinition => ({
+	join: definition.join,
+	conditions: definition.conditions.filter((c) => c.field !== 'status'),
+});
+
 export const buildIdMatchExpression = (ids: string[]): FilterExpression => {
+	const accessor: FilterExpression = ['get', FEATURE_ROW_ID_PROP];
 	if (ids.length === 0) {
-		return ['==', ['id'], '__no-match__'];
+		return ['==', accessor, '__no-match__'];
 	}
 	if (ids.length === 1) {
-		return ['==', ['id'], ids[0]];
+		return ['==', accessor, ids[0]];
 	}
-	return ['any', ...ids.map((id) => ['==', ['id'], id])];
+	// MapLibre 'match' requires labels as a plain array, NOT ['literal', [...]]
+	return ['match', accessor, ids, true, false];
 };
