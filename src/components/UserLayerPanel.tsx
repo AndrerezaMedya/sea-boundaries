@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
 import { isFeatureCountHigh, parseUserGeoJson } from '@/lib/userLayer';
 import { USER_LAYER_ID } from '@/lib/types';
-import { useLayersStore } from '@/store/useLayers';
+import { useLayersStore } from '@/store/useLayersStore';
 import { useUIStore } from '@/store/useUI';
 
 const HIGH_FEATURE_THRESHOLD = 50000;
@@ -206,7 +206,7 @@ const UserLayerPanel = () => {
 			</div>
 
 			<div className='flex flex-col gap-2 rounded-xl border border-[color:var(--color-border)] bg-[color:var(--color-panel)] p-3 shadow-sm'>
-				<label className='text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--color-muted)]'>URL GeoJSON</label>
+				<label className='text-[12px] font-semibold text-[color:var(--color-muted)]'>URL GeoJSON</label>
 				<div className='flex flex-col gap-2 sm:flex-row sm:items-center'>
 					<Input
 						value={urlInput}
@@ -236,7 +236,7 @@ const UserLayerPanel = () => {
 				<div className='space-y-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900 shadow-sm'>
 					<div className='flex items-center justify-between gap-3'>
 						<div>
-							<p className='text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600'>Layer aktif</p>
+							<p className='text-[12px] font-semibold text-emerald-600'>Layer aktif</p>
 							<h4 className='text-base font-semibold text-emerald-900'>{userLayerMeta.name ?? 'Layer Pengguna'}</h4>
 						</div>
 						<Button onClick={handleRemove} variant='ghost' size='sm' className='gap-1 text-emerald-800 hover:text-red-600'>
@@ -274,3 +274,4 @@ const UserLayerPanel = () => {
 };
 
 export default UserLayerPanel;
+
