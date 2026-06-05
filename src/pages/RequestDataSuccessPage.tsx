@@ -7,6 +7,7 @@ type RequestSuccessState = {
     requesterName?: string;
     institution?: string;
     requestedAt?: string;
+    requestId?: string;
 };
 
 const RequestDataSuccessPage = () => {
@@ -40,10 +41,16 @@ const RequestDataSuccessPage = () => {
                         </div>
                     </div>
 
-                    {state.requesterName || state.institution || submittedTimeLabel ? (
+                    {state.requestId || state.requesterName || state.institution || submittedTimeLabel ? (
                         <div className='rounded-2xl border border-slate-200 bg-white p-4'>
                             <p className='text-xs font-semibold uppercase tracking-wide text-[#5478FF]'>Ringkasan Pengajuan</p>
                             <div className='mt-2 space-y-1.5 text-sm text-slate-700'>
+                                {state.requestId ? (
+                                    <p>
+                                        No. referensi:{' '}
+                                        <code className='font-mono text-xs text-[#111FA2]'>{state.requestId}</code>
+                                    </p>
+                                ) : null}
                                 {state.requesterName ? <p>Nama: {state.requesterName}</p> : null}
                                 {state.institution ? <p>Institusi: {state.institution}</p> : null}
                                 {submittedTimeLabel ? (
