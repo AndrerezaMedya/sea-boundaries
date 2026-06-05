@@ -2,20 +2,16 @@ import type { Feature, FeatureCollection, Geometry } from 'geojson';
 
 export type CoreLayerId =
 	| 'basepoints'
-	| 'baseline'
-	| 'laut_teritorial_sepakat'
-	| 'laut_teritorial_perlu'
-	| 'zee_sepakat'
-	| 'zee_sepakat_ratif'
-	| 'zee_perlu'
-	| 'landas_kontinen_sepakat'
-	| 'landas_kontinen_sepakat_ratif'
-	| 'landas_kontinen_perlu'
 	| 'landas_kontinen_ekstensi'
-	| 'zona_tambahan'
 	| 'titik_perjanjian_lt'
 	| 'titik_perjanjian_lk'
-	| 'titik_perjanjian_zee';
+	| 'titik_perjanjian_zee'
+	| 'territorial_sea'
+	| 'contiguous_zone'
+	| 'eez_limit'
+	| 'continental_shelf'
+	| 'fisheries'
+	| 'baseline';
 export type DynamicLayerId = 'user_layer';
 export const USER_LAYER_ID: DynamicLayerId = 'user_layer';
 export type LayerId = CoreLayerId | DynamicLayerId;
