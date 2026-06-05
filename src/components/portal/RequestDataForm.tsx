@@ -4,18 +4,7 @@ import { AlertTriangle, FileText, Upload, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-
-type RequestFormData = {
-    namaLengkap: string;
-    nikNim: string;
-    institusi: string;
-    alamatInstitusi: string;
-    email: string;
-    noTelepon: string;
-    keperluanData: string;
-    keterangan: string;
-    suratInstitusi: File | null;
-};
+import { submitDataRequest, type RequestFormData } from '@/lib/submitDataRequest';
 
 type RequestFormErrors = Partial<Record<keyof RequestFormData, string>>;
 type TextFieldKey = Exclude<keyof RequestFormData, 'suratInstitusi'>;
@@ -219,7 +208,7 @@ const RequestDataForm = () => {
         }
     };
 
-    const handleSubmit = (event: FormEvent) => {
+    const handleSubmit = async (event: FormEvent) => {
         event.preventDefault();
         const formErrors = validateForm();
         setErrors(formErrors);
@@ -234,25 +223,38 @@ const RequestDataForm = () => {
         }
 
         setIsSubmitting(true);
-        navigate('/request-data/success', {
-            state: {
-                requesterName: formData.namaLengkap.trim(),
-                institution: formData.institusi.trim(),
-                requestedAt: new Date().toISOString(),
-            },
-        });
+        try {
+            const result = await submitDataRequest(formData);
+            navigate('/request-data/success', {
+                state: {
+                    requesterName: formData.namaLengkap.trim(),
+                    institution: formData.institusi.trim(),
+                    requestedAt: result.created_at || new Date().toISOString(),
+                    requestId: result.id,
+                },
+            });
+        } catch (err) {
+            console.error('Data request submit failed:', err);
+            toast({
+                title: 'Pengajuan gagal',
+                description: err instanceof Error ? err.message : 'Terjadi kesalahan saat mengirim permintaan.',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const fieldInputClass =
-        'w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-[#5478FF] focus:ring-4 focus:ring-[#5478FF]/15';
+        'w-full rounded-xl border border-[#c9daf9] bg-white/88 px-4 py-3 text-sm text-slate-800 outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-[#5478FF] focus:ring-4 focus:ring-[#5478FF]/15';
 
     return (
         <form onSubmit={handleSubmit} className='space-y-6'>
-            <div className='rounded-2xl border-l-4 border-[#111FA2] bg-[#FFDE42] p-5 shadow-md'>
-                <div className='flex items-start gap-3 text-[#2d2d2d]'>
-                    <AlertTriangle className='mt-0.5 h-5 w-5 shrink-0 text-[#111FA2]' />
+            <div className='rounded-2xl border border-[#c9daf9] bg-[linear-gradient(160deg,#f8fbff_0%,#edf4ff_100%)] p-5 shadow-[0_14px_32px_rgba(13,32,112,0.1)]'>
+                <div className='flex items-start gap-3 text-slate-700'>
+                    <AlertTriangle className='mt-0.5 h-5 w-5 shrink-0 text-[#3552d6]' />
                     <div className='space-y-1 text-sm'>
-                        <p className='font-bold text-[#111FA2]'>Informasi Penting:</p>
+                        <p className='font-semibold text-[#111FA2]'>Informasi Penting:</p>
                         <ul className='list-disc space-y-0.5 pl-4'>
                             <li>Format file yang didukung: PDF, DOC, DOCX, JPG, PNG</li>
                             <li>Ukuran maksimal file: 5MB</li>
@@ -262,10 +264,10 @@ const RequestDataForm = () => {
                 </div>
             </div>
 
-            <div className='overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_16px_40px_rgba(17,31,162,0.12)]'>
-                <div className='bg-gradient-to-r from-[#5478FF] to-[#53CBF3] px-6 py-8 text-center text-white'>
-                    <h2 className='text-3xl font-extrabold tracking-wide sm:text-4xl'>DATA DIRI/BIODATA</h2>
-                    <p className='mt-1 text-sm italic text-blue-100 sm:text-lg'>Personal Data Form</p>
+            <div className='overflow-hidden rounded-2xl border border-[#cfdcf8] bg-white/78 shadow-[0_16px_40px_rgba(17,31,162,0.1)] backdrop-blur-sm'>
+                <div className='border-b border-[#dce6fb] bg-[linear-gradient(160deg,#f7faff_0%,#edf4ff_100%)] px-6 py-7 text-center'>
+                    <h2 className='font-sans text-3xl font-semibold tracking-tight text-[#101f8f] sm:text-4xl'>Data Diri Pemohon</h2>
+                    <p className='mt-1 text-sm text-[#4363d0] sm:text-base'>Personal Data Form</p>
                 </div>
 
                 <div className='space-y-2 p-5 sm:p-8'>
@@ -275,8 +277,8 @@ const RequestDataForm = () => {
                         const error = errors[field.key];
 
                         return (
-                            <div key={field.key} className='grid gap-3 border-b border-slate-200 py-4 lg:grid-cols-[270px_1fr] lg:items-start'>
-                                <label htmlFor={fieldId} className='pt-2 text-lg font-semibold text-slate-700'>
+                            <div key={field.key} className='grid gap-3 border-b border-[#e1eafc] py-4 lg:grid-cols-[270px_1fr] lg:items-start'>
+                                <label htmlFor={fieldId} className='pt-2 text-lg font-semibold text-[#1b2f93]'>
                                     {index + 1}. {field.label}
                                     {field.required ? <span className='text-[#e63946]'> *</span> : null}
                                 </label>
@@ -302,21 +304,21 @@ const RequestDataForm = () => {
                                             placeholder={field.placeholder}
                                         />
                                     )}
-                                    <p className='mt-2 text-sm italic text-[#5478FF]'>{field.helper}</p>
+                                    <p className='mt-2 text-sm italic text-[#4d6cdc]'>{field.helper}</p>
                                     {error ? <p className='mt-1 text-xs text-red-600'>{error}</p> : null}
                                 </div>
                             </div>
                         );
                     })}
 
-                    <div className='grid gap-3 border-b border-slate-200 py-4 lg:grid-cols-[270px_1fr] lg:items-start'>
-                        <p className='pt-2 text-lg font-semibold text-slate-700'>9. Surat Institusi<span className='text-[#e63946]'> *</span></p>
+                    <div className='grid gap-3 border-b border-[#e1eafc] py-4 lg:grid-cols-[270px_1fr] lg:items-start'>
+                        <p className='pt-2 text-lg font-semibold text-[#1b2f93]'>9. Surat Institusi<span className='text-[#e63946]'> *</span></p>
                         <div>
                             <div className='flex flex-wrap items-center gap-3'>
                                 <Button
                                     type='button'
                                     onClick={() => fileInputRef.current?.click()}
-                                    className='h-11 gap-2 rounded-xl bg-[#111FA2] px-5 text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#0b177d] hover:shadow-lg'
+                                    className='h-11 gap-2 rounded-xl bg-[#111FA2] px-5 text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#0b177d] hover:shadow-[0_10px_24px_rgba(17,31,162,0.3)]'
                                 >
                                     <Upload className='h-4 w-4' />
                                     Pilih File
@@ -331,7 +333,7 @@ const RequestDataForm = () => {
                             </div>
 
                             {fileName ? (
-                                <div className='mt-3 flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3'>
+                                <div className='mt-3 flex items-center justify-between gap-3 rounded-xl border border-[#d9e4fb] bg-[#f7faff] p-3'>
                                     <div className='flex min-w-0 items-center gap-2'>
                                         <FileText className='h-4 w-4 shrink-0 text-[#5478FF]' />
                                         <p className='truncate text-sm text-slate-700'>{fileName}</p>
@@ -348,7 +350,7 @@ const RequestDataForm = () => {
                                 </div>
                             ) : null}
 
-                            <p className='mt-2 text-sm italic text-[#5478FF]'>Upload Official Letter</p>
+                            <p className='mt-2 text-sm italic text-[#4d6cdc]'>Upload Official Letter</p>
                             {errors.suratInstitusi ? <p className='mt-1 text-xs text-red-600'>{errors.suratInstitusi}</p> : null}
                         </div>
                     </div>
@@ -357,7 +359,7 @@ const RequestDataForm = () => {
                         <Button
                             type='submit'
                             disabled={isSubmitting}
-                            className='h-11 rounded-xl bg-gradient-to-r from-[#5478FF] to-[#111FA2] px-6 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:from-[#466bf4] hover:to-[#0d1893] hover:shadow-lg'
+                            className='h-11 rounded-xl bg-gradient-to-r from-[#5478FF] to-[#111FA2] px-6 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:from-[#466bf4] hover:to-[#0d1893] hover:shadow-[0_12px_28px_rgba(17,31,162,0.28)]'
                         >
                             {isSubmitting ? 'Mengirim...' : 'Kirim Permintaan'}
                         </Button>
@@ -365,7 +367,7 @@ const RequestDataForm = () => {
                             type='button'
                             variant='outline'
                             onClick={handleReset}
-                            className='h-11 rounded-xl border-slate-300 px-6 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-100'
+                            className='h-11 rounded-xl border-[#c9daf9] bg-white/70 px-6 text-sm font-semibold text-[#1a2f92] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#edf4ff]'
                         >
                             Reset Form
                         </Button>
