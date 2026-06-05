@@ -16,17 +16,40 @@ import {
 	clearUserLayerSchemaEffect,
 	persistUserLayerUrlEffect,
 } from '@/store/layers/effects/userLayerEffects';
-import { buildLayerState, computeBounds } from '@/store/layers/stateBuilders';
+import { loadLayerCollectionForBbox } from '@/lib/dataLoader';
+import { ensureDisplaySession } from '@/lib/displaySession';
+import { isMvtDisplayMode } from '@/lib/mapDisplay';
+import type { Bbox } from '@/lib/bbox';
+import type { CoreLayerId, FeatureCollectionWithProps } from '@/lib/types';
+import { buildLayerState, buildTableRows, computeBounds } from '@/store/layers/stateBuilders';
 import type { LayersStoreState } from '@/store/layers/storeTypes';
 
 type SetState = Parameters<StateCreator<LayersStoreState>>[0];
 type GetState = Parameters<StateCreator<LayersStoreState>>[1];
 
+let attributesFetchGeneration = 0;
+
 export const createLayersStoreActions = (set: SetState, get: GetState): Omit<
 	LayersStoreState,
-	'layers' | 'activeLayerId' | 'tableRows' | 'pendingZoom' | 'uniqueValueCache' | 'userLayerMeta' | 'lastUserLayerUrl'
+	| 'layers'
+	| 'activeLayerId'
+	| 'tableRows'
+	| 'pendingZoom'
+	| 'uniqueValueCache'
+	| 'userLayerMeta'
+	| 'lastUserLayerUrl'
+	| 'initializationStatus'
+	| 'initializationError'
+	| 'attributesLoading'
+	| 'attributeRefreshTargets'
 > => {
 	return {
+		requestAttributeRefresh: (layerIds) => {
+			set({ attributeRefreshTargets: [...layerIds] });
+		},
+		clearAttributeRefreshTargets: () => {
+			set({ attributeRefreshTargets: null });
+		},
 		loadInitialFilters: () => {
 			// Filters have been applied during initialisation
 		},
@@ -205,6 +228,49 @@ export const createLayersStoreActions = (set: SetState, get: GetState): Omit<
 				set({ uniqueValueCache: nextUniqueValueCache });
 			}
 			return values;
+		},
+		setCoreLayerData: (layerId: CoreLayerId, collection: FeatureCollectionWithProps) => {
+			set((state) => {
+				const schema = getLayerSchema(layerId);
+				const layerState = buildLayerState(layerId, schema, collection, {
+					visible: state.layers[layerId]?.visible ?? schema.defaultVisible ?? true,
+					filter: state.layers[layerId]?.filter ?? null,
+				});
+				const layers = {
+					...state.layers,
+					[layerId]: layerState,
+				};
+				const updates: Partial<LayersStoreState> = {
+					layers,
+					uniqueValueCache: { ...state.uniqueValueCache, [layerId]: {} },
+				};
+				if (state.activeLayerId === layerId) {
+					updates.tableRows = buildTableRows(layerId, layerState);
+				}
+				return { ...state, ...updates };
+			});
+		},
+		refreshActiveLayerAttributes: async (layerId, _bbox?: Bbox) => {
+			if (!isMvtDisplayMode() || layerId === USER_LAYER_ID) {
+				return;
+			}
+			const coreLayerId = layerId as CoreLayerId;
+			const generation = ++attributesFetchGeneration;
+			set({ attributesLoading: true });
+			try {
+				await ensureDisplaySession();
+				const collection = await loadLayerCollectionForBbox(coreLayerId);
+				if (generation !== attributesFetchGeneration) {
+					return;
+				}
+				get().setCoreLayerData(coreLayerId, collection);
+			} catch (err) {
+				console.error(`Viewport attributes failed for ${layerId}:`, err);
+			} finally {
+				if (generation === attributesFetchGeneration) {
+					set({ attributesLoading: false });
+				}
+			}
 		},
 	};
 };
