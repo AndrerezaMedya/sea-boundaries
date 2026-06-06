@@ -158,6 +158,9 @@ docs/temp_diskusiAI.md
 # --- Gambar/aset lokal dokumentasi ---
 docs/img/
 
+# --- File ERD SVG (generated/lokal) ---
+docs/svg_erd.md
+
 # --- Folder artifacts AI/editor lokal ---
 artifacts/
 
