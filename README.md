@@ -1,142 +1,136 @@
-# SEA-BANDL - Indonesia Sea Boundaries WebGIS
+# SEA-BANDL — WebGIS Batas Laut NKRI
 
-WebGIS berbasis Vite, React, TypeScript, dan MapLibre untuk eksplorasi batas maritim Indonesia.
+WebGIS untuk eksplorasi batas maritim Indonesia berbasis standar IHO S-121 *Maritime Limits and Boundaries*.
 
-Live: https://project1-seaboundaries.web.app
+**Live:** [seabandl.app](https://seabandl.app)
+
+---
 
 ## Fitur Utama
 
-- Portal multi-halaman:
-    - Beranda `/`
-    - Request Data `/request-data`
-    - Request Data Success `/request-data/success`
-    - User Guide `/user-guide`
-    - Peta WebGIS `/peta`
-- Ribbon topbar khusus halaman peta:
-    - Tombol Home (kembali ke beranda)
-    - Trigger panel Layer, Filter, Geo, Import
-    - Toggle Tabel Atribut
-    - Dropdown Tampilan (Legenda + Koordinat Kursor)
-    - CTA Request Data
-- 15 layer batas maritim dengan style spesifik per status hukum.
-- Query Builder (AND/OR + grouping) dengan persist filter di localStorage.
-- Tabel atribut sinkron dengan seleksi/hover peta + ekspor CSV.
-- Geoprocessing client-side berbasis Turf.js.
-- Import GeoJSON pengguna dengan validasi geometri.
-- Pencarian lokasi via Stadia Maps Search.
-- Basemap switcher custom thumbnail (OSM, OpenTopoMap, RBI, Esri Satellite).
-- Mode tema saat ini light-only (dark mode dinonaktifkan).
+### Halaman & Navigasi
+- Beranda (`/`)
+- Peta WebGIS (`/peta`)
+- Panduan Pengguna (`/user-guide`)
+- Pengajuan Data (`/request-data`)
 
-## Basemap dan Theme (Kondisi Saat Ini)
+### Peta Interaktif
+- Rendering 7 jenis kurva batas laut via MVT tile dari backend (garis pangkal, laut teritorial, zona tambahan, ZEE, landas kontinen, landas kontinen ekstensi, fisheries)
+- Titik referensi: titik garis pangkal dan titik perjanjian bilateral
+- Kontrol visibilitas per layer secara independen
+- Basemap switcher (OSM, OpenTopoMap, RBI, Esri Satellite)
+- Pencarian lokasi via Stadia Maps
 
-- Theme aplikasi dipaksa ke `light`.
-- Default basemap saat masuk peta: `Esri Satellite`.
-- Runtime switch basemap memakai kontrol thumbnail kustom di `controlsRuntime.ts`.
-- Proses purge raster menjaga urutan hapus layer lalu source agar tidak terjadi error source masih dipakai layer.
+### Data Atribut
+- Popup informasi atribut saat klik fitur di peta
+- Tabel atribut sinkron dengan seleksi/hover peta
+- Filter dan pengurutan per kolom
+- Ekspor CSV
 
-## Data Layer Maritim
+### Geoprocessing (Server-side)
+- Pengukuran panjang dan luas berbasis geodetik WGS84
+- Pembentukan zona penyangga (*buffer*) dengan jarak yang dapat ditentukan
 
-Layer inti yang dibundel statis:
+### Pengajuan Data Institusional
+- Formulir pengajuan data batas dari instansi berwenang
+- Rate-limited: 5 pengajuan per jam per IP
 
-- `laut_teritorial_sepakat`
-- `laut_teritorial_perlu`
-- `zee_sepakat`
-- `zee_sepakat_ratif`
-- `zee_perlu`
-- `landas_kontinen_sepakat`
-- `landas_kontinen_sepakat_ratif`
-- `landas_kontinen_perlu`
-- `landas_kontinen_ekstensi`
-- `zona_tambahan`
-- `baseline`
-- `basepoints`
-- `titik_perjanjian_lt`
-- `titik_perjanjian_lk`
-- `titik_perjanjian_zee`
+---
 
-## Menjalankan Proyek
+## Arsitektur
 
-Prasyarat:
+| Komponen | Teknologi | Platform |
+|---|---|---|
+| Frontend | React 19 + TypeScript + MapLibre GL JS | Firebase Hosting |
+| Backend | Node.js + Express.js | Google Cloud Run |
+| Basis Data | PostgreSQL + PostGIS | Google Cloud SQL |
+| Secrets | — | Google Cloud Secret Manager |
+| Logs | Pino → Audit log spasial | Google Cloud Logging |
 
-- Node.js 18+
-- npm 9+
+Dokumentasi arsitektur lengkap: [docs/architecture-overview.md](docs/architecture-overview.md)
 
-Instalasi:
+---
+
+## Menjalankan Lokal
+
+**Prasyarat:** Node.js 18+, npm 9+
 
 ```bash
+# Install dependensi
 npm install
-```
 
-Development:
-
-```bash
+# Development server
 npm run dev
-```
 
-Build produksi:
-
-```bash
-npm run build
-```
-
-Lint:
-
-```bash
+# Lint
 npm run lint
-```
 
-Format:
-
-```bash
+# Format
 npm run format
 ```
 
-## Konfigurasi Environment
+### Konfigurasi Environment
 
-Buat file `.env` di root proyek:
+Buat file `.env` di root **frontend** (`frontend/`):
 
 ```env
-# Opsional: API key Stadia agar kuota search lebih tinggi
-VITE_STADIA_MAPS_API_KEY=your_stadia_maps_api_key
+# URL backend (default: localhost saat development)
+VITE_API_BASE_URL=http://localhost:3001
 
-# Opsional: style vector awal dari MapTiler
-VITE_MAPTILER_TOKEN=your_maptiler_token
+# Opsional: API key Stadia Maps
+VITE_STADIA_MAPS_API_KEY=your_stadia_maps_api_key
 ```
 
-Tanpa variabel di atas, aplikasi tetap berjalan:
+Buat file `.env` di root **backend** (`backend/`):
 
-- Search Stadia memakai anonymous access.
-- Style awal memakai raster fallback, lalu basemap runtime tetap dikelola oleh kontrol basemap aplikasi.
+```env
+# Database
+DATABASE_URL=postgresql://user:password@host:5432/dbname
 
-## Deploy (Firebase Hosting)
+# Keamanan
+DISPLAY_TOKEN_SECRET=your_secret_here
+CORS_ORIGINS=http://localhost:5173
 
+# Mode tampilan
+DISPLAY_MODE=mvt
+```
+
+---
+
+## Deploy
+
+### Frontend (Firebase Hosting)
 ```bash
+cd frontend
 npm run build
 firebase deploy --only hosting
 ```
 
-## Tech Stack
+### Backend (Google Cloud Run)
+```bash
+cd backend
+gcloud run deploy s121-backend --source .
+```
 
-- React 19 + TypeScript
-- Vite 7
-- MapLibre GL JS
-- TailwindCSS + shadcn/ui
-- Zustand
-- Turf.js
-- React Router
-- Firebase Hosting
+---
 
 ## Dokumentasi
 
-- [docs/architecture-overview.md](docs/architecture-overview.md)
-- [docs/README-general.md](docs/README-general.md)
-- [docs/README-query.md](docs/README-query.md)
-- [docs/PORTAL_INTEGRATION_STEPS.md](docs/PORTAL_INTEGRATION_STEPS.md)
-- [docs/REFACTOR_ROADMAP.md](docs/REFACTOR_ROADMAP.md)
-- [docs/CHANGELOG-session.md](docs/CHANGELOG-session.md)
-- [CHANGELOG.md](CHANGELOG.md)
+- [Architecture Overview](docs/architecture-overview.md)
+- [Data Access & Security Plan](docs/DATA_ACCESS_SECURITY_PLAN.md)
+- [Backend Structure](docs/backend-structure.md)
+- [Changelog](CHANGELOG.md)
 
-## Catatan
+---
 
-- Folder `from-figma-ai` hanya sebagai referensi desain, bukan sumber runtime utama.
-- Roadmap backend (WFS/WPS/Auth) masih tahap perencanaan, implementasi runtime saat ini tetap client-first.
+## Struktur Repositori
+
+```
+sea-boundaries/
+├── frontend/          # React + MapLibre GL JS
+├── backend/           # Node.js + Express API
+│   ├── routes/        # Route handlers
+│   ├── lib/           # Logika bisnis (tile, cache, security, geo)
+│   └── app.js         # Entry point
+└── docs/              # Dokumentasi teknis dan laporan TA
+```

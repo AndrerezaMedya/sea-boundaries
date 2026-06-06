@@ -1,206 +1,185 @@
-# WebGIS Architecture: Current vs Future (WPS/WFS/Auth)
+# WebGIS SEA-BANDL — Architecture Overview
 
-> **Pembaruan 2026-05-26:** Kebijakan akses data terbaru (WebGIS tanpa login; data utuh via permintaan resmi; tutup celah API display) didokumentasikan di **[DATA_ACCESS_SECURITY_PLAN.md](./DATA_ACCESS_SECURITY_PLAN.md)**. Bagian “VPS”, “login + WFS untuk publik”, dan `useAuth` di bawah ini **bersifat historis** kecuali disebut lain.
+> **Last updated: 2026-06-06**
+> Dokumen ini menggambarkan arsitektur sistem yang **sedang berjalan** di produksi (`seabandl.app`).
+> Dokumen arsitektur historis (rencana GeoServer/WFS/WPS/VPS yang tidak dilanjutkan) tersimpan di `docs/archive/`.
 
-This doc summarizes the full tech stack, the current state of the WebGIS, and the planned evolution to add WPS (JTS/GeoServer), WFS downloads for authorized users, and authentication/authorization. Mermaid diagrams included.
+---
 
 ## Tech Stack
 
-- **Frontend**: Vite, React 19, TypeScript, MapLibre GL JS v5, TailwindCSS, shadcn/ui, Zustand, Turf.js (client-side geoprocessing), React Router (portal + map routes).
-- **Current Data**: 15 GeoJSON layer individual di-bundle di frontend (no external OGC services yet). UI menggunakan layout **Ribbon** + floating side panels dengan custom basemap thumbnail control.
-- **Map Search**: Stadia Maps search box.
-- **Theme/Basemap Runtime**: Light-only mode, default basemap `Esri Satellite`, basemap switch dikelola di runtime map modules.
-- **Build/Deploy**: npm scripts; frontend hosted on Firebase Hosting (https://project1-seaboundaries.web.app).
-- **Planned Backend**: GeoServer + PostGIS on VPS for OGC services (WMS/WFS/WPS).
-- **Planned Auth**: Token-based (e.g., JWT via an auth gateway) to guard WFS/WPS and downloads.
+### Frontend
+- **Framework**: React 19 + TypeScript, Vite 7
+- **Peta**: MapLibre GL JS — rendering MVT tile dari backend
+- **State**: Zustand
+- **UI**: TailwindCSS + shadcn/ui
+- **Routing**: React Router (portal multi-halaman + halaman peta)
+- **Hosting**: Firebase Hosting → **[seabandl.app](https://seabandl.app)**
 
-## Current State (No WFS/WMS/WPS)
+### Backend
+- **Runtime**: Node.js + Express.js
+- **Platform**: Google Cloud Run (`s121-backend`)
+- **Database**: PostgreSQL + PostGIS (Google Cloud SQL), koneksi via Unix socket (Cloud Run) atau TCP (lokal)
+- **Secrets**: Google Cloud Secret Manager
+- **Logging**: Pino Logger → Google Cloud Logging
+
+---
+
+## Arsitektur Sistem
 
 ```mermaid
-flowchart TD
-    A[Frontend React/MapLibre] --> B[Load local/ uploaded GeoJSON]
-    B --> C[Turf.js for client-only analysis]
-    C --> D[Render vector layers in MapLibre]
+graph TD
+    subgraph "Firebase Hosting (CDN)"
+        FE["Frontend\nReact + MapLibre GL JS"]
+    end
+
+    subgraph "Google Cloud Run"
+        BE["Backend\nNode.js + Express"]
+        Cache["LRU Cache\n(in-memory RAM)"]
+    end
+
+    subgraph "Google Cloud SQL"
+        DB[("PostgreSQL + PostGIS")]
+    end
+
+    subgraph "Google Cloud"
+        SM["Secret Manager"]
+        LOG["Cloud Logging\n(audit log)"]
+    end
+
+    Browser["Browser Pengguna"] --> FE
+    Browser --> BE
+    BE --> Cache
+    Cache -->|"Cache MISS"| DB
+    BE --> DB
+    BE --> SM
+    BE --> LOG
 ```
 
-## Target State (With WFS + WPS + Auth)
+---
 
-```mermaid
-flowchart TD
-    subgraph Client
-        PUBLIC[Public user (no login)]
-        AUTHUSER[Authorized user (login + approved)]
-        UI[MapLibre UI]
-        WFSREQ[WFS fetch (GeoJSON, authorized)]
-        WPSPUB[WPS Execute (public-limited)]
-        WPSAUTH[WPS Execute (authorized)]
-        RENDER[Render layers/results]
-    end
+## Alur Data Utama
 
-    subgraph GatewayAuth
-        AUTH[Auth Service (JWT/OAuth2)]
-        PROXY[API Gateway / Reverse Proxy]
-    end
-
-    subgraph GeoServer
-        WMS[WMS / MVT (public)]
-        WFS[WFS (protected)]
-        WPS[WPS (JTS/PostGIS)]
-    end
-
-    DB[(PostGIS)]
-
-    PUBLIC --> UI
-    AUTHUSER --> UI
-    UI -->|Tiles (public)| WMS
-    UI --> WPSPUB
-    UI --> WFSREQ
-    UI --> WPSAUTH
-    WPSPUB --> PROXY
-    WFSREQ --> PROXY
-    WPSAUTH --> PROXY
-    AUTHUSER --> AUTH --> PROXY
-    PROXY --> WMS
-    PROXY --> WFS
-    PROXY --> WPS
-    WMS --> DB
-    WFS --> DB
-    WPS --> DB
-    WFS -->|GeoJSON (authorized)| RENDER
-    WPS -->|GeoJSON (public/authorized)| RENDER
-```
-
-### Data Flow (Future)
+### 1. Inisialisasi Sesi Tampilan
 
 ```mermaid
 sequenceDiagram
-    participant User
-    participant UI as Frontend (MapLibre)
-    participant Auth as Auth Service
-    participant Proxy as API Gateway
-    participant GS as GeoServer (WFS/WPS/WMS)
-    participant DB as PostGIS
+    participant Browser
+    participant API as Cloud Run (Express)
 
-    User->>UI: Open app
-    UI->>GS: Request WMS/MVT tiles (public)
-    alt Public (non-authorized)
-        UI->>Proxy: WPS Execute (public limits, no JWT)
-        Proxy->>GS: Forward WPS (public policy)
-        GS->>DB: Read data
-        GS-->>Proxy: GeoJSON result
-        Proxy-->>UI: GeoJSON result
-        UI->>User: Render result (no raw download)
-    else Authorized (approved)
-        UI->>Auth: Login
-        Auth-->>UI: JWT + approval flag
-        UI->>Proxy: WFS GetFeature (JWT)
-        Proxy->>GS: Forward WFS with JWT
-        GS->>DB: Query filtered features
-        GS-->>Proxy: GeoJSON (authorized)
-        Proxy-->>UI: GeoJSON
-        UI->>Proxy: WPS Execute (JWT) if needed
-        Proxy->>GS: Forward WPS
-        GS->>DB: Use data
-        GS-->>Proxy: GeoJSON result
-        Proxy-->>UI: GeoJSON result
-        UI->>User: Render + allow download (per policy)
-    end
+    Browser->>API: GET /api/display/session
+    API-->>Browser: display token (HMAC-SHA256, TTL 1 jam)
+    Note over Browser: Token disimpan di memori sesi
 ```
 
-## Roles & Authorization (future)
+### 2. Rendering Tile MVT
 
-- **Public (non-authorized)**: Dapat membuka WebGIS, melihat peta, popup atribut publik, menjalankan geoprocessing (WPS) dengan batasan ukuran/waktu, tetapi **tidak bisa mengunduh data mentah**.
-- **Authorized (approved)**: Setelah login + disetujui admin, dapat mengakses WFS/WMS terautentikasi dan mengunduh data mentah (mis. SHP/GeoJSON) sesuai kebijakan.
-- **Download policy**: Unduhan hanya untuk authorized yang sudah di-approve; selalu melalui gateway + audit log; WFS dibatasi bbox/filter/paging dan rate limit. Public dibatasi ke data terpublikasi (MVT/WMS) tanpa raw download.
+```mermaid
+sequenceDiagram
+    participant MapLibre as MapLibre GL JS
+    participant API as Cloud Run (Express)
+    participant Cache as LRU Cache (RAM)
+    participant DB as Cloud SQL (PostGIS)
 
-## WFS Plan
+    MapLibre->>API: GET /api/tiles/{tileset}/{z}/{x}/{y}.mvt
+    Note over MapLibre,API: Header: X-Display-Token: [token]
+    API->>Cache: Lookup kunci tile
+    alt Cache HIT
+        Cache-->>API: Buffer MVT biner
+    else Cache MISS
+        API->>DB: ST_AsMVT query (ST_TileEnvelope + ST_Intersects)
+        DB-->>API: Buffer MVT biner
+        API->>Cache: Simpan ke LRU
+    end
+    API-->>MapLibre: application/vnd.mapbox-vector-tile
+```
 
-- Publish 15 layer batas maritim (`laut_teritorial_sepakat`, `laut_teritorial_perlu`, `zee_sepakat`, `zee_sepakat_ratif`, `zee_perlu`, `landas_kontinen_*`, `zona_tambahan`, `baseline`, `basepoints`, `titik_perjanjian_lt`, `titik_perjanjian_lk`, `titik_perjanjian_zee`) sebagai WFS di GeoServer, **hanya untuk authorized users**.
-- Client path (authorized): `fetch` GeoJSON via `GetFeature` (bbox/cql_filter/paging) → load as MapLibre `geojson` source or provide download.
-- Apply auth: Gateway validates JWT + approval flag; enforce per-role/per-layer access; log all downloads.
+### 3. Geoprocessing
 
-## WPS Plan (JTS / GeoServer)
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant API as Cloud Run (Express)
+    participant DB as Cloud SQL (PostGIS)
 
-- Enable WPS plugin in GeoServer. Expose a small set of processes (buffer, intersect, clip) backed by JTS/PostGIS.
-- **Public** dapat menjalankan WPS untuk analisis ringan; hasil hanya ditampilkan (tidak mengakses tabel mentah). **Authorized** boleh mengunduh hasil jika diperlukan dan sesuai kebijakan.
-- Client UI: form pilih layer/parameter → POST Execute → terima GeoJSON → render layer sementara; opsi unduh hanya muncul jika authorized.
-- Controls: limit waktu/memori/ukuran fitur; sanitasi input; per-role throttling.
+    Browser->>API: POST /api/geo/{measure|buffer}
+    API->>API: Validasi display token
+    API->>API: Validasi parameter dan kebijakan input
+    API->>DB: Kueri spasial (ST_Length / ST_Area / ST_Buffer)
+    DB-->>API: Hasil komputasi
+    API->>API: Penyederhanaan geometri (jika buffer)
+    API-->>Browser: JSON (nilai numerik atau GeoJSON)
+```
+
+---
+
+## Endpoint API
+
+| Kategori | Endpoint | Akses |
+|---|---|---|
+| Sesi | `GET /api/display/session` | Publik |
+| Health | `GET /health` | Publik |
+| Tile MVT | `GET /api/tiles/:tileset/:z/:x/:y.mvt` | Display token |
+| Atribut batas | `GET /api/limits` | Display token + bbox wajib |
+| Atribut lokasi | `GET /api/locations` | Display token + bbox wajib |
+| Metadata | `GET /api/sources`, `/api/curves`, dll. | Nonaktif di produksi |
+| Geoprocessing | `POST /api/geo/measure`, `/api/geo/buffer` | Display token |
+| Pengajuan data | `POST /api/data-requests` | Publik (rate-limited: 5/jam) |
+| Admin | `GET/PATCH /api/data-requests` | X-Admin-Key header |
+
+---
+
+## Keamanan Berlapis
+
+```mermaid
+flowchart TD
+    A["Permintaan HTTP masuk"] --> B["Helmet: header keamanan"]
+    B --> C{"CORS: origin diizinkan?"}
+    C -- Tidak --> D["403 CORS_REJECTED"]
+    C -- Ya --> E["httpLogger · spatialAuditLogger · express.json"]
+    E --> F{"Rute mana?"}
+
+    F --> G["Publik\n/health · /display/session"]
+    F --> H["POST /api/data-requests\n(rate limit: 5/jam)"]
+    F --> I["Admin /data-requests\n(X-Admin-Key)"]
+    F --> J["Display channel\n/tiles · /limits · /locations · /geo"]
+
+    J --> K{"displayRequireToken aktif?"}
+    K -- Tidak --> L["Handler"]
+    K -- Ya --> M{"Display token valid?"}
+    M -- Tidak --> N["401 DISPLAY_TOKEN_REQUIRED"]
+    M -- Ya --> L
+```
+
+---
+
+## Tileset MVT
+
+Dua tileset gabungan tersedia via `/api/tiles/:tileset/:z/:x/:y.mvt`:
+
+| Tileset | Isi |
+|---|---|
+| `boundaries` | Garis pangkal, laut teritorial, zona tambahan, ZEE, landas kontinen, landas kontinen ekstensi, fisheries |
+| `points` | Titik garis pangkal (*basepoints*), titik perjanjian bilateral (TS, CS, ZEE) |
+
+Layer individual juga didukung via `/api/tiles/:layerId/:z/:x/:y.mvt`.
+
+---
+
+## Kebijakan Data
+
+- **Geometri**: Koordinat disederhanakan sebelum dikirimkan (default toleransi: 0,0005 derajat). Presisi penuh tidak pernah dikirimkan ke browser.
+- **Atribut**: `bbox` wajib pada permintaan `/api/limits` dan `/api/locations`. Luas maksimum: 500 derajat persegi.
+- **Metadata relasional**: Endpoint `/api/sources`, `/api/curves`, `/api/baunits` dinonaktifkan di produksi (`ENABLE_METADATA_API=false`).
+
+---
 
 ## Deployment
 
-- **Frontend**: Firebase Hosting or VPS.
-- **Backend**: VPS running GeoServer + PostGIS behind reverse proxy (Caddy/Nginx). Enable HTTPS, CORS, rate limiting.
-- **Caching**: Optional CDN/cache for WMS tiles; consider gzip for WFS GeoJSON.
-
-## Methodology & Development Flow (expanded)
-
-```mermaid
-flowchart LR
-    subgraph P1["1. Data Engineering"]
-        direction TB
-            Ingest["Data ingestion<br/>(source files)"]
-            Model["Pemodelan S-121<br/>PostGIS schema"]
-            QA["QA/QC geometri<br/>(CRS, topology)"]
-            Views["SQL Views<br/>(sensor data)"]
-            Version["Versioning + backup<br/>(DDL, pg_dump)"]
-    end
-
-    subgraph P2["2. Server Config"]
-        direction TB
-            GSMVT["GeoServer:<br/>Vector Tiles (MVT/GWC)"]
-            GSWPS["GeoServer:<br/>WPS (JTS/PostGIS)"]
-            Gateway["Auth Gateway / Reverse Proxy<br/>(JWT, CORS, rate limit)"]
-            Audit["Audit log + throttling"]
-    end
-
-    subgraph P3["3. Frontend Dev"]
-        direction TB
-            MapLibre["MapLibre GL JS<br/>(Visualisasi)"]
-            UIUX["UI/UX: sidebar, legend<br/>floating, overlays"]
-            WPSUI["WPS tools<br/>(public-limited)"]
-            WFSUI["WFS fetch + filters<br/>(authorized)"]
-            Download["Controlled download<br/>(approved only)"]
-            AuthMod["Modul Auth<br/>(token storage)"]
-    end
-
-    subgraph P4["4. Deployment"]
-        direction TB
-            CI["Build & lint (CI/CD)"]
-            Perf["Uji performa + load test"]
-            Sec["Security review<br/>(TLS, CORS, headers)"]
-            VPS["Deploy VPS"]
-            Monitor["Monitoring + alerting"]
-    end
-
-    Ingest --> Model --> QA --> Views --> Version
-    Views ==> GSMVT
-    Views ==> GSWPS
-    GSMVT --- GSWPS
-    Gateway --> GSMVT
-    Gateway --> GSWPS
-    Audit -.-> GSWPS
-    GSMVT ==> MapLibre
-    GSWPS -.-> WPSUI
-    MapLibre --> UIUX
-    UIUX --> WPSUI
-    AuthMod --> WFSUI
-    WFSUI --> Download
-    WPSUI --> MapLibre
-    Download --> MapLibre
-    Gateway --> CI
-    MapLibre --> CI
-    AuthMod --> CI
-    CI --> Gateway
-    CI --> Perf --> Sec --> VPS --> Monitor
-    Gateway --> AuthMod
-```
-
-## Checklist to move forward
-
-- [ ] Provision VPS with PostGIS + GeoServer.
-- [ ] Load maritime datasets into PostGIS; publish WMS/WFS; enable WPS plugin.
-- [ ] Add auth service (JWT/OAuth2) and gateway enforcing it for WFS/WPS.
-- [ ] Frontend: add WFS fetch path (toggle between local GeoJSON and WFS); add WPS Execute UI.
-- [ ] Limit scope: bbox/paging for WFS; whitelisted WPS processes with size/time caps.
-- [ ] Logging/monitoring for WFS/WPS usage; rate limits.
-- [ ] E2E test flows: login → WFS fetch → WPS process → render/download.
+| Komponen | Platform | URL |
+|---|---|---|
+| Frontend | Firebase Hosting | [seabandl.app](https://seabandl.app) |
+| Backend | Google Cloud Run | Internal (tidak diekspos langsung) |
+| Database | Google Cloud SQL | Via Unix socket (Cloud Run) |
+| Secrets | Google Cloud Secret Manager | — |
+| Logs | Google Cloud Logging | — |
