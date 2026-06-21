@@ -12,7 +12,6 @@ afterEach(() => {
 
 test('GET /api/meta/filter-options returns distinct values', async () => {
 	mock = mockPool();
-	mock.enqueue({ rows: [{ value: 'WGS84' }] });
 	mock.enqueue({ rows: [{ value: 'WGS84' }, { value: 'WGS84 (original datum unspecified)' }] });
 	mock.enqueue({ rows: [{ value: 'Laut Jawa' }, { value: 'Selat Malaka' }] });
 	mock.enqueue({

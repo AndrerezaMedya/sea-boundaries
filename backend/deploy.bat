@@ -12,7 +12,7 @@ REM Cloud Run + Cloud SQL: DB_HOST = path socket (bukan TCP hostname).
 set DB_SOCKET_HOST=/cloudsql/%CLOUD_SQL_CONNECTION%
 
 REM Koma di CORS_ORIGINS tidak boleh lewat --set-env-vars (gcloud pakai koma sebagai pemisah).
-set CORS_ORIGINS=https://project1-seaboundaries.web.app,https://project1-seaboundaries.firebaseapp.com
+set CORS_ORIGINS=https://project1-seaboundaries.web.app,https://project1-seaboundaries.firebaseapp.com,https://seabandl.app,https://www.seabandl.app
 
 set ENV_FILE=%TEMP%\s121-cloudrun-env-%RANDOM%.yaml
 

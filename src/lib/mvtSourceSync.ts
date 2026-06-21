@@ -10,7 +10,7 @@ const TITIK_LAYER_IDS: CoreLayerId[] = [
 ];
 
 /** Layers backed by `source-mvt-points` (MapLibre skips tile fetch if all are hidden). */
-const POINTS_TILESET_LAYER_IDS: CoreLayerId[] = [...TITIK_LAYER_IDS, 'basepoints'];
+const POINTS_TILESET_LAYER_IDS: CoreLayerId[] = [...TITIK_LAYER_IDS, 'basepoints', 'basepoints_2026'];
 
 const BOUNDARY_LAYER_IDS: CoreLayerId[] = [
 	'baseline',

@@ -2,6 +2,7 @@ import type { Feature, FeatureCollection, Geometry } from 'geojson';
 
 export type CoreLayerId =
 	| 'basepoints'
+	| 'basepoints_2026'
 	| 'landas_kontinen_ekstensi'
 	| 'titik_perjanjian_lt'
 	| 'titik_perjanjian_lk'
@@ -11,7 +12,23 @@ export type CoreLayerId =
 	| 'eez_limit'
 	| 'continental_shelf'
 	| 'fisheries'
+	| 'titik_referensi'
 	| 'baseline';
+export const ALL_CORE_IDS: CoreLayerId[] = [
+	'basepoints',
+	'basepoints_2026',
+	'landas_kontinen_ekstensi',
+	'titik_perjanjian_lt',
+	'titik_perjanjian_lk',
+	'titik_perjanjian_zee',
+	'territorial_sea',
+	'contiguous_zone',
+	'eez_limit',
+	'continental_shelf',
+	'fisheries',
+	'titik_referensi',
+	'baseline',
+];
 export type DynamicLayerId = 'user_layer';
 export const USER_LAYER_ID: DynamicLayerId = 'user_layer';
 export type LayerId = CoreLayerId | DynamicLayerId;
@@ -38,9 +55,11 @@ export type Operator =
 	| 'contains'
 	| 'startsWith'
 	| 'in'
-	| 'between';
+	| 'between'
+	| 'is_null'
+	| 'is_not_null';
 
-export type ConditionValue = string | number | string[] | number[];
+export type ConditionValue = string | number | string[] | number[] | null;
 
 export interface FieldSchema {
 	name: string;

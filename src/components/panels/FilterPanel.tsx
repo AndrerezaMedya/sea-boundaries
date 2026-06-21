@@ -31,9 +31,11 @@ const LIMIT_LAYER_IDS: readonly CoreLayerId[] = [
 
 const LOCATION_LAYER_IDS: readonly CoreLayerId[] = [
 	'basepoints',
+	'basepoints_2026',
 	'titik_perjanjian_lt',
 	'titik_perjanjian_lk',
 	'titik_perjanjian_zee',
+	'titik_referensi',
 ] as const;
 
 const ALL_CORE_IDS: readonly CoreLayerId[] = [...LIMIT_LAYER_IDS, ...LOCATION_LAYER_IDS];
@@ -90,13 +92,28 @@ function buildDefinition(sf: SimpleFilterState, layerId: CoreLayerId, target: Fi
 		conditions.push({ id: makeId(), field: 'point_location', operator: 'in', value: sf.pointLocation, type: 'string' });
 	}
 
+	const validityValues = target === 'limit' ? sf.validityStatusLimit : sf.validityStatusPoint;
+	if (validityValues.length === 1) {
+		const val = validityValues[0];
+		if (val === 'Active') {
+			conditions.push({ id: makeId(), field: 'end_life_span', operator: 'is_null', value: '', type: 'string' });
+		} else if (val === 'Terminated') {
+			conditions.push({ id: makeId(), field: 'end_life_span', operator: 'is_not_null', value: '', type: 'string' });
+		}
+	} else if (validityValues.length === 2) {
+		// If both are selected, return nothing as requested (is_null AND is_not_null is impossible)
+		conditions.push({ id: makeId(), field: 'end_life_span', operator: 'is_null', value: '', type: 'string' });
+		conditions.push({ id: makeId(), field: 'end_life_span', operator: 'is_not_null', value: '', type: 'string' });
+	}
+
 	return { join: 'all', conditions };
 }
 
 function filterAppliesToLayer(sf: SimpleFilterState, layerId: CoreLayerId, target: FilterTarget): boolean {
 	if (!layerInTarget(layerId, target)) return false;
 	const statusValues = target === 'limit' ? sf.statusLimit : sf.statusPoint;
-	if (statusValues.length > 0 || sf.horizontalDatum.length > 0) return true;
+	const validityValues = target === 'limit' ? sf.validityStatusLimit : sf.validityStatusPoint;
+	if (statusValues.length > 0 || sf.horizontalDatum.length > 0 || validityValues.length > 0) return true;
 	if (target === 'limit' && isLimitLayer(layerId) && sf.limitObjectType.length > 0) return true;
 	if (target === 'point' && isLocationLayer(layerId) && (sf.locationType.length > 0 || sf.pointLocation.length > 0)) {
 		return true;
@@ -107,16 +124,16 @@ function filterAppliesToLayer(sf: SimpleFilterState, layerId: CoreLayerId, targe
 function activeFilterCount(sf: SimpleFilterState, target: FilterTarget): number {
 	const tipe = selectedTipeForTarget(sf, target).length;
 	if (target === 'limit') {
-		return tipe + sf.statusLimit.length + sf.horizontalDatum.length;
+		return tipe + sf.statusLimit.length + sf.horizontalDatum.length + sf.validityStatusLimit.length;
 	}
-	return tipe + sf.statusPoint.length + sf.pointLocation.length + sf.horizontalDatum.length;
+	return tipe + sf.statusPoint.length + sf.pointLocation.length + sf.horizontalDatum.length + sf.validityStatusPoint.length;
 }
 
 function hasAttributeFilterForTarget(sf: SimpleFilterState, target: FilterTarget): boolean {
 	if (target === 'limit') {
-		return sf.statusLimit.length > 0 || sf.horizontalDatum.length > 0;
+		return sf.statusLimit.length > 0 || sf.horizontalDatum.length > 0 || sf.validityStatusLimit.length > 0;
 	}
-	return sf.statusPoint.length > 0 || sf.horizontalDatum.length > 0 || sf.pointLocation.length > 0;
+	return sf.statusPoint.length > 0 || sf.horizontalDatum.length > 0 || sf.pointLocation.length > 0 || sf.validityStatusPoint.length > 0;
 }
 
 // ── Atoms ─────────────────────────────────────────────────────────────────────
@@ -312,7 +329,7 @@ const FilterPanel = () => {
 		};
 	}, [activePanel]);
 
-	const mergeOptionStrings = (remote: string[] | undefined, layerIds: readonly CoreLayerId[], field: string) => {
+	const mergeOptionStrings = useCallback((remote: string[] | undefined, layerIds: readonly CoreLayerId[], field: string) => {
 		const set = new Set<string>();
 		for (const value of remote ?? []) {
 			const s = String(value).trim();
@@ -325,29 +342,31 @@ const FilterPanel = () => {
 			}
 		}
 		return [...set].sort((a, b) => a.localeCompare(b)).map((v) => ({ value: v, label: v }));
-	};
+	}, [getUniqueValues]);
 
 	const scopeLayerIds = LAYER_IDS_BY_TARGET[filterTarget];
 
 	const horizontalDatumOptions = useMemo(
 		() => mergeOptionStrings(remoteFilterOptions?.horizontal_datum, scopeLayerIds, 'horizontal_datum'),
-		[remoteFilterOptions, getUniqueValues, scopeLayerIds],
+		[mergeOptionStrings, remoteFilterOptions, scopeLayerIds],
 	);
 
 	const pointLocationOptions = useMemo(
 		() => mergeOptionStrings(remoteFilterOptions?.point_location, LOCATION_LAYER_IDS, 'point_location'),
-		[remoteFilterOptions, getUniqueValues],
+		[mergeOptionStrings, remoteFilterOptions],
 	);
 
 	const tipeBatasOptions = useMemo(
 		() => getTipeBatasOptionsForTarget(locale, filterTarget),
 		[locale, filterTarget],
 	);
+	const HIDDEN_STATUS_VALUES = new Set(['Proposed', 'Unilateral Proposed']);
 	const statusOptions = useMemo(() => {
 		const remote =
 			filterTarget === 'limit' ? remoteFilterOptions?.status_limit : remoteFilterOptions?.status_point;
-		return mergeOptionStrings(remote, scopeLayerIds, 'status');
-	}, [remoteFilterOptions, getUniqueValues, scopeLayerIds, filterTarget]);
+		return mergeOptionStrings(remote, scopeLayerIds, 'status')
+			.filter((opt) => !HIDDEN_STATUS_VALUES.has(opt.value));
+	}, [mergeOptionStrings, remoteFilterOptions, scopeLayerIds, filterTarget]);
 	const [seaAreaSearch, setSeaAreaSearch] = useState('');
 
 	useEffect(() => {
@@ -459,6 +478,11 @@ const FilterPanel = () => {
 	const isLimitMode = filterTarget === 'limit';
 	const tipeBatasSelected = selectedTipeForTarget(sf, filterTarget);
 	const statusSelected = isLimitMode ? sf.statusLimit : sf.statusPoint;
+	const validityStatusSelected = isLimitMode ? sf.validityStatusLimit : sf.validityStatusPoint;
+	const validityStatusOptions = [
+		{ value: 'Active', label: 'Active' },
+		{ value: 'Terminated', label: 'Terminated' }
+	];
 
 	return (
 		<div className={mapToolPanelClassName()}>
@@ -541,6 +565,23 @@ const FilterPanel = () => {
 						emptyMessage={dynamicEmptyMessage(
 							isLimitMode ? t('filter.emptyStatusLimit') : t('filter.emptyStatusPoint'),
 						)}
+						showLessLabel={t('common.showLess')}
+						showAllLabel={(count) => t('common.showAll', { count })}
+					/>
+				</Section>
+
+				<Section code='02.b' title={t('filter.sectionValidityStatus')}>
+					<ChipGrid
+						options={validityStatusOptions}
+						selected={validityStatusSelected}
+						onToggle={(v) =>
+							setSimpleFilter(
+								isLimitMode
+									? { validityStatusLimit: toggleSet(sf.validityStatusLimit, v) }
+									: { validityStatusPoint: toggleSet(sf.validityStatusPoint, v) },
+							)
+						}
+						emptyMessage=''
 						showLessLabel={t('common.showLess')}
 						showAllLabel={(count) => t('common.showAll', { count })}
 					/>

@@ -11,8 +11,7 @@ const router = express.Router();
 router.get('/meta/filter-options', asyncRoute(async (_req, res) => {
 	res.set('Cache-Control', 'no-store, must-revalidate');
 	const [
-		datumLimit,
-		datumLocation,
+		datumQuery,
 		pointLocation,
 		statusLimit,
 		statusLocation,
@@ -21,21 +20,14 @@ router.get('/meta/filter-options', asyncRoute(async (_req, res) => {
 	] = await Promise.all([
 		pool.query(`
       SELECT DISTINCT TRIM(horizontal_datum) AS value
-        FROM feature_model_limit
+        FROM spatial_information_type
        WHERE horizontal_datum IS NOT NULL AND TRIM(horizontal_datum) <> ''
        ORDER BY 1
     `),
 		pool.query(`
-      SELECT DISTINCT TRIM(horizontal_datum) AS value
-        FROM feature_model_location
-       WHERE horizontal_datum IS NOT NULL AND TRIM(horizontal_datum) <> ''
-       ORDER BY 1
-    `),
-		pool.query(`
-      SELECT DISTINCT TRIM(pt.location) AS value
-        FROM spatial_points pt
-        JOIN fmlocation_to_sapoint rel ON rel.said_point = pt.saID
-       WHERE pt.location IS NOT NULL AND TRIM(pt.location) <> ''
+      SELECT DISTINCT TRIM(location_by_text) AS value
+        FROM spatial_information_type
+       WHERE location_by_text IS NOT NULL AND TRIM(location_by_text) <> ''
        ORDER BY 1
     `),
 		pool.query(`
@@ -64,13 +56,7 @@ router.get('/meta/filter-options', asyncRoute(async (_req, res) => {
     `),
 	]);
 
-	const horizontal_datum = [
-		...new Set([
-			...datumLimit.rows.map((r) => r.value),
-			...datumLocation.rows.map((r) => r.value),
-		]),
-	].sort((a, b) => a.localeCompare(b));
-
+	const horizontal_datum = datumQuery.rows.map((r) => r.value);
 	const point_location = pointLocation.rows.map((r) => r.value);
 
 	const status_limit = statusLimit.rows.map((r) => r.value);

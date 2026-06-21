@@ -16,6 +16,7 @@ export const isIhoDecorationLayerId = (mapLayerId: string): boolean =>
 // ── Easy-Read symbology constants ─────────────────────────────────────────────
 
 export type EasyReadLineLayerId =
+	| 'baseline'
 	| 'territorial_sea'
 	| 'contiguous_zone'
 	| 'eez_limit'
@@ -24,6 +25,7 @@ export type EasyReadLineLayerId =
 	| 'fisheries';
 
 export const EASY_READ_LINE_LAYER_IDS: EasyReadLineLayerId[] = [
+	'baseline',
 	'territorial_sea',
 	'contiguous_zone',
 	'eez_limit',
@@ -33,15 +35,17 @@ export const EASY_READ_LINE_LAYER_IDS: EasyReadLineLayerId[] = [
 ];
 
 export const EASY_READ_COLORS: Record<EasyReadLineLayerId, string> = {
-	territorial_sea: '#3b82f6',
-	contiguous_zone: '#06b6d4',
-	eez_limit: '#22c55e',
-	continental_shelf: '#f59e0b',
-	landas_kontinen_ekstensi: '#f97316',
-	fisheries: '#a855f7',
+	baseline: '#eab308', // Yellow
+	territorial_sea: '#ef4444', // Red
+	contiguous_zone: '#a855f7', // Purple
+	eez_limit: '#22c55e', // Green
+	continental_shelf: '#f97316', // Orange
+	landas_kontinen_ekstensi: '#ec4899', // Pink
+	fisheries: '#f472b6', // Soft Pink
 };
 
 export const EASY_READ_WIDTH: Record<EasyReadLineLayerId, number> = {
+	baseline: 2.5,
 	territorial_sea: 2.5,
 	contiguous_zone: 2.5,
 	eez_limit: 2.8,
@@ -53,12 +57,18 @@ export const EASY_READ_WIDTH: Record<EasyReadLineLayerId, number> = {
 /** Point layers shown in the map legend (circle symbology). */
 export type PointLegendLayerId =
 	| 'basepoints'
+	| 'basepoints_2026'
+	| 'user_layer'
+	| 'titik_referensi'
 	| 'titik_perjanjian_lt'
 	| 'titik_perjanjian_lk'
 	| 'titik_perjanjian_zee';
 
 export const POINT_LEGEND_LAYER_IDS: PointLegendLayerId[] = [
 	'basepoints',
+	'basepoints_2026',
+	'user_layer',
+	'titik_referensi',
 	'titik_perjanjian_lt',
 	'titik_perjanjian_lk',
 	'titik_perjanjian_zee',
@@ -67,6 +77,9 @@ export const POINT_LEGEND_LAYER_IDS: PointLegendLayerId[] = [
 /** Base circle colors — match `layerConfigs.ts` paint.base. */
 export const POINT_LEGEND_COLORS: Record<PointLegendLayerId, string> = {
 	basepoints: '#475569',
+	basepoints_2026: '#0ea5e9',
+	user_layer: '#14b8a6',
+	titik_referensi: '#dc2626',
 	titik_perjanjian_lt: '#3730a3',
 	titik_perjanjian_lk: '#78350f',
 	titik_perjanjian_zee: '#0d9488',

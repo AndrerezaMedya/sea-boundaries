@@ -97,7 +97,7 @@ export const syncMapWithState = (
 					if (isActiveKind) {
 						const attrFilter = buildAttributeMapFilter(layerId, state);
 						const symbologyFilter = buildSymbologyMapFilter(config, statusTiers);
-						map.setFilter(config.baseLayerId, combineFilters(attrFilter, symbologyFilter));
+						map.setFilter(config.baseLayerId, combineFilters(config.filter, attrFilter, symbologyFilter));
 					} else {
 						map.setFilter(config.baseLayerId, ['all'] as FilterSpecification);
 					}

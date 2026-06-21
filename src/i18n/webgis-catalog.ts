@@ -1,4 +1,4 @@
-import type { CoreLayerId } from '@/lib/types';
+import type { CoreLayerId, LayerId } from '@/lib/types';
 import type { Locale } from '@/i18n/types';
 import type { FilterTarget } from '@/store/useUI';
 
@@ -9,6 +9,7 @@ const pick = (locale: Locale, id: string, en: string) => (locale === 'en' ? en :
 /** Layer & group labels for sidebar / geoprocessing selects */
 export const layerLabels: Record<CoreLayerId, { id: string; en: string }> = {
 	basepoints: { id: 'Titik Dasar', en: 'Base Points' },
+	basepoints_2026: { id: 'Titik Dasar 2026', en: 'Base Points 2026' },
 	landas_kontinen_ekstensi: { id: 'Landas Kontinen Ekstensi', en: 'Extended Continental Shelf' },
 	titik_perjanjian_lt: { id: 'Titik Perjanjian — Laut Teritorial', en: 'Agreement Points — Territorial Sea' },
 	titik_perjanjian_lk: { id: 'Titik Perjanjian — Landas Kontinen', en: 'Agreement Points — Continental Shelf' },
@@ -19,6 +20,7 @@ export const layerLabels: Record<CoreLayerId, { id: string; en: string }> = {
 	continental_shelf: { id: 'Landas Kontinen', en: 'Continental Shelf' },
 	fisheries: { id: 'Zona Perikanan', en: 'Fisheries Zone' },
 	baseline: { id: 'Garis Pangkal', en: 'Baseline' },
+	titik_referensi: { id: 'Titik Referensi', en: 'Reference Points' },
 };
 
 export const groupLabels: Record<string, { id: string; en: string }> = {
@@ -30,6 +32,7 @@ export const groupLabels: Record<string, { id: string; en: string }> = {
 	fisheries: { id: 'Zona Perikanan', en: 'Fisheries Zone' },
 	titik_perjanjian: { id: 'Titik Perjanjian', en: 'Agreement Points' },
 	basepoints: { id: 'Titik Dasar', en: 'Base Points' },
+	basepoints_2026: { id: 'Titik Dasar 2026', en: 'Base Points 2026' },
 };
 
 export const sublayerLabels: Partial<Record<CoreLayerId, { id: string; en: string }>> = {
@@ -40,11 +43,13 @@ export const sublayerLabels: Partial<Record<CoreLayerId, { id: string; en: strin
 	titik_perjanjian_lt: { id: 'Laut Teritorial', en: 'Territorial Sea' },
 	titik_perjanjian_lk: { id: 'Landas Kontinen', en: 'Continental Shelf' },
 	titik_perjanjian_zee: { id: 'ZEE', en: 'EEZ' },
-	basepoints: { id: 'Titik Dasar Kepulauan', en: 'Archipelagic Base Points' },
+	basepoints: { id: 'Titik Dasar', en: 'Base Points' },
+	basepoints_2026: { id: 'Titik Dasar 2026', en: 'Base Points 2026' },
 };
 
-export function getLayerLabel(layerId: CoreLayerId, locale: Locale): string {
-	const entry = layerLabels[layerId];
+export function getLayerLabel(layerId: LayerId, locale: Locale): string {
+	const entry = layerLabels[layerId as CoreLayerId];
+	if (layerId === 'user_layer') return locale === 'id' ? 'Lapisan Pengguna' : 'User Layer';
 	return entry ? pick(locale, entry.id, entry.en) : layerId;
 }
 
@@ -66,6 +71,7 @@ export const TIPE_BATAS_LAYER_IDS: Record<string, readonly CoreLayerId[]> = {
 	continental_shelf: ['continental_shelf', 'landas_kontinen_ekstensi'],
 	fisheries: ['fisheries'],
 	basepoints: ['basepoints'],
+	basepoints_2026: ['basepoints_2026'],
 	titik_perjanjian: ['titik_perjanjian_lt', 'titik_perjanjian_lk', 'titik_perjanjian_zee'],
 };
 
@@ -78,7 +84,7 @@ const LIMIT_TIPE_BATAS_KEYS = [
 	'fisheries',
 ] as const;
 
-const POINT_TIPE_BATAS_KEYS = ['basepoints', 'titik_perjanjian'] as const;
+const POINT_TIPE_BATAS_KEYS = ['basepoints', 'basepoints_2026', 'titik_perjanjian'] as const;
 
 export function getTipeBatasOptions(locale: Locale): FilterOption[] {
 	return getTipeBatasOptionsForTarget(locale, 'limit').concat(getTipeBatasOptionsForTarget(locale, 'point'));
@@ -94,6 +100,7 @@ export function getTipeBatasOptionsForTarget(locale: Locale, target: FilterTarge
 		continental_shelf: { id: 'Landas Kontinen', en: 'Continental Shelf' },
 		fisheries: { id: 'Zona Perikanan', en: 'Fisheries Zone' },
 		basepoints: { id: 'Titik Dasar', en: 'Base Points' },
+		basepoints_2026: { id: 'Titik Dasar 2026', en: 'Base Points 2026' },
 		titik_perjanjian: { id: 'Titik Perjanjian', en: 'Agreement Points' },
 	};
 	return keys.map((value) => {
@@ -117,7 +124,7 @@ export const fieldLabels: Record<string, { id: string; en: string }> = {
 	horizontal_datum: { id: 'Datum', en: 'Datum' },
 	source_ids: { id: 'Sumber (ID)', en: 'Source (ID)' },
 	location_type_list: { id: 'Tipe Titik', en: 'Point Type' },
-	point_location: { id: 'Lokasi Perairan', en: 'Sea Area' },
+	point_location: { id: 'Lokasi', en: 'Location' },
 };
 
 export function getFieldLabel(fieldName: string, locale: Locale, fallback: string): string {

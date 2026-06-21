@@ -38,14 +38,63 @@ body {
 
 /* MapLibre core controls */
 .maplibregl-ctrl,
-.maplibregl-ctrl-group,
-.maplibregl-ctrl-scale {
+.maplibregl-ctrl-group {
 	background-color: var(--color-panel);
 	color: var(--color-text);
 	border: 1px solid var(--color-border);
 	box-shadow: var(--shadow-soft);
 	border-radius: 0.75rem;
 	padding: 0.15rem;
+}
+
+/* ── Cartographic alternating-bar scale ─────────────────────────── */
+.maplibregl-ctrl-scale {
+	background: rgba(255, 255, 255, 0.92) !important;
+	border: none !important;
+	box-shadow: 0 1px 8px rgba(0,0,0,0.25) !important;
+	border-radius: 3px !important;
+	padding: 3px 7px 5px !important;
+	font-size: 10px;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	color: #0f172a;
+	/* Label sits at the right — right tick = labeled distance */
+	text-align: right;
+	line-height: 1;
+	position: relative;
+	height: auto !important;
+	min-width: 80px;
+}
+
+/* "0" label at the left tick */
+.maplibregl-ctrl-scale::before {
+	content: '0';
+	position: absolute;
+	top: 3px;
+	left: 7px;
+	font-size: 10px;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	color: #0f172a;
+	line-height: 1;
+}
+
+/* Alternating bar at the bottom */
+.maplibregl-ctrl-scale::after {
+	content: '';
+	display: block;
+	width: 100%;
+	height: 7px;
+	margin-top: 2px;
+	background: repeating-linear-gradient(
+		to right,
+		#0f172a 0%, #0f172a 25%,
+		#ffffff 25%, #ffffff 50%,
+		#0f172a 50%, #0f172a 75%,
+		#ffffff 75%, #ffffff 100%
+	);
+	border: 1.5px solid #0f172a;
+	box-sizing: border-box;
 }
 
 .maplibregl-ctrl button {

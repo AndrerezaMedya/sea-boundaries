@@ -27,10 +27,10 @@ const formatValue = (
 };
 
 /** Hidden in detail modal UI (shown in header or not needed). */
-const DETAIL_ATTR_OMIT = new Set(['said', 'fuid', 'horizontal_datum']);
+const DETAIL_ATTR_OMIT = new Set(['said', 'fuid', 'horizontal_datum', 'start_life_span', 'end_life_span']);
 
 const CORE_LAYERS = new Set<string>([
-	'basepoints', 'landas_kontinen_ekstensi',
+	'basepoints', 'basepoints_2026', 'landas_kontinen_ekstensi',
 	'titik_perjanjian_lt', 'titik_perjanjian_lk', 'titik_perjanjian_zee',
 	'territorial_sea', 'contiguous_zone', 'eez_limit', 'continental_shelf', 'fisheries', 'baseline',
 ]);
@@ -84,7 +84,7 @@ const FeatureDetailModal = ({ isOpen, onClose, layerId, featureId }: FeatureDeta
 				setDetailError(err instanceof Error ? err.message : String(err));
 			})
 			.finally(() => setDetailLoading(false));
-	}, [isOpen, layerId, featureId, storeFeature?.properties?.fuid]);
+	}, [isOpen, layerId, featureId, storeFeature]);
 
 	const feature = storeFeature ?? apiFeature;
 

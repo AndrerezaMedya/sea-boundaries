@@ -13,6 +13,7 @@ export const GEO_LINE_LAYERS: readonly CoreLayerId[] = [
 
 export const GEO_POINT_LAYERS: readonly CoreLayerId[] = [
 	'basepoints',
+	'basepoints_2026',
 	'titik_perjanjian_lt',
 	'titik_perjanjian_lk',
 	'titik_perjanjian_zee',

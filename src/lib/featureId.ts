@@ -16,6 +16,7 @@ const LIMIT_LAYER_IDS = new Set<CoreLayerId>([
 
 const LOCATION_LAYER_IDS = new Set<CoreLayerId>([
 	'basepoints',
+	'basepoints_2026',
 	'titik_perjanjian_lt',
 	'titik_perjanjian_lk',
 	'titik_perjanjian_zee',

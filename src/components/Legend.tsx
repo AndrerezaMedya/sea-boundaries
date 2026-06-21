@@ -30,6 +30,7 @@ type IhoLegendItem =
 	| { kind: 'label'; text: string; labelKey: string };
 
 const IHO_LEGEND_ITEMS: IhoLegendItem[] = [
+	{ kind: 'label', text: 'Baseline', labelKey: 'legend.iho.baseline' },
 	{ kind: 'marker', marker: '+  +', labelKey: 'legend.iho.territorial' },
 	{ kind: 'marker', marker: '+', labelKey: 'legend.iho.contiguous' },
 	{ kind: 'fishery', labelKey: 'legend.iho.fisheries' },
@@ -39,6 +40,7 @@ const IHO_LEGEND_ITEMS: IhoLegendItem[] = [
 ];
 
 const EASY_READ_LABEL_KEYS: Record<EasyReadLineLayerId, string> = {
+	baseline: 'legend.easyRead.baseline',
 	territorial_sea: 'legend.easyRead.territorial',
 	contiguous_zone: 'legend.easyRead.contiguous',
 	eez_limit: 'legend.easyRead.eez',

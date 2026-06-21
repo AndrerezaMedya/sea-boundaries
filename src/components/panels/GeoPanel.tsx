@@ -25,7 +25,7 @@ const GeoPanel = () => {
                     <X className='h-4 w-4' />
                 </button>
             </div>
-            <div className='flex-1 overflow-y-auto p-4'>
+            <div className='flex-1 overflow-y-auto p-4 pb-16 md:pb-4'>
                 <GeoprocessingPanel />
             </div>
         </div>

@@ -169,3 +169,19 @@ artifacts/
 # [13] BACKEND — FILE MVT SEMENTARA
 # =============================================================================
 backend/scripts/*.mvt
+
+# Ignore real_db_schema
+real_db_schema/
+
+# Ignore docs and images
+*.pdf
+*.txt
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+!public/vite.svg
+!src/assets/react.svg
+
+*.webp

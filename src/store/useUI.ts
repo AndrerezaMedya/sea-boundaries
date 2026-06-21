@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 import type { FilterDefinition, LayerId, PresetDefinition } from '@/lib/types';
-import { USER_LAYER_ID } from '@/lib/types';
+import { USER_LAYER_ID, ALL_CORE_IDS } from '@/lib/types';
 
 // ── Simple Filter (friendly, cross-layer) ───────────────────────────────────
 export interface SimpleFilterState {
@@ -11,6 +11,9 @@ export interface SimpleFilterState {
 	// `status` on line limits vs point locations (separate vocabularies in DB)
 	statusLimit: string[];
 	statusPoint: string[];
+	// validity status (Active/Terminated based on endlifespan)
+	validityStatusLimit: string[];
+	validityStatusPoint: string[];
 	// `limit_object_type` field — applies to limit layers only
 	limitObjectType: string[];
 	// `location_type_list` field — applies to location layers only
@@ -25,6 +28,8 @@ const defaultSimpleFilter = (): SimpleFilterState => ({
 	tipeBatas: [],
 	statusLimit: [],
 	statusPoint: [],
+	validityStatusLimit: [],
+	validityStatusPoint: [],
 	limitObjectType: [],
 	locationType: [],
 	pointLocation: [],
@@ -48,6 +53,8 @@ const normalizeSimpleFilter = (raw: unknown): SimpleFilterState => {
 		tipeBatas: keepArr('tipeBatas'),
 		statusLimit: statusLimitNext.length > 0 ? statusLimitNext : legacyStatus,
 		statusPoint: keepArr('statusPoint'),
+		validityStatusLimit: keepArr('validityStatusLimit'),
+		validityStatusPoint: keepArr('validityStatusPoint'),
 		limitObjectType: keepArr('limitObjectType'),
 		locationType: keepArr('locationType'),
 		pointLocation: keepArr('pointLocation'),
@@ -64,20 +71,14 @@ const emptyDefinition = (): FilterDefinition => ({
 	join: 'all',
 });
 
-const createEmptyBuilderState = (): Record<LayerId, FilterDefinition> => ({
-	basepoints: emptyDefinition(),
-	landas_kontinen_ekstensi: emptyDefinition(),
-	titik_perjanjian_lt: emptyDefinition(),
-	titik_perjanjian_lk: emptyDefinition(),
-	titik_perjanjian_zee: emptyDefinition(),
-	territorial_sea: emptyDefinition(),
-	contiguous_zone: emptyDefinition(),
-	eez_limit: emptyDefinition(),
-	continental_shelf: emptyDefinition(),
-	fisheries: emptyDefinition(),
-	baseline: emptyDefinition(),
-	[USER_LAYER_ID]: emptyDefinition(),
-});
+const createEmptyBuilderState = (): Record<LayerId, FilterDefinition> => {
+	const state = {} as Record<LayerId, FilterDefinition>;
+	for (const id of ALL_CORE_IDS) {
+		state[id] = emptyDefinition();
+	}
+	state[USER_LAYER_ID] = emptyDefinition();
+	return state;
+};
 
 const cloneConditionValue = (value: FilterDefinition['conditions'][number]['value']): typeof value => {
 	if (Array.isArray(value)) {

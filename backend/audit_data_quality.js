@@ -323,14 +323,14 @@ async function valueAnomalies() {
   }
 
   // horizontal_datum harus WGS84
-  for (const tab of ['feature_model_limit', 'feature_model_location']) {
+  {
     const r = await pool.query(`
-      SELECT fuid, horizontal_datum FROM ${tab}
+      SELECT siid, horizontal_datum FROM spatial_information_type
       WHERE horizontal_datum IS DISTINCT FROM 'WGS84'
       LIMIT 20
     `);
-    if (r.rows.length === 0) add('value', 'PASS', `${tab}.horizontal_datum: semua "WGS84"`);
-    else add('value', 'WARN', `${tab}.horizontal_datum: ${r.rows.length} baris bukan "WGS84"`, r.rows);
+    if (r.rows.length === 0) add('value', 'PASS', `spatial_information_type.horizontal_datum: semua "WGS84"`);
+    else add('value', 'WARN', `spatial_information_type.horizontal_datum: ${r.rows.length} baris bukan "WGS84"`, r.rows);
   }
 
   // Date sanity: end_life_span < start_life_span

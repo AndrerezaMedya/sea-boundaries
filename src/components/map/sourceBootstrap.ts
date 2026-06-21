@@ -91,7 +91,7 @@ export const ensureMapLayerStack = (map: MapLibreMap, layerId: LayerId, config: 
 		...sourceLayerProps,
 		layout: { visibility: 'none', ...(config.layout ?? {}) },
 		paint: config.paint.base,
-		filter: withKeyFilter(['all']),
+		filter: withKeyFilter(config.filter ?? ['all']),
 		...(config.minzoom !== undefined ? { minzoom: config.minzoom } : {}),
 		...(config.maxzoom !== undefined ? { maxzoom: config.maxzoom } : {}),
 	};

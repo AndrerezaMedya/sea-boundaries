@@ -1,10 +1,43 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useLayoutEffect, useState, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Globe } from 'lucide-react';
 import { useWebGisT } from '@/i18n/useWebGisT';
 import { useLocaleStore } from '@/store/useLocale';
 
 type HomeSurfaceMode = 'heroDark' | 'lightSections' | 'deepBlueSections';
+
+/** Sections in scroll order; nav style follows whichever contains the probe line. */
+const HOME_SURFACE_SECTIONS: { id: string; mode: HomeSurfaceMode }[] = [
+    { id: 'hero', mode: 'heroDark' },
+    { id: 'tentang', mode: 'lightSections' },
+    { id: 'timeline-historis', mode: 'lightSections' },
+    { id: 'tim-pengembang', mode: 'lightSections' },
+    { id: 'home-deep-zone', mode: 'deepBlueSections' },
+    { id: 'kontak', mode: 'deepBlueSections' },
+];
+
+const NAV_SURFACE_PROBE_Y = 80;
+
+function resolveHomeSurfaceMode(): HomeSurfaceMode {
+    const probeY = NAV_SURFACE_PROBE_Y;
+
+    for (const { id, mode } of HOME_SURFACE_SECTIONS) {
+        const section = document.getElementById(id);
+        if (!section) continue;
+        const rect = section.getBoundingClientRect();
+        if (rect.top <= probeY && rect.bottom > probeY) {
+            return mode;
+        }
+    }
+
+    return 'lightSections';
+}
+
+function topBandRootMargin(probeY: number): string {
+    const bandHeight = Math.max(1, probeY);
+    const bottomTrim = Math.max(0, window.innerHeight - bandHeight);
+    return `-${bandHeight - 1}px 0px -${bottomTrim}px 0px`;
+}
 
 const PortalNav = () => {
     const { t } = useWebGisT();
@@ -14,12 +47,13 @@ const PortalNav = () => {
     const [homeSurfaceMode, setHomeSurfaceMode] = useState<HomeSurfaceMode>('heroDark');
     const isBlueMode = false;
     const isHomeRoute = location.pathname === '/';
-    const isAdaptiveRoute = (isHomeRoute || location.pathname === '/request-data' || location.pathname === '/user-guide') && !isBlueMode;
+    const isAdaptiveRoute = (isHomeRoute || location.pathname === '/request-data' || location.pathname === '/user-guide' || location.pathname === '/metodologi') && !isBlueMode;
     const mobileMenuId = 'portal-mobile-menu';
 
     const navItems = useMemo(() => [
         { to: '/', label: t('portalNav.home') },
         { to: '/request-data', label: t('portalNav.requestData') },
+        { to: '/metodologi', label: t('portalNav.methodology') },
         { to: '/user-guide', label: t('portalNav.userGuide') },
     ], [t]);
 
@@ -29,57 +63,61 @@ const PortalNav = () => {
         setIsMobileMenuOpen(false);
     }, [location.pathname]);
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (!isAdaptiveRoute) {
             setHomeSurfaceMode('heroDark');
             return;
         }
 
-        const heroSection = document.getElementById('hero');
-        const deepBlueSection = document.getElementById('home-deep-zone');
-        if (!heroSection) return;
-
         let frameId: number | null = null;
-        const triggerY = 104;
+        let cancelled = false;
 
-        const evaluateSurfaceMode = () => {
-            const deepRect = deepBlueSection?.getBoundingClientRect();
-            const heroRect = heroSection.getBoundingClientRect();
-
-            // Trigger blue mode when close to the deep blue section (within 60px tolerance)
-            if (deepRect && deepRect.top < window.innerHeight && deepRect.top <= triggerY - 40) {
-                setHomeSurfaceMode('deepBlueSections');
-                return;
+        const syncFromProbe = () => {
+            if (!cancelled) {
+                setHomeSurfaceMode(resolveHomeSurfaceMode());
             }
-
-            if (heroRect.bottom <= triggerY) {
-                setHomeSurfaceMode('lightSections');
-                return;
-            }
-
-            setHomeSurfaceMode('heroDark');
         };
 
-        const onScrollOrResize = () => {
-            if (frameId !== null) return;
-            frameId = window.requestAnimationFrame(() => {
-                frameId = null;
-                evaluateSurfaceMode();
-            });
-        };
-
-        evaluateSurfaceMode();
-        window.addEventListener('scroll', onScrollOrResize, { passive: true });
-        window.addEventListener('resize', onScrollOrResize);
-
-        return () => {
+        const scheduleSync = () => {
             if (frameId !== null) {
                 window.cancelAnimationFrame(frameId);
             }
-            window.removeEventListener('scroll', onScrollOrResize);
-            window.removeEventListener('resize', onScrollOrResize);
+            frameId = window.requestAnimationFrame(() => {
+                frameId = null;
+                syncFromProbe();
+            });
         };
-    }, [isAdaptiveRoute]);
+
+        const observer = new IntersectionObserver(
+            () => scheduleSync(),
+            {
+                root: null,
+                rootMargin: topBandRootMargin(NAV_SURFACE_PROBE_Y),
+                threshold: [0, 0.01, 0.1, 0.25, 0.5, 0.75, 1],
+            },
+        );
+
+        for (const { id } of HOME_SURFACE_SECTIONS) {
+            const section = document.getElementById(id);
+            if (section) observer.observe(section);
+        }
+
+        syncFromProbe();
+        window.addEventListener('scroll', scheduleSync, { passive: true, capture: true });
+        window.addEventListener('resize', scheduleSync);
+        window.addEventListener('load', scheduleSync);
+
+        return () => {
+            cancelled = true;
+            observer.disconnect();
+            if (frameId !== null) {
+                window.cancelAnimationFrame(frameId);
+            }
+            window.removeEventListener('scroll', scheduleSync, true);
+            window.removeEventListener('resize', scheduleSync);
+            window.removeEventListener('load', scheduleSync);
+        };
+    }, [isAdaptiveRoute, isHomeRoute]);
 
     const isItemActive = (to: string) => {
         if (to === '/') {
@@ -269,7 +307,7 @@ const PortalNav = () => {
                                 ].join(' ')}
                             >
                                 <Globe className='h-4 w-4' />
-                                <span className="uppercase">{locale === 'id' ? 'English' : 'Indonesia'}</span>
+                                <span className="uppercase">{locale === 'id' ? 'Indonesia' : 'English'}</span>
                             </button>
 
                             <Link

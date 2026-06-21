@@ -2,7 +2,6 @@ import type { Map as MapLibreMap } from 'maplibre-gl';
 
 import { mapLayerConfigs } from '@/components/map/layerConfigs';
 import {
-	BASELINE_LINE_COLOR,
 	EASY_READ_COLORS,
 	EASY_READ_LINE_LAYER_IDS,
 	EASY_READ_WIDTH,
@@ -12,7 +11,7 @@ import {
 } from '@/components/map/ihoSymbology';
 import type { SymbologyMode } from '@/store/useUI';
 
-const BOUNDARY_LAYER_IDS = [...EASY_READ_LINE_LAYER_IDS, 'baseline'] as const;
+const BOUNDARY_LAYER_IDS = [...EASY_READ_LINE_LAYER_IDS] as const;
 
 function applyLinePaint(
 	map: MapLibreMap,
@@ -36,10 +35,8 @@ function applyLinePaint(
 export const applySymbologyMode = (map: MapLibreMap, mode: SymbologyMode) => {
 	for (const layerId of BOUNDARY_LAYER_IDS) {
 		const configs = mapLayerConfigs[layerId] ?? [];
-		const easyColor =
-			layerId === 'baseline' ? BASELINE_LINE_COLOR : EASY_READ_COLORS[layerId as EasyReadLineLayerId];
-		const easyWidth =
-			layerId === 'baseline' ? 2.5 : EASY_READ_WIDTH[layerId as EasyReadLineLayerId];
+		const easyColor = EASY_READ_COLORS[layerId as EasyReadLineLayerId];
+		const easyWidth = EASY_READ_WIDTH[layerId as EasyReadLineLayerId];
 
 		for (const config of configs) {
 			if (config.type !== 'line' || !config.statusTier) continue;

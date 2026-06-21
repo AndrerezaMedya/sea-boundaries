@@ -7,17 +7,105 @@ import {
     ChevronDown,
     Compass,
     Database,
-    Mail,
+    Instagram,
+    Linkedin,
     MapPin,
-    Phone,
 } from 'lucide-react';
 
 import PortalNav from '@/components/portal/PortalNav';
 import { useWebGisT } from '@/i18n/useWebGisT';
+import teamPhoto1 from '@/assets/1.webp';
+import teamPhoto2 from '@/assets/2.webp';
+import teamPhoto3 from '@/assets/3.webp';
+import teamPhoto4 from '@/assets/4.webp';
+import teamPhoto5 from '@/assets/5.webp';
+import itbLogo from '@/assets/itb.webp';
+import sintaLogo from '@/assets/sinta.webp';
+import dosen1Photo from '@/assets/dosen-1.webp';
+import dosen2Photo from '@/assets/dosen-2.webp';
+import dosen3Photo from '@/assets/dosen-3.webp';
 
 type HomeLocationState = {
     scrollTo?: string;
 };
+
+const TEAM_MEMBERS = [
+    {
+        id: 1,
+        name: 'Wafi Haidi',
+        nim: '15122001',
+        photo: teamPhoto1,
+        linkedin: 'https://id.linkedin.com/in/wafi-haidi-bb1480196',
+        instagram: 'https://instagram.com/wafihaidi_',
+    },
+    {
+        id: 2,
+        name: 'Kavita Rinda Gishela',
+        nim: '15122005',
+        photo: teamPhoto2,
+        linkedin: 'https://www.linkedin.com/in/kavitarindagishela',
+        instagram: 'https://instagram.com/kavitaghisela_',
+    },
+    {
+        id: 3,
+        name: "Muhammad As'ad Mu'izzu",
+        nim: '15122024',
+        photo: teamPhoto3,
+        linkedin: 'https://www.linkedin.com/in/izzumu/',
+        instagram: 'https://instagram.com/izzumu',
+    },
+    {
+        id: 4,
+        name: 'Andrereza Medya Endrikaputra',
+        nim: '15122066',
+        photo: teamPhoto4,
+        linkedin: 'https://www.linkedin.com/in/andrereza-medya-endrikaputra-a9b654156/',
+        instagram: 'https://instagram.com/andrzmdptr',
+    },
+    {
+        id: 5,
+        name: 'Azis Luqman Hakim',
+        nim: '15122082',
+        photo: teamPhoto5,
+        linkedin: 'https://www.linkedin.com/in/azisluqman/',
+        instagram: 'https://instagram.com/zziskm',
+    },
+] as const;
+
+const SUPERVISORS = [
+    {
+        id: 1,
+        name: 'Prof. Dr. Ir. Eka Djunarsjah, M.T.',
+        photo: dosen1Photo,
+        itbUrl: 'https://itb.ac.id/staf/profil/eka-djunarsjah',
+        sintaUrl: 'https://sinta.kemdiktisaintek.go.id/authors/profile/6039432',
+    },
+    {
+        id: 2,
+        name: 'Ir. Agung Budi Harto, M.Sc., Ph.D.',
+        photo: dosen2Photo,
+        itbUrl: 'https://itb.ac.id/staf/profil/1788/agung-budi-harto',
+        sintaUrl: 'https://sinta.kemdiktisaintek.go.id/authors/profile/6033974',
+    },
+    {
+        id: 3,
+        name: 'Prof. Ir. Hasanuddin Zainal Abidin, M.Sc., Ph.D.',
+        photo: dosen3Photo,
+        itbUrl: 'https://itb.ac.id/staf/profil/1054/hasanuddin-zainal-abidin',
+        sintaUrl: 'https://sinta.kemdiktisaintek.go.id/authors/profile/5998906',
+    },
+] as const;
+
+const TeamMemberPhoto = ({ src, name }: { src: string; name: string }) => (
+    <div className='aspect-[3/4] overflow-hidden bg-[#eef5ff]'>
+        <img
+            src={src}
+            alt={name}
+            className='h-full w-full object-cover object-top'
+            loading='lazy'
+        />
+    </div>
+);
 
 const PortalHomePage = () => {
     const { t } = useWebGisT();
@@ -394,6 +482,124 @@ const PortalHomePage = () => {
                     </div>
                 </section>
 
+                <section id='tim-pengembang' className='relative overflow-hidden bg-[#f7faff] py-24'>
+                    <div className='pointer-events-none absolute inset-0 opacity-60 [mask-image:linear-gradient(to_bottom,black,transparent)]'>
+                        <div className='portal-grid-overlay h-full w-full' />
+                    </div>
+
+                    <div className='relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8'>
+                        <motion.div
+                            initial={{ opacity: 0, y: 16 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.55 }}
+                            className='mb-14 text-center'
+                        >
+                            <p className='portal-kicker mb-3 text-[#3552d6]'>{t('portalHome.team.kicker')}</p>
+                            <h2 className='portal-section-title mb-4 font-sans text-3xl font-semibold text-[#111FA2] sm:text-4xl'>
+                                {t('portalHome.team.title')}
+                            </h2>
+                            <p className='portal-section-lead mx-auto max-w-2xl text-base text-slate-600 sm:text-lg'>
+                                {t('portalHome.team.lead')}
+                            </p>
+                        </motion.div>
+
+                        <div className='grid grid-cols-2 gap-4 sm:gap-5 md:grid-cols-3 lg:grid-cols-5'>
+                            {TEAM_MEMBERS.map((member, index) => (
+                                    <motion.article
+                                        key={member.id}
+                                        initial={{ opacity: 0, y: 18 }}
+                                        whileInView={{ opacity: 1, y: 0 }}
+                                        viewport={{ once: true }}
+                                        transition={{ duration: 0.45, delay: index * 0.06 }}
+                                        whileHover={{ y: -4 }}
+                                        className='overflow-hidden rounded-2xl border border-[#c8daf7] bg-white shadow-[0_18px_38px_rgba(15,34,109,0.1)] ring-1 ring-[#dbe8ff] transition-shadow duration-300 hover:shadow-[0_22px_48px_rgba(15,34,109,0.14)]'
+                                    >
+                                        <TeamMemberPhoto src={member.photo} name={member.name} />
+                                        <div className='px-3 py-4 text-center sm:px-4 sm:py-5'>
+                                            <h3 className='font-sans text-sm font-semibold text-[#111FA2] sm:text-base'>{member.name}</h3>
+                                            <p className='mt-1 text-xs font-medium text-[#3552d6] sm:text-sm'>{member.nim}</p>
+                                            <div className='mt-3 flex items-center justify-center gap-2'>
+                                                <a
+                                                    href={member.linkedin}
+                                                    target='_blank'
+                                                    rel='noopener noreferrer'
+                                                    aria-label={t('portalHome.team.linkedinAria', { name: member.name })}
+                                                    className='rounded-lg p-1.5 text-[#5478FF]/80 transition-colors hover:bg-[#eef5ff] hover:text-[#111FA2]'
+                                                >
+                                                    <Linkedin className='h-5 w-5' />
+                                                </a>
+                                                <a
+                                                    href={member.instagram}
+                                                    target='_blank'
+                                                    rel='noopener noreferrer'
+                                                    aria-label={t('portalHome.team.instagramAria', { name: member.name })}
+                                                    className='rounded-lg p-1.5 text-[#5478FF]/80 transition-colors hover:bg-[#eef5ff] hover:text-[#111FA2]'
+                                                >
+                                                    <Instagram className='h-5 w-5' />
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </motion.article>
+                            ))}
+                        </div>
+
+                        {/* Supervisors Section */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.55 }}
+                            className='mt-20 mb-14 text-center'
+                        >
+                            <h2 className='portal-section-title mb-4 font-sans text-3xl font-semibold text-[#111FA2] sm:text-4xl'>
+                                {t('portalHome.team.supervisors')}
+                            </h2>
+                        </motion.div>
+
+                        <div className='grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-3 max-w-4xl mx-auto'>
+                            {SUPERVISORS.map((member, index) => (
+                                    <motion.article
+                                        key={member.id}
+                                        initial={{ opacity: 0, y: 18 }}
+                                        whileInView={{ opacity: 1, y: 0 }}
+                                        viewport={{ once: true }}
+                                        transition={{ duration: 0.45, delay: index * 0.06 }}
+                                        whileHover={{ y: -4 }}
+                                        className='overflow-hidden rounded-2xl border border-[#c8daf7] bg-white shadow-[0_18px_38px_rgba(15,34,109,0.1)] ring-1 ring-[#dbe8ff] transition-shadow duration-300 hover:shadow-[0_22px_48px_rgba(15,34,109,0.14)]'
+                                    >
+                                        <TeamMemberPhoto src={member.photo} name={member.name} />
+                                        <div className='flex flex-col justify-between px-3 py-4 text-center sm:px-4 sm:py-5 min-h-[110px]'>
+                                            <h3 className='font-sans text-sm font-semibold text-[#111FA2] sm:text-base leading-snug'>
+                                                {member.name}
+                                            </h3>
+                                            <div className='mt-3 flex items-center justify-center gap-3'>
+                                                <a
+                                                    href={member.itbUrl}
+                                                    target='_blank'
+                                                    rel='noopener noreferrer'
+                                                    aria-label='ITB Profile'
+                                                    className='rounded-lg transition-transform hover:scale-110'
+                                                >
+                                                    <img src={itbLogo} alt='ITB' className='h-6 w-6 object-contain' />
+                                                </a>
+                                                <a
+                                                    href={member.sintaUrl}
+                                                    target='_blank'
+                                                    rel='noopener noreferrer'
+                                                    aria-label='SINTA Profile'
+                                                    className='rounded-lg transition-transform hover:scale-110'
+                                                >
+                                                    <img src={sintaLogo} alt='SINTA' className='h-6 w-auto object-contain' />
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </motion.article>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
                 <section id='home-deep-zone' className='relative overflow-hidden py-20'>
                     <div className='absolute inset-0 z-0'>
                         <img
@@ -441,51 +647,23 @@ const PortalHomePage = () => {
                 </section>
 
                 <footer id='kontak' className='bg-gradient-to-r from-[#111FA2] to-[#5478FF] text-white'>
-                    <div className='mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8'>
-                        <div className='mb-8 grid grid-cols-1 gap-8 md:grid-cols-2'>
-                            <div>
-                                <div className='mb-4 flex items-center gap-3'>
+                    <div className='mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8'>
+                        <div className='flex flex-col md:flex-row items-center justify-between gap-4'>
+                            <div className='flex flex-col items-start'>
+                                <div className='flex items-center justify-start gap-3'>
                                     <div className='h-10 w-10 overflow-hidden rounded-full border border-white/20'>
                                         <img src='/docs/logo_sea-bandl.png' alt='Logo SEA-BANDL' className='h-full w-full object-cover' />
                                     </div>
-                                    <div>
+                                    <div className='text-left'>
                                         <h3 className='text-xl font-bold'>SEA-BANDL</h3>
                                         <p className='text-sm text-gray-300'>{t('portalNav.tagline')}</p>
                                     </div>
                                 </div>
-                                <p className='text-sm text-gray-300'>{t('portalHome.footer.desc')}</p>
                             </div>
-
-                            <div>
-                                <h4 className='mb-4 font-bold'>{t('portalHome.footer.contactTitle')}</h4>
-                                <ul className='space-y-3 text-sm text-gray-300'>
-                                    <li className='flex items-start gap-2'>
-                                        <Mail className='mt-0.5 h-4 w-4 flex-shrink-0' />
-                                        <span>info@sea-bandl.go.id</span>
-                                    </li>
-                                    <li className='flex items-start gap-2'>
-                                        <Phone className='mt-0.5 h-4 w-4 flex-shrink-0' />
-                                        <span>+62 21 1234 5678</span>
-                                    </li>
-                                    <li className='flex items-start gap-2'>
-                                        <MapPin className='mt-0.5 h-4 w-4 flex-shrink-0' />
-                                        <span>{t('portalHome.footer.address')}</span>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        <div className='border-t border-white/20 pt-8'>
-                            <div className='flex flex-col items-center justify-between gap-4 md:flex-row'>
-                                <p className='text-sm text-gray-300'>{t('portalHome.footer.copyright')}</p>
-                                <div className='flex gap-6 text-sm text-gray-300'>
-                                    <a href='#' className='transition-colors hover:text-[#FFDE42]'>
-                                        {t('portalHome.footer.privacy')}
-                                    </a>
-                                    <a href='#' className='transition-colors hover:text-[#FFDE42]'>
-                                        {t('portalHome.footer.sitemap')}
-                                    </a>
-                                </div>
+                            <div className='text-right md:max-w-md'>
+                                <p className='text-[11px] text-white font-medium'>
+                                    Capstone Project &bull; Geodesy &amp; Geomatics Engineering &bull; Institut Teknologi Bandung &bull; 2026
+                                </p>
                             </div>
                         </div>
                     </div>

@@ -62,7 +62,7 @@ router.get('/limits', asyncRoute(async (req, res) => {
         l.limit_object_type,
         l.status,
         l.releasibility_type,
-        l.horizontal_datum,
+        (SELECT horizontal_datum FROM spatial_information_type si JOIN fmlimit_to_siid j ON j.siid = si.siid WHERE j.fuid_limit = l.fuID LIMIT 1) AS horizontal_datum,
         geom_data.saID AS said,
         COALESCE(src_agg.source_ids, '') AS source_ids,
         ${geomSql} AS geom
@@ -98,7 +98,7 @@ const limitDetail = asyncRoute(async (req, res) => {
          l.limit_object_type,
          l.status,
          l.releasibility_type,
-         l.horizontal_datum,
+         (SELECT horizontal_datum FROM spatial_information_type si JOIN fmlimit_to_siid j ON j.siid = si.siid WHERE j.fuid_limit = l.fuID LIMIT 1) AS horizontal_datum,
          ST_AsGeoJSON(ST_Union(geom_data.geom))::json AS geometry
        FROM feature_model_limit l
        LEFT JOIN fmlimit_to_sacurve rel ON l.fuID = rel.fuid_limit
@@ -108,7 +108,7 @@ const limitDetail = asyncRoute(async (req, res) => {
          SELECT saID, geom FROM spatial_baselines
        ) geom_data ON rel.said_curve = geom_data.saID
       WHERE l.fuID = $1
-      GROUP BY l.fuID, l.label, l.limit_object_type, l.status, l.releasibility_type, l.horizontal_datum`,
+      GROUP BY l.fuID, l.label, l.limit_object_type, l.status, l.releasibility_type`,
       [fuid],
     ),
     pool.query(

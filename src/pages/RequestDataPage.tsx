@@ -3,8 +3,11 @@ import { Database, FileText, Scale, ShieldCheck } from 'lucide-react';
 
 import PortalNav from '@/components/portal/PortalNav';
 import RequestDataForm from '@/components/portal/RequestDataForm';
+import { useWebGisT } from '@/i18n/useWebGisT';
 
 const RequestDataPage = () => {
+    const { t } = useWebGisT();
+    
     return (
         <div className='min-h-screen bg-white text-slate-900'>
             <PortalNav />
@@ -34,13 +37,13 @@ const RequestDataPage = () => {
                             className='max-w-4xl text-white'
                         >
                             <p className='mb-4 inline-flex items-center gap-2 rounded-full border border-white/25 bg-[#0b1e7c]/45 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#b8dbff] backdrop-blur-xl'>
-                                Layanan Kelembagaan
+                                {t('portalRequest.kicker')}
                             </p>
                             <h1 className='portal-display-rhythm font-sans text-4xl font-semibold leading-tight sm:text-5xl lg:text-[3.8rem]'>
-                                Permintaan Data Batas Laut
+                                {t('portalRequest.title')}
                             </h1>
                             <p className='portal-lead-rhythm mt-5 max-w-3xl text-base text-slate-100/90 sm:text-lg'>
-                                Pengajuan data dilakukan melalui mekanisme resmi untuk mendukung riset, kebutuhan akademik, verifikasi teknis, dan pemanfaatan kelembagaan dengan tetap menjaga kepastian hukum penggunaan data.
+                                {t('portalRequest.lead')}
                             </p>
                         </motion.div>
                     </div>
@@ -59,35 +62,35 @@ const RequestDataPage = () => {
                             transition={{ duration: 0.55 }}
                             className='space-y-6'
                         >
-                            <p className='portal-kicker text-[#3552d6]'>Pedoman Pengajuan</p>
+                            <p className='portal-kicker text-[#3552d6]'>{t('portalRequest.guidanceKicker')}</p>
                             <h2 className='portal-section-title font-sans text-3xl font-semibold text-[#101f8f] sm:text-4xl'>
-                                Prosedur Pengajuan Data
+                                {t('portalRequest.guidanceTitle')}
                             </h2>
                             <p className='portal-body-rhythm text-base text-slate-600 sm:text-lg'>
-                                Pastikan dokumen institusi telah disiapkan dengan benar.
+                                {t('portalRequest.guidanceLead')}
                             </p>
 
                             <div className='space-y-4'>
                                 {[
                                     {
                                         icon: <ShieldCheck className='h-5 w-5' />,
-                                        title: 'Validasi Identitas',
-                                        text: 'Data pemohon diverifikasi untuk memastikan akuntabilitas permintaan.',
+                                        title: t('portalRequest.steps.validationTitle'),
+                                        text: t('portalRequest.steps.validationText'),
                                     },
                                     {
                                         icon: <Scale className='h-5 w-5' />,
-                                        title: 'Kesesuaian Hukum',
-                                        text: 'Tujuan penggunaan ditinjau sesuai syarat dan ketentuan platform.',
+                                        title: t('portalRequest.steps.legalTitle'),
+                                        text: t('portalRequest.steps.legalText'),
                                     },
                                     {
                                         icon: <Database className='h-5 w-5' />,
-                                        title: 'Kelayakan Data',
-                                        text: 'Ketersediaan dan level detail data disesuaikan dengan kebutuhan permintaan.',
+                                        title: t('portalRequest.steps.dataTitle'),
+                                        text: t('portalRequest.steps.dataText'),
                                     },
                                     {
                                         icon: <FileText className='h-5 w-5' />,
-                                        title: 'Dokumen Pendukung',
-                                        text: 'Lampiran surat institusi wajib untuk mempercepat proses evaluasi.',
+                                        title: t('portalRequest.steps.docTitle'),
+                                        text: t('portalRequest.steps.docText'),
                                     },
                                 ].map((item) => (
                                     <article

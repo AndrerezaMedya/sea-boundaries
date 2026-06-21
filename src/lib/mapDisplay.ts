@@ -27,9 +27,11 @@ const MVT_LAYER_KEY: Record<CoreLayerId, string> = {
 	landas_kontinen_ekstensi: 'landas_kontinen_ekstensi',
 	fisheries: 'fisheries',
 	basepoints: 'basepoints',
+	basepoints_2026: 'basepoints',
 	titik_perjanjian_lt: 'boundary_point_ts',
 	titik_perjanjian_lk: 'boundary_point_cs',
 	titik_perjanjian_zee: 'boundary_point_eez',
+	titik_referensi: 'titik_referensi',
 };
 
 const BOUNDARY_LAYERS = new Set<CoreLayerId>([
@@ -58,7 +60,7 @@ export const getMvtSourceId = (layerId: LayerId): string => {
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 
 /** Bump when point-tile SQL changes (invalidates browser/CDN tile cache). */
-export const MVT_TILE_CACHE_VERSION = '8';
+export const MVT_TILE_CACHE_VERSION = '10';
 
 export const getTileUrlTemplate = (tileset: MvtTileset): string =>
 	`${API_BASE}/api/tiles/${tileset}/{z}/{x}/{y}.mvt?v=${MVT_TILE_CACHE_VERSION}`;

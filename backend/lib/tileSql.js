@@ -33,7 +33,8 @@ function buildBoundariesTilesetQuery() {
           l.label,
           l.limit_object_type,
           l.status,
-          l.horizontal_datum,
+            l.end_life_span,
+          (SELECT horizontal_datum FROM spatial_information_type si JOIN fmlimit_to_siid j ON j.siid = si.siid WHERE j.fuid_limit = l.fuID LIMIT 1) AS horizontal_datum,
           l.fuID || '::' || geom_data.saID AS "_rowId",
           ST_AsMVTGeom(
             ST_Transform(
@@ -88,14 +89,15 @@ function buildPointsTilesetQuery(z) {
           loc.label,
           loc.location_type_list,
           loc.status,
-          loc.horizontal_datum,
+            loc.end_life_span,
+          (SELECT horizontal_datum FROM spatial_information_type si JOIN fmlocation_to_siid j ON j.siid = si.siid WHERE j.fuid_location = loc.fuID LIMIT 1) AS horizontal_datum,
           pt.saID,
-          pt.location AS point_location,
+          (SELECT location_by_text FROM spatial_information_type si JOIN fmlocation_to_siid j ON j.siid = si.siid WHERE j.fuid_location = loc.fuID LIMIT 1) AS point_location,
           ST_Centroid(pt.geom) AS geom_4326
         FROM feature_model_location loc
         JOIN fmlocation_to_sapoint rel ON loc.fuID = rel.fuid_location
         JOIN spatial_points pt ON rel.said_point = pt.saID
-        WHERE loc.location_type_list IN ('Baseline Point', 'Boundary Point')
+        WHERE loc.location_type_list IN ('Baseline Point', 'Boundary Point', 'Location')
           AND pt.geom IS NOT NULL
           AND NOT ST_IsEmpty(pt.geom)
       ),
@@ -104,6 +106,7 @@ function buildPointsTilesetQuery(z) {
           CASE
             WHEN ps.location_type_list = 'Baseline Point' THEN 'basepoints'
             WHEN ps.location_type_list = 'Boundary Point' THEN ${boundaryPointMvtLayerIdExpr('ps')}
+            WHEN ps.location_type_list = 'Location' THEN 'titik_referensi'
             ELSE 'location_other'
           END AS layer_id,
           ps.fuID AS fuid,
@@ -111,6 +114,7 @@ function buildPointsTilesetQuery(z) {
           ps.label,
           ps.location_type_list,
           ps.status,
+          ps.end_life_span,
           ps.horizontal_datum,
           ps.point_location,
           ${agreementKindSqlExpr('ps')} AS agreement_kind,
@@ -148,7 +152,8 @@ function buildLimitMvtQuery(limitPrefix) {
           l.label,
           l.limit_object_type,
           l.status,
-          l.horizontal_datum,
+            l.end_life_span,
+          (SELECT horizontal_datum FROM spatial_information_type si JOIN fmlimit_to_siid j ON j.siid = si.siid WHERE j.fuid_limit = l.fuID LIMIT 1) AS horizontal_datum,
           l.fuID || '::' || geom_data.saID AS "_rowId",
           ST_AsMVTGeom(
             ST_Transform(
@@ -196,8 +201,9 @@ function buildLocationMvtQuery() {
           loc.label,
           loc.location_type_list,
           loc.status,
-          loc.horizontal_datum,
-          pt.location AS point_location,
+            loc.end_life_span,
+          (SELECT horizontal_datum FROM spatial_information_type si JOIN fmlocation_to_siid j ON j.siid = si.siid WHERE j.fuid_location = loc.fuID LIMIT 1) AS horizontal_datum,
+          (SELECT location_by_text FROM spatial_information_type si JOIN fmlocation_to_siid j ON j.siid = si.siid WHERE j.fuid_location = loc.fuID LIMIT 1) AS point_location,
           loc.fuID AS "_rowId",
           ST_AsMVTGeom(
             ST_Transform(

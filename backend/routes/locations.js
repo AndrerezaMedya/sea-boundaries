@@ -15,9 +15,9 @@ const { AGREEMENT_KINDS, agreementKindWhereSql } = require('../lib/agreementPoin
 
 const router = express.Router();
 
-const LOCATION_TYPES = ['Baseline Point', 'Boundary Point'];
+const LOCATION_TYPES = ['Baseline Point', 'Boundary Point', 'Location'];
 
-// GET /api/locations[?type=&agreement=TS|CS|EEZ&bbox=&limit=&offset=]
+// GET /api/locations[?type=&agreement=TS|CS|EEZ&bbox=&limit=&offset=&fuid_suffix=&fuid_not_suffix=]
 router.get('/locations', asyncRoute(async (req, res) => {
   const type = ensureEnum('type', req.query.type, LOCATION_TYPES);
   const agreement = ensureEnum('agreement', req.query.agreement, AGREEMENT_KINDS);
@@ -27,6 +27,18 @@ router.get('/locations', asyncRoute(async (req, res) => {
 
   const params = [];
   const where = [];
+
+  const fuidSuffix = req.query.fuid_suffix;
+  const fuidNotSuffix = req.query.fuid_not_suffix;
+
+  if (fuidSuffix) {
+    params.push('%' + fuidSuffix);
+    where.push('loc.fuID LIKE $' + params.length);
+  }
+  if (fuidNotSuffix) {
+    params.push('%' + fuidNotSuffix);
+    where.push('loc.fuID NOT LIKE $' + params.length);
+  }
 
   if (type) {
     params.push(type);
@@ -65,9 +77,9 @@ router.get('/locations', asyncRoute(async (req, res) => {
         loc.label,
         loc.location_type_list,
         loc.status,
-        loc.horizontal_datum,
+        (SELECT horizontal_datum FROM spatial_information_type si JOIN fmlocation_to_siid j ON j.siid = si.siid WHERE j.fuid_location = loc.fuID LIMIT 1) AS horizontal_datum,
         pt.saID AS said,
-        pt.location AS point_location,
+        (SELECT location_by_text FROM spatial_information_type si JOIN fmlocation_to_siid j ON j.siid = si.siid WHERE j.fuid_location = loc.fuID LIMIT 1) AS point_location,
         COALESCE(src_agg.source_ids, '') AS source_ids,
         ${geomSql} AS geom
       FROM feature_model_location loc
@@ -98,9 +110,9 @@ const locationDetail = asyncRoute(async (req, res) => {
          loc.label,
          loc.location_type_list,
          loc.status,
-         loc.horizontal_datum,
+         (SELECT horizontal_datum FROM spatial_information_type si JOIN fmlocation_to_siid j ON j.siid = si.siid WHERE j.fuid_location = loc.fuID LIMIT 1) AS horizontal_datum,
          pt.saID AS said,
-         pt.location AS point_location,
+         (SELECT location_by_text FROM spatial_information_type si JOIN fmlocation_to_siid j ON j.siid = si.siid WHERE j.fuid_location = loc.fuID LIMIT 1) AS point_location,
          ST_AsGeoJSON(pt.geom)::json AS geometry
        FROM feature_model_location loc
        LEFT JOIN fmlocation_to_sapoint rel ON loc.fuID = rel.fuid_location

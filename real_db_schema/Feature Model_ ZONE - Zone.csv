@@ -1,7 +1,0 @@
-fuID,Label,ReleasibilityType,ZoneObjectType,JurisdictionDomainTypeList,SurfaceRelation,HorizontalDatum,StartLifeSpan,EndLifeSpan
-ZONE_TS,Territorial Sea Indonesia,Internal,Territorial Sea,Water Surface,On Surface,WGS84,2026-04-24,
-ZONE_CZ,Contigous Zone Indonesia,Internal,Contiguous Zone,Water Surface,On Surface,WGS84,2026-04-24,
-ZONE_EEZ,Exclusive Economic Zone Indonesia,Internal,Exclusive Economic Zone,Water Surface,On Surface,WGS84,2026-04-24,
-ZONE_CS,Continental Shelf Indonesia,Internal,Continental Shelf,Water Surface,On Surface,WGS84,2026-04-24,
-ZONE_FISH,Fisheries Zone Indonesia,Internal,Fisheries Zone,Water Surface,On Surface,WGS84,2026-04-24,
-ZONE_ECS,Extentional Continental Shelf Indonesia,Internal,Continental Shelf,Water Surface,On Surface,WGS84,2026-04-24,

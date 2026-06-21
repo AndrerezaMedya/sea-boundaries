@@ -36,6 +36,8 @@ const realLayerFields: FieldSchema[] = [
 			'Archipelagic Baseline (Garis Pangkal Kepulauan)',
 		],
 	},
+	{ name: 'start_life_span', label: 'Start Life Span', type: 'date' },
+	{ name: 'end_life_span', label: 'End Life Span', type: 'date' },
 	{ name: 'releasibility_type', label: 'Releasibility', type: 'string' },
 	{ name: 'horizontal_datum', label: 'Datum', type: 'string' },
 	{ name: 'source_ids', label: 'Sumber (ID)', type: 'string' },
@@ -51,6 +53,8 @@ const realLocationFields: FieldSchema[] = [
 		type: 'string',
 		enum: ['Boundary Point', 'Baseline Point', 'Limit Point'],
 	},
+	{ name: 'start_life_span', label: 'Start Life Span', type: 'date' },
+	{ name: 'end_life_span', label: 'End Life Span', type: 'date' },
 	{ name: 'status', label: 'Status', type: 'string' },
 	{ name: 'point_location', label: 'Lokasi Perairan', type: 'string' },
 	{ name: 'horizontal_datum', label: 'Datum', type: 'string' },
@@ -71,6 +75,26 @@ export const LAYER_SCHEMAS: Record<CoreLayerId, LayerSchema> = {
 		fields: realLocationFields,
 		defaultVisible: true,
 		description: 'Titik-titik dasar garis pangkal kepulauan Indonesia',
+	},
+	basepoints_2026: {
+		id: 'basepoints_2026',
+		label: 'Titik Dasar 2026',
+		geometryType: 'Point',
+		primaryKey: 'fuid',
+		popupFields: POPUP_REAL_LOCATION,
+		fields: realLocationFields,
+		defaultVisible: false,
+		description: 'Titik-titik dasar garis pangkal kepulauan Indonesia (PP 14 2026)',
+	},
+	titik_referensi: {
+		id: 'titik_referensi',
+		label: 'Titik Referensi',
+		geometryType: 'Point',
+		primaryKey: 'fuid',
+		popupFields: POPUP_REAL_LOCATION,
+		fields: realLocationFields,
+		defaultVisible: false,
+		description: 'Reference Point of Determination Baseline Point',
 	},
 	landas_kontinen_ekstensi: {
 		id: 'landas_kontinen_ekstensi',
@@ -185,7 +209,9 @@ export const LAYER_DISPLAY_ORDER: CoreLayerId[] = [
 	'titik_perjanjian_lk',
 	'titik_perjanjian_zee',
 	'titik_perjanjian_lt',
+	'titik_referensi',
 	'basepoints',
+	'basepoints_2026',
 ];
 
 // ── Sidebar layer groups ───────────────────────────────────────────────────────
@@ -250,7 +276,17 @@ export const LAYER_GROUPS: LayerGroup[] = [
 		id: 'basepoints',
 		label: 'Titik Dasar',
 		color: '#475569',
-		entries: [{ layerId: 'basepoints', sublabel: 'Titik Dasar Kepulauan' }],
+		entries: [
+			{ layerId: 'basepoints', sublabel: 'Edisi 2002/2008' },
+			{ layerId: 'basepoints_2026', sublabel: 'Edisi PP 14 2026' }
+		],
+	},
+	{
+		id: 'titik_referensi',
+		label: 'Titik Referensi',
+		color: '#dc2626',
+		defaultExpanded: false,
+		entries: [{ layerId: 'titik_referensi', sublabel: 'Reference Point' }],
 	},
 ];
 
@@ -293,6 +329,8 @@ export const getFieldSchema = (layerId: LayerId, field: string) =>
 
 export const DATE_FIELDS_BY_LAYER: Record<CoreLayerId, string[]> = {
 	basepoints: [],
+	basepoints_2026: [],
+	titik_referensi: [],
 	landas_kontinen_ekstensi: [],
 	titik_perjanjian_lt: [],
 	titik_perjanjian_lk: [],

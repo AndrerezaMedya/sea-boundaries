@@ -26,6 +26,7 @@ export interface MapLayerConfig {
 	paint: LayerPaintConfig;
 	minzoom?: number;
 	maxzoom?: number;
+	filter?: any;
 	/** Partition line features by maritime status (solid / long dash / short dash). */
 	statusTier?: StatusSymbologyTier;
 	/** IHO-only decoration (+, labels, fishery icon) — hidden in Easy-Read. */
@@ -286,6 +287,24 @@ export const mapLayerConfigs: Record<LayerId, MapLayerConfig[]> = {
 		},
 	],
 
+	titik_referensi: [
+		{
+			renderKind: 'circle',
+			sourceId: 'source-titik-referensi',
+			baseLayerId: 'layer-titik-referensi-base',
+			filteredLayerId: 'layer-titik-referensi-filtered',
+			selectionLayerId: 'layer-titik-referensi-selected',
+			hoverLayerId: 'layer-titik-referensi-hover',
+			type: 'circle',
+			paint: {
+				base: { 'circle-radius': circleRadiusByZoom(5), 'circle-color': '#dc2626', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.1, 'circle-opacity': 0.85 },
+				filtered: { 'circle-radius': circleRadiusByZoom(6.2), 'circle-color': '#dc2626', 'circle-stroke-color': '#1f2937', 'circle-stroke-width': 2, 'circle-opacity': 0.9 },
+				selection: { 'circle-radius': circleRadiusByZoom(7.4), 'circle-color': '#f97316', 'circle-stroke-color': '#0f172a', 'circle-stroke-width': 2.2, 'circle-opacity': 0.95 },
+				hover: { 'circle-radius': circleRadiusByZoom(6.8), 'circle-color': '#eab308', 'circle-stroke-color': '#0f172a', 'circle-stroke-width': 2, 'circle-opacity': 0.95 },
+			},
+		},
+	],
+
 	titik_perjanjian_lk: [
 		{
 			renderKind: 'circle',
@@ -330,10 +349,34 @@ export const mapLayerConfigs: Record<LayerId, MapLayerConfig[]> = {
 			filteredLayerId: 'layer-basepoints-filtered',
 			selectionLayerId: 'layer-basepoints-selected',
 			hoverLayerId: 'layer-basepoints-hover',
+			filter: [
+				'any',
+				['!=', ['index-of', '_2002', ['get', 'fuid']], -1],
+				['!=', ['index-of', '_2008', ['get', 'fuid']], -1],
+			],
 			type: 'circle',
 			paint: {
 				base: { 'circle-radius': 4.5, 'circle-color': '#475569', 'circle-opacity': 0.75, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1 },
 				filtered: { 'circle-radius': 5.8, 'circle-color': '#475569', 'circle-stroke-color': '#0f172a', 'circle-stroke-width': 1.8, 'circle-opacity': 0.9 },
+				selection: { 'circle-radius': 7, 'circle-color': '#f97316', 'circle-stroke-color': '#0f172a', 'circle-stroke-width': 2.2, 'circle-opacity': 0.95 },
+				hover: { 'circle-radius': 6.2, 'circle-color': '#eab308', 'circle-stroke-color': '#0f172a', 'circle-stroke-width': 2, 'circle-opacity': 0.95 },
+			},
+		},
+	],
+
+	basepoints_2026: [
+		{
+			renderKind: 'circle',
+			sourceId: 'source-basepoints',
+			baseLayerId: 'layer-basepoints-2026-base',
+			filteredLayerId: 'layer-basepoints-2026-filtered',
+			selectionLayerId: 'layer-basepoints-2026-selected',
+			hoverLayerId: 'layer-basepoints-2026-hover',
+			filter: ['!=', ['index-of', '_2026', ['get', 'fuid']], -1],
+			type: 'circle',
+			paint: {
+				base: { 'circle-radius': 4.5, 'circle-color': '#0ea5e9', 'circle-opacity': 0.75, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1 },
+				filtered: { 'circle-radius': 5.8, 'circle-color': '#0ea5e9', 'circle-stroke-color': '#0f172a', 'circle-stroke-width': 1.8, 'circle-opacity': 0.9 },
 				selection: { 'circle-radius': 7, 'circle-color': '#f97316', 'circle-stroke-color': '#0f172a', 'circle-stroke-width': 2.2, 'circle-opacity': 0.95 },
 				hover: { 'circle-radius': 6.2, 'circle-color': '#eab308', 'circle-stroke-color': '#0f172a', 'circle-stroke-width': 2, 'circle-opacity': 0.95 },
 			},

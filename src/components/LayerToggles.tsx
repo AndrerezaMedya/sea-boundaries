@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import { Switch } from '@/components/ui/switch';
 
-import { BASELINE_LINE_COLOR } from '@/components/map/ihoSymbology';
+import { EASY_READ_COLORS } from '@/components/map/ihoSymbology';
 
 import { getGroupLabel, getSublayerLabel } from '@/i18n/webgis-catalog';
 import { useWebGisT } from '@/i18n/useWebGisT';
@@ -25,29 +25,19 @@ type SymbolConfig = { color: string; type: 'circle' | 'line' | 'fill'; dashArray
 
 
 const LAYER_SYMBOLS: Record<CoreLayerId, SymbolConfig> = {
-
 	basepoints: { color: '#475569', type: 'circle' },
-
-	landas_kontinen_ekstensi: { color: '#f97316', type: 'line' },
-
+	basepoints_2026: { color: '#0ea5e9', type: 'circle' },
+	titik_referensi: { color: '#dc2626', type: 'circle' },
+	landas_kontinen_ekstensi: { color: EASY_READ_COLORS.landas_kontinen_ekstensi, type: 'line' },
 	titik_perjanjian_lt: { color: '#3730a3', type: 'circle' },
-
 	titik_perjanjian_lk: { color: '#78350f', type: 'circle' },
-
 	titik_perjanjian_zee: { color: '#0d9488', type: 'circle' },
-
-	territorial_sea: { color: '#1d4ed8', type: 'line' },
-
-	contiguous_zone: { color: '#0891b2', type: 'line' },
-
-	eez_limit: { color: '#15803d', type: 'line' },
-
-	continental_shelf: { color: '#92400e', type: 'line' },
-
-	fisheries: { color: '#7c3aed', type: 'line', dashArray: '4 2' },
-
-	baseline: { color: BASELINE_LINE_COLOR, type: 'line' },
-
+	territorial_sea: { color: EASY_READ_COLORS.territorial_sea, type: 'line' },
+	contiguous_zone: { color: EASY_READ_COLORS.contiguous_zone, type: 'line' },
+	eez_limit: { color: EASY_READ_COLORS.eez_limit, type: 'line' },
+	continental_shelf: { color: EASY_READ_COLORS.continental_shelf, type: 'line' },
+	fisheries: { color: EASY_READ_COLORS.fisheries, type: 'line', dashArray: '4 2' },
+	baseline: { color: EASY_READ_COLORS.baseline, type: 'line' },
 };
 
 
@@ -168,9 +158,12 @@ const buildInitialExpanded = () => {
 
 
 
-const groupAccentColor = (groupId: string, groupColor: string, isIhoMode: boolean) =>
-
-	isIhoMode && !['titik_perjanjian', 'basepoints', 'user_layer'].includes(groupId) ? '#7a3f8f' : groupColor;
+const groupAccentColor = (groupId: string, groupColor: string, isIhoMode: boolean) => {
+	if (isIhoMode && !['titik_perjanjian', 'basepoints', 'user_layer'].includes(groupId)) return '#7a3f8f';
+	const easyReadKey = groupId as keyof typeof EASY_READ_COLORS;
+	if (!isIhoMode && (easyReadKey in EASY_READ_COLORS)) return EASY_READ_COLORS[easyReadKey];
+	return groupColor;
+};
 
 
 

@@ -94,6 +94,20 @@ const buildNumericExpression = (
 				['>=', accessor, value ?? 0],
 				['<=', accessor, value2 ?? value ?? 0],
 			];
+		case 'is_null':
+			return [
+				'any',
+				['!', ['has', resolveAccessor(field)]],
+				['==', ['typeof', ['get', resolveAccessor(field)]], 'null'],
+				['==', ['get', resolveAccessor(field)], '']
+			];
+		case 'is_not_null':
+			return [
+				'all',
+				['has', resolveAccessor(field)],
+				['!=', ['typeof', ['get', resolveAccessor(field)]], 'null'],
+				['!=', ['get', resolveAccessor(field)], '']
+			];
 		default:
 			return ['==', accessor, value ?? 0];
 	}
@@ -141,12 +155,26 @@ const buildStringExpression = (
 		case 'contains':
 			// ['in', needle, haystack]: checks if needle is a substring of haystack.
 			// NOTE: needle must be first, haystack (the field value) second.
-			return ['in', normaliseString(value).toLowerCase(), ['downcase', accessor]];
+			return ['in', normaliseString(value as string).toLowerCase(), ['downcase', accessor]];
 		case 'startsWith':
 			return [
 				'all',
-				['>=', ['index-of', ['literal', normaliseString(value)], ['downcase', accessor]], 0],
-				['==', ['slice', ['downcase', accessor], 0, normaliseString(value).length], normaliseString(value)],
+				['>=', ['index-of', ['literal', normaliseString(value as string)], ['downcase', accessor]], 0],
+				['==', ['slice', ['downcase', accessor], 0, normaliseString(value as string).length], normaliseString(value as string)],
+			];
+		case 'is_null':
+			return [
+				'any',
+				['!', ['has', resolveAccessor(field)]],
+				['==', ['typeof', ['get', resolveAccessor(field)]], 'null'],
+				['==', ['get', resolveAccessor(field)], '']
+			];
+		case 'is_not_null':
+			return [
+				'all',
+				['has', resolveAccessor(field)],
+				['!=', ['typeof', ['get', resolveAccessor(field)]], 'null'],
+				['!=', ['get', resolveAccessor(field)], '']
 			];
 		case 'in': {
 			const labels = Array.isArray(value) ? value : [value];
@@ -199,6 +227,12 @@ const evaluateNumeric = (
 	value2: number | null,
 	featureValue: unknown,
 ): boolean => {
+	if (operator === 'is_null') {
+		return featureValue === null || featureValue === undefined;
+	}
+	if (operator === 'is_not_null') {
+		return featureValue !== null && featureValue !== undefined;
+	}
 	const numeric = field.type === 'date' ? toTimestamp(featureValue) : toNumber(featureValue);
 	if (numeric === null) {
 		return false;
@@ -231,6 +265,12 @@ const evaluateString = (
 	value: string | string[],
 	featureValue: unknown,
 ): boolean => {
+	if (operator === 'is_null') {
+		return featureValue === null || featureValue === undefined || featureValue === '';
+	}
+	if (operator === 'is_not_null') {
+		return featureValue !== null && featureValue !== undefined && featureValue !== '';
+	}
 	const text = normaliseString(featureValue);
 	if (!text) {
 		return false;
@@ -252,7 +292,7 @@ const evaluateString = (
 		case '!=':
 			return text !== target;
 		case 'contains':
-			return lower.includes(target.toLowerCase());
+			return target !== '' && lower.includes(target.toLowerCase());
 		case 'startsWith':
 			return lower.startsWith(target.toLowerCase());
 		case 'in':

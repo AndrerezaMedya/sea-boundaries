@@ -40,7 +40,8 @@ const LAYER_API_CONFIG: Record<
 	CoreLayerId,
 	{ path: string; params?: Record<string, string> }
 > = {
-	basepoints: { path: '/api/locations', params: { type: 'Baseline Point' } },
+	basepoints: { path: '/api/locations', params: { type: 'Baseline Point', fuid_not_suffix: '_2026' } },
+	basepoints_2026: { path: '/api/locations', params: { type: 'Baseline Point', fuid_suffix: '_2026' } },
 	landas_kontinen_ekstensi: { path: '/api/limits', params: { type: 'ECS' } },
 	titik_perjanjian_lt: { path: '/api/locations', params: { type: 'Boundary Point', agreement: 'TS' } },
 	titik_perjanjian_lk: { path: '/api/locations', params: { type: 'Boundary Point', agreement: 'CS' } },
@@ -51,6 +52,7 @@ const LAYER_API_CONFIG: Record<
 	continental_shelf: { path: '/api/limits', params: { type: 'CS' } },
 	fisheries: { path: '/api/limits', params: { type: 'FISH' } },
 	baseline: { path: '/api/limits', params: { type: 'BSL' } },
+	titik_referensi: { path: '/api/locations', params: { type: 'Location' } },
 };
 
 const normalizeCollection = (
@@ -155,7 +157,9 @@ export async function fetchFeatureDetail(
 	parent_limits?: unknown[];
 }> {
 	const isLocationLayer = [
+		'titik_referensi',
 		'basepoints',
+		'basepoints_2026',
 		'titik_perjanjian_lt',
 		'titik_perjanjian_lk',
 		'titik_perjanjian_zee',
