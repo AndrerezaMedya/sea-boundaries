@@ -1,6 +1,6 @@
 # SEA-BANDL — WebGIS Batas Laut NKRI
 
-WebGIS untuk eksplorasi batas maritim Indonesia berbasis standar IHO S-121 *Maritime Limits and Boundaries*.
+WebGIS untuk eksplorasi batas maritim Indonesia berbasis standar IHO S-121 _Maritime Limits and Boundaries_.
 
 **Live:** [seabandl.app](https://seabandl.app)
 
@@ -9,29 +9,32 @@ WebGIS untuk eksplorasi batas maritim Indonesia berbasis standar IHO S-121 *Mari
 ## Fitur Utama
 
 ### Halaman & Navigasi
+
 - Beranda (`/`)
 - Peta WebGIS (`/peta`)
 - Panduan Pengguna (`/user-guide`)
 - Pengajuan Data (`/request-data`)
+- Metodologi (`/metodologi`)
 
 ### Peta Interaktif
+
 - Rendering 7 jenis kurva batas laut via MVT tile dari backend (garis pangkal, laut teritorial, zona tambahan, ZEE, landas kontinen, landas kontinen ekstensi, fisheries)
 - Titik referensi: titik garis pangkal dan titik perjanjian bilateral
 - Kontrol visibilitas per layer secara independen
 - Basemap switcher (OSM, OpenTopoMap, RBI, Esri Satellite)
-- Pencarian lokasi via Stadia Maps
 
 ### Data Atribut
+
 - Popup informasi atribut saat klik fitur di peta
-- Tabel atribut sinkron dengan seleksi/hover peta
 - Filter dan pengurutan per kolom
-- Ekspor CSV
 
 ### Geoprocessing (Server-side)
+
 - Pengukuran panjang dan luas berbasis geodetik WGS84
-- Pembentukan zona penyangga (*buffer*) dengan jarak yang dapat ditentukan
+- Pembentukan zona penyangga (_buffer_) dengan jarak yang dapat ditentukan
 
 ### Pengajuan Data Institusional
+
 - Formulir pengajuan data batas dari instansi berwenang
 - Rate-limited: 5 pengajuan per jam per IP
 
@@ -39,13 +42,13 @@ WebGIS untuk eksplorasi batas maritim Indonesia berbasis standar IHO S-121 *Mari
 
 ## Arsitektur
 
-| Komponen | Teknologi | Platform |
-|---|---|---|
-| Frontend | React 19 + TypeScript + MapLibre GL JS | Firebase Hosting |
-| Backend | Node.js + Express.js | Google Cloud Run |
-| Basis Data | PostgreSQL + PostGIS | Google Cloud SQL |
-| Secrets | — | Google Cloud Secret Manager |
-| Logs | Pino → Audit log spasial | Google Cloud Logging |
+| Komponen   | Teknologi                              | Platform                    |
+| ---------- | -------------------------------------- | --------------------------- |
+| Frontend   | React 19 + TypeScript + MapLibre GL JS | Firebase Hosting            |
+| Backend    | Node.js + Express.js                   | Google Cloud Run            |
+| Basis Data | PostgreSQL + PostGIS                   | Google Cloud SQL            |
+| Secrets    | —                                      | Google Cloud Secret Manager |
+| Logs       | Pino → Audit log spasial               | Google Cloud Logging        |
 
 Dokumentasi arsitektur lengkap: [docs/architecture-overview.md](docs/architecture-overview.md)
 
@@ -100,6 +103,7 @@ DISPLAY_MODE=mvt
 ## Deploy
 
 ### Frontend (Firebase Hosting)
+
 ```bash
 cd frontend
 npm run build
@@ -107,6 +111,7 @@ firebase deploy --only hosting
 ```
 
 ### Backend (Google Cloud Run)
+
 ```bash
 cd backend
 gcloud run deploy s121-backend --source .
