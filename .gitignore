@@ -185,3 +185,5 @@ real_db_schema/
 !src/assets/react.svg
 
 *.webp
+
+*.geojson
