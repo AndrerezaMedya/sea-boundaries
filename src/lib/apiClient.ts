@@ -2,6 +2,7 @@ import type { FeatureCollection, Geometry } from 'geojson';
 import type { Bbox } from '@/lib/bbox';
 import { bboxToParam } from '@/lib/bbox';
 import { ensureDisplaySession, getDisplayToken } from '@/lib/displaySession';
+import { getIdToken } from '@/store/useAuthStore';
 import type { CoreLayerId, FeatureWithProps, FeatureCollectionWithProps } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
@@ -26,6 +27,11 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
 	const token = getDisplayToken();
 	if (token) {
 		headers['X-Display-Token'] = token;
+	}
+	// Attach Firebase ID token for server-side access level resolution
+	const idToken = getIdToken();
+	if (idToken) {
+		headers['Authorization'] = `Bearer ${idToken}`;
 	}
 	const res = await fetch(url, { cache: 'no-store', ...init, headers: { ...headers, ...init?.headers } });
 	if (!res.ok) {

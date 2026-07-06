@@ -10,6 +10,7 @@ const {
   asyncRoute,
 } = require('../lib/queryHelpers');
 const { displayDetailMaxSources } = require('../lib/displayConfig');
+const { accessLevelStatusClause } = require('../lib/accessLevel');
 
 const router = express.Router();
 
@@ -34,6 +35,15 @@ router.get('/limits', asyncRoute(async (req, res) => {
   if (status) {
     params.push(status);
     where.push(`l.status = $${params.length}`);
+  }
+
+  // Access level: public users may only see Agreement + Unilateral
+  const { sql: accessSql, params: accessParams } = accessLevelStatusClause(
+    req.accessLevel, 'l', params.length + 1,
+  );
+  if (accessSql) {
+    params.push(...accessParams);
+    where.push(accessSql);
   }
 
   if (bbox) {
@@ -90,6 +100,12 @@ const limitDetail = asyncRoute(async (req, res) => {
   const fuid = req.params.fuid ?? decodeURIComponent(req.params[0] ?? '');
   const maxSources = displayDetailMaxSources();
 
+  // Block direct detail access to restricted limits for public users
+  const { sql: accessSql, params: accessParams } = accessLevelStatusClause(
+    req.accessLevel, 'l', 2,
+  );
+  const accessWhere = accessSql ? `AND ${accessSql}` : '';
+
   const [{ rows: baseRows }, { rows: sources }] = await Promise.all([
     pool.query(
       `SELECT
@@ -107,9 +123,9 @@ const limitDetail = asyncRoute(async (req, res) => {
          UNION ALL
          SELECT saID, geom FROM spatial_baselines
        ) geom_data ON rel.said_curve = geom_data.saID
-      WHERE l.fuID = $1
+      WHERE l.fuID = $1 ${accessWhere}
       GROUP BY l.fuID, l.label, l.limit_object_type, l.status, l.releasibility_type`,
-      [fuid],
+      [fuid, ...accessParams],
     ),
     pool.query(
       `SELECT sf.sid,

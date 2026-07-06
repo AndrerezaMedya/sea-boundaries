@@ -1,6 +1,7 @@
 const { MVT_SOURCE_LAYER } = require('./tileLayerRegistry');
 const { defaultDisplaySimplifyTolerance } = require('./displayConfig');
 const { agreementKindSqlExpr, boundaryPointMvtLayerIdExpr } = require('./agreementPointKind');
+const { accessLevelStatusClause } = require('./accessLevel');
 
 const BOUNDARY_LAYER_ID_CASE = `
   CASE
@@ -16,10 +17,14 @@ const BOUNDARY_LAYER_ID_CASE = `
 
 /**
  * Combined boundaries tile — all limit types in one MVT.
- * Params: [z, x, y, simplifyTolerance]
+ * Params: [z, x, y, simplifyTolerance, ...statusParams?]
+ * @param {'public'|'authenticated'} accessLevel
  */
-function buildBoundariesTilesetQuery() {
+function buildBoundariesTilesetQuery(accessLevel) {
   const tolerance = defaultDisplaySimplifyTolerance();
+  // Base params: $1=z, $2=x, $3=y, $4=tolerance
+  const { sql: statusSql, params: statusParams } = accessLevelStatusClause(accessLevel, 'l', 5);
+  const statusClause = statusSql ? `AND ${statusSql}` : '';
   return {
     sql: `
       WITH tile AS (
@@ -57,12 +62,13 @@ function buildBoundariesTilesetQuery() {
         WHERE l.fuID LIKE 'LIM_%'
           AND geom_data.geom IS NOT NULL
           AND ST_Intersects(ST_Transform(geom_data.geom, 3857), tile.env3857)
+          ${statusClause}
       )
       SELECT ST_AsMVT(rows.*, '${MVT_SOURCE_LAYER}', 4096, 'geom') AS mvt
       FROM rows
       WHERE geom IS NOT NULL;
     `,
-    params: (z, x, y) => [z, x, y, tolerance],
+    params: (z, x, y) => [z, x, y, tolerance, ...statusParams],
   };
 }
 
@@ -74,10 +80,15 @@ function pointTileBuffer(z) {
 /**
  * Combined points tile — basepoints + boundary points.
  * Points are NOT simplified/reduced (breaks MVT at some native zoom levels).
- * Params: [z, x, y]
+ * Params: [z, x, y, ...statusParams?]
+ * @param {number} z
+ * @param {'public'|'authenticated'} accessLevel
  */
-function buildPointsTilesetQuery(z) {
+function buildPointsTilesetQuery(z, accessLevel) {
   const buffer = pointTileBuffer(z);
+  // Base params: $1=z, $2=x, $3=y
+  const { sql: statusSql, params: statusParams } = accessLevelStatusClause(accessLevel, 'loc', 4);
+  const statusClause = statusSql ? `AND ${statusSql}` : '';
   return {
     sql: `
       WITH tile AS (
@@ -100,6 +111,7 @@ function buildPointsTilesetQuery(z) {
         WHERE loc.location_type_list IN ('Baseline Point', 'Boundary Point', 'Location')
           AND pt.geom IS NOT NULL
           AND NOT ST_IsEmpty(pt.geom)
+          ${statusClause}
       ),
       rows AS (
         SELECT
@@ -134,12 +146,15 @@ function buildPointsTilesetQuery(z) {
       FROM rows
       WHERE geom IS NOT NULL;
     `,
-    params: (z, x, y) => [z, x, y],
+    params: (z, x, y) => [z, x, y, ...statusParams],
   };
 }
 
-function buildLimitMvtQuery(limitPrefix) {
+function buildLimitMvtQuery(limitPrefix, accessLevel) {
   const tolerance = defaultDisplaySimplifyTolerance();
+  const { sql: statusSql, params: statusParams } = accessLevelStatusClause(accessLevel, 'l', 6);
+  const statusClause = statusSql ? `AND ${statusSql}` : '';
+
   return {
     sql: `
       WITH tile AS (
@@ -176,19 +191,23 @@ function buildLimitMvtQuery(limitPrefix) {
         WHERE l.fuID LIKE $4
           AND geom_data.geom IS NOT NULL
           AND ST_Intersects(ST_Transform(geom_data.geom, 3857), tile.env3857)
+          ${statusClause}
       )
       SELECT ST_AsMVT(rows.*, '${MVT_SOURCE_LAYER}', 4096, 'geom') AS mvt
       FROM rows
       WHERE geom IS NOT NULL;
     `,
-    params: (z, x, y, limitPrefix) => [
-      z, x, y, `LIM_${limitPrefix}_%`, tolerance,
+    params: (z, x, y, limitPrefix, _accessLvl) => [
+      z, x, y, `LIM_${limitPrefix}_%`, tolerance, ...statusParams
     ],
   };
 }
 
-function buildLocationMvtQuery() {
+function buildLocationMvtQuery(locationType, accessLevel) {
   const tolerance = defaultDisplaySimplifyTolerance();
+  const { sql: statusSql, params: statusParams } = accessLevelStatusClause(accessLevel, 'loc', 6);
+  const statusClause = statusSql ? `AND ${statusSql}` : '';
+
   return {
     sql: `
       WITH tile AS (
@@ -222,29 +241,35 @@ function buildLocationMvtQuery() {
         WHERE loc.location_type_list = $4
           AND pt.geom IS NOT NULL
           AND ST_Intersects(ST_Transform(pt.geom, 3857), tile.env3857)
+          ${statusClause}
       )
       SELECT ST_AsMVT(rows.*, '${MVT_SOURCE_LAYER}', 4096, 'geom') AS mvt
       FROM rows
       WHERE geom IS NOT NULL;
     `,
-    params: (z, x, y, locationType) => [
-      z, x, y, locationType, tolerance,
+    params: (z, x, y, locationType, _accessLvl) => [
+      z, x, y, locationType, tolerance, ...statusParams
     ],
   };
 }
 
-function buildTilesetQuery(tileset, z) {
-  if (tileset === 'boundaries') return buildBoundariesTilesetQuery();
-  if (tileset === 'points') return buildPointsTilesetQuery(z);
+/**
+ * @param {string} tileset
+ * @param {number} z
+ * @param {'public'|'authenticated'} accessLevel
+ */
+function buildTilesetQuery(tileset, z, accessLevel) {
+  if (tileset === 'boundaries') return buildBoundariesTilesetQuery(accessLevel);
+  if (tileset === 'points') return buildPointsTilesetQuery(z, accessLevel);
   throw new Error(`Unknown tileset: ${tileset}`);
 }
 
-function buildMvtQuery(layerId, spec) {
+function buildMvtQuery(layerId, spec, accessLevel) {
   if (spec.kind === 'limit') {
-    return buildLimitMvtQuery(spec.limitPrefix);
+    return buildLimitMvtQuery(spec.limitPrefix, accessLevel);
   }
   if (spec.kind === 'location') {
-    return buildLocationMvtQuery();
+    return buildLocationMvtQuery(spec.locationType, accessLevel);
   }
   throw new Error(`Unsupported tile layer: ${layerId}`);
 }

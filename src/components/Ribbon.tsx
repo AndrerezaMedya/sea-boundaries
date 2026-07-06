@@ -7,19 +7,27 @@ import {
     Home,
     Info,
     Layers,
+    LogIn,
+    LogOut,
     MapPin,
     Map as MapIcon,
 } from 'lucide-react';
 
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { AuthModal } from '@/components/AuthModal';
 import { useWebGisT } from '@/i18n/useWebGisT';
 import type { ActivePanel } from '@/store/useUI';
 import { useUIStore } from '@/store/useUI';
+import { useAuthStore } from '@/store/useAuthStore';
 
 type DropdownId = 'tampilan';
 
 const Ribbon = () => {
     const { t } = useWebGisT();
+
+    const user = useAuthStore((s) => s.user);
+    const handleSignOut = useAuthStore((s) => s.handleSignOut);
+    const [authModalOpen, setAuthModalOpen] = useState(false);
 
     const activePanel = useUIStore((s) => s.activePanel);
     const togglePanel = useUIStore((s) => s.togglePanel);
@@ -55,7 +63,8 @@ const Ribbon = () => {
     ];
 
     return (
-        <header className='app-ribbon relative z-50 shrink-0 border-b border-[#0f1988] bg-[#111FA2]/95 px-2 backdrop-blur sm:px-4'>
+        <>
+            <header className='app-ribbon relative z-50 shrink-0 border-b border-[#0f1988] bg-[#111FA2]/95 px-2 backdrop-blur sm:px-4'>
             <div className='mx-auto flex h-14 w-full max-w-[1800px] items-center gap-1.5 sm:h-16 sm:gap-3'>
                 <Link
                     to='/'
@@ -159,6 +168,33 @@ const Ribbon = () => {
                         )}
                     </div>
 
+                    {/* Auth button */}
+                    {user ? (
+                        <button
+                            type='button'
+                            onClick={handleSignOut}
+                            title={`Keluar (${user.email ?? user.displayName ?? 'Pengguna'})`}
+                            className='flex shrink-0 items-center gap-1.5 rounded-xl px-2.5 py-2 text-xs font-semibold text-white/90 transition-all duration-200 hover:bg-white/15 hover:text-white sm:px-3'
+                            id='auth-signout-btn'
+                        >
+                            <LogOut className='h-3.5 w-3.5' />
+                            <span className='hidden md:inline max-w-[120px] truncate'>
+                                {user.displayName ?? user.email ?? 'Keluar'}
+                            </span>
+                        </button>
+                    ) : (
+                        <button
+                            type='button'
+                            onClick={() => setAuthModalOpen(true)}
+                            title='Masuk untuk akses penuh'
+                            className='flex shrink-0 items-center gap-1.5 rounded-xl px-2.5 py-2 text-xs font-semibold text-white/90 transition-all duration-200 hover:bg-white/15 hover:text-white sm:px-3'
+                            id='auth-login-btn'
+                        >
+                            <LogIn className='h-3.5 w-3.5' />
+                            <span className='hidden md:inline'>Masuk</span>
+                        </button>
+                    )}
+
                     <Link
                         to='/request-data'
                         className='shrink-0 rounded-xl bg-[#FFDE42] px-2.5 py-2 text-[11px] font-semibold text-[#111FA2] shadow-md transition-all duration-200 hover:brightness-95 sm:px-4 sm:text-xs sm:hover:-translate-y-0.5 sm:hover:shadow-lg'
@@ -168,7 +204,11 @@ const Ribbon = () => {
                     </Link>
                 </div>
             </div>
-        </header>
+
+            </header>
+
+            <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+        </>
     );
 };
 

@@ -12,6 +12,7 @@ const {
 } = require('../lib/queryHelpers');
 const { displayDetailMaxSources } = require('../lib/displayConfig');
 const { AGREEMENT_KINDS, agreementKindWhereSql } = require('../lib/agreementPointKind');
+const { accessLevelStatusClause } = require('../lib/accessLevel');
 
 const router = express.Router();
 
@@ -47,6 +48,16 @@ router.get('/locations', asyncRoute(async (req, res) => {
   if (agreement) {
     where.push(agreementKindWhereSql(agreement));
   }
+
+  // Access level: public users may only see Agreement + Unilateral
+  const { sql: accessSql, params: accessParams } = accessLevelStatusClause(
+    req.accessLevel, 'loc', params.length + 1,
+  );
+  if (accessSql) {
+    params.push(...accessParams);
+    where.push(accessSql);
+  }
+
   if (bbox) {
     const { sql, params: bboxParams } = bboxPredicate('pt.geom', bbox, params.length + 1);
     params.push(...bboxParams);
@@ -103,6 +114,12 @@ const locationDetail = asyncRoute(async (req, res) => {
   const fuid = req.params.fuid ?? decodeURIComponent(req.params[0] ?? '');
   const maxSources = displayDetailMaxSources();
 
+  // Block direct detail access to restricted locations for public users
+  const { sql: accessSql, params: accessParams } = accessLevelStatusClause(
+    req.accessLevel, 'loc', 2,
+  );
+  const accessWhere = accessSql ? `AND ${accessSql}` : '';
+
   const [{ rows: baseRows }, { rows: sources }, { rows: limits }] = await Promise.all([
     pool.query(
       `SELECT
@@ -117,8 +134,8 @@ const locationDetail = asyncRoute(async (req, res) => {
        FROM feature_model_location loc
        LEFT JOIN fmlocation_to_sapoint rel ON loc.fuID = rel.fuid_location
        LEFT JOIN spatial_points pt ON rel.said_point = pt.saID
-      WHERE loc.fuID = $1`,
-      [fuid],
+      WHERE loc.fuID = $1 ${accessWhere}`,
+      [fuid, ...accessParams],
     ),
     pool.query(
       `SELECT sf.sid,

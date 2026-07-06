@@ -22,11 +22,13 @@ function tileCacheControlMaxAge() {
 
 /** Bump when tile SQL / classification changes (invalidates in-memory MVT cache). */
 function tileCacheSchemaVersion() {
-  return String(process.env.TILE_CACHE_SCHEMA_VERSION || '8').trim() || '8';
+  return String(process.env.TILE_CACHE_SCHEMA_VERSION || '11').trim() || '11';
 }
 
-function cacheKey(tileset, z, x, y) {
-  return `${tileCacheSchemaVersion()}:${tileset}:${z}:${x}:${y}`;
+function cacheKey(tileset, accessLevel, z, x, y) {
+  // 'pub' vs 'auth' — public tiles are status-filtered, must not share cache with authenticated.
+  const lvl = accessLevel === 'authenticated' ? 'auth' : 'pub';
+  return `${tileCacheSchemaVersion()}:${tileset}:${lvl}:${z}:${x}:${y}`;
 }
 
 /** @type {Map<string, { value: Buffer | typeof EMPTY, expiresAt: number }>} */
@@ -51,12 +53,13 @@ function evictOldest() {
 
 /**
  * @param {string} tileset
+ * @param {'public'|'authenticated'} accessLevel
  * @param {number} z
  * @param {number} x
  * @param {number} y
  */
-function getCachedTile(tileset, z, x, y) {
-  const key = cacheKey(tileset, z, x, y);
+function getCachedTile(tileset, accessLevel, z, x, y) {
+  const key = cacheKey(tileset, accessLevel, z, x, y);
   const entry = store.get(key);
   if (!entry) return { hit: false };
   if (entry.expiresAt <= Date.now()) {
@@ -72,12 +75,13 @@ function getCachedTile(tileset, z, x, y) {
 
 /**
  * @param {string} tileset
+ * @param {'public'|'authenticated'} accessLevel
  * @param {number} z
  * @param {number} x
  * @param {number} y
  * @param {Buffer|null|undefined} buffer
  */
-function setCachedTile(tileset, z, x, y, buffer) {
+function setCachedTile(tileset, accessLevel, z, x, y, buffer) {
   // Do not cache empty tiles — prevents long-lived 204 responses after SQL/data fixes.
   if (!buffer || buffer.length === 0) {
     return;
@@ -86,7 +90,7 @@ function setCachedTile(tileset, z, x, y, buffer) {
   while (store.size >= tileCacheMaxEntries()) {
     evictOldest();
   }
-  const key = cacheKey(tileset, z, x, y);
+  const key = cacheKey(tileset, accessLevel, z, x, y);
   touch(key, {
     value: buffer,
     expiresAt: Date.now() + tileCacheTtlMs(),

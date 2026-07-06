@@ -9,6 +9,7 @@ const {
 const { getCachedTile, setCachedTile, tileCacheControlMaxAge } = require('../lib/tileCache');
 const { useMvtDisplay } = require('../lib/displayConfig');
 const { requireDisplayToken } = require('../middleware/requireDisplayToken');
+const { resolveAccessLevel } = require('../middleware/resolveAccessLevel');
 const { sendError, asyncRoute } = require('../lib/queryHelpers');
 
 const router = express.Router();
@@ -53,6 +54,7 @@ function sendMvtResponse(res, buf, cacheStatus) {
   const maxAge = tileCacheControlMaxAge();
   res.set('Content-Type', 'application/vnd.mapbox-vector-tile');
   res.set('Cache-Control', `public, max-age=${maxAge}`);
+  res.set('Vary', 'X-Display-Token');
   res.set('X-Cache', cacheStatus);
   if (!buf || buf.length === 0) {
     res.set('Cache-Control', 'no-store');
@@ -62,15 +64,15 @@ function sendMvtResponse(res, buf, cacheStatus) {
   return res.send(buf);
 }
 
-async function fetchTilesetMvt(tileset, z, x, y) {
-  const cached = getCachedTile(tileset, z, x, y);
+async function fetchTilesetMvt(tileset, accessLevel, z, x, y) {
+  const cached = getCachedTile(tileset, accessLevel, z, x, y);
   if (cached.hit) {
     return { buffer: cached.empty ? null : cached.buffer, cacheStatus: 'HIT' };
   }
-  const { sql, params } = buildTilesetQuery(tileset, z);
+  const { sql, params } = buildTilesetQuery(tileset, z, accessLevel);
   const { rows } = await pool.query(sql, params(z, x, y));
   const buf = rows[0]?.mvt ?? null;
-  setCachedTile(tileset, z, x, y, buf);
+  setCachedTile(tileset, accessLevel, z, x, y, buf);
   return { buffer: buf, cacheStatus: 'MISS' };
 }
 
@@ -83,19 +85,21 @@ router.get(
     }
     return next();
   },
+  resolveAccessLevel,
   requireDisplayToken,
   asyncRoute(async (req, res) => {
     const id = req.params.tilesetOrLayer;
     const { z, x, y } = parseTileCoords(req);
+    const accessLevel = req.accessLevel;
 
     if (isKnownTileset(id)) {
-      const { buffer, cacheStatus } = await fetchTilesetMvt(id, z, x, y);
+      const { buffer, cacheStatus } = await fetchTilesetMvt(id, accessLevel, z, x, y);
       return sendMvtResponse(res, buffer, cacheStatus);
     }
 
     if (isKnownTileLayer(id)) {
       const spec = getTileLayerSpec(id);
-      const { sql, params } = buildMvtQuery(id, spec);
+      const { sql, params } = buildMvtQuery(id, spec, accessLevel);
       const queryParams = params(
         z,
         x,

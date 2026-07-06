@@ -15,6 +15,21 @@ import { useWebGisT } from '@/i18n/useWebGisT';
 import { useLayersStore } from '@/store/useLayersStore';
 import { useUIStore } from '@/store/useUI';
 import type { FilterTarget, SimpleFilterState } from '@/store/useUI';
+import { useAuthStore } from '@/store/useAuthStore';
+
+/**
+ * Status values that public (non-authenticated) users may NOT see.
+ * Matches backend PUBLIC_ALLOWED_STATUSES = ['Agreement', 'Unilateral'].
+ */
+const PUBLIC_RESTRICTED_STATUSES = new Set([
+	'Need Agreement',
+	'Agreement Not Ratified',
+	'Agreement Not Ratified Yet',
+	'Not Ratified Yet',
+	'Proposed',
+	'Unilateral Proposed',
+	'Terminated',
+]);
 
 // ── Layer classification ──────────────────────────────────────────────────────
 // Drives which simple-filter fields apply to which layer (per-schema field names).
@@ -291,6 +306,7 @@ const FilterPanel = () => {
 	const setFilterTarget = useUIStore((s) => s.setFilterTarget);
 
 	const getUniqueValues = useLayersStore((s) => s.getUniqueValues);
+	const isLoggedIn = useAuthStore((s) => s.user !== null);
 	const [remoteFilterOptions, setRemoteFilterOptions] = useState<{
 		horizontal_datum: string[];
 		point_location: string[];
@@ -301,6 +317,7 @@ const FilterPanel = () => {
 	} | null>(null);
 	const [filterOptionsLoading, setFilterOptionsLoading] = useState(false);
 	const [filterOptionsError, setFilterOptionsError] = useState(false);
+	const [filterOptionsRetry, setFilterOptionsRetry] = useState(0);
 
 	useEffect(() => {
 		if (activePanel !== 'filter') return;
@@ -327,7 +344,8 @@ const FilterPanel = () => {
 		return () => {
 			cancelled = true;
 		};
-	}, [activePanel]);
+	// Re-fetch when: panel opens, auth state changes (login/logout), or manual retry
+	}, [activePanel, isLoggedIn, filterOptionsRetry]);
 
 	const mergeOptionStrings = useCallback((remote: string[] | undefined, layerIds: readonly CoreLayerId[], field: string) => {
 		const set = new Set<string>();
@@ -360,13 +378,15 @@ const FilterPanel = () => {
 		() => getTipeBatasOptionsForTarget(locale, filterTarget),
 		[locale, filterTarget],
 	);
-	const HIDDEN_STATUS_VALUES = new Set(['Proposed', 'Unilateral Proposed']);
 	const statusOptions = useMemo(() => {
 		const remote =
 			filterTarget === 'limit' ? remoteFilterOptions?.status_limit : remoteFilterOptions?.status_point;
 		return mergeOptionStrings(remote, scopeLayerIds, 'status')
-			.filter((opt) => !HIDDEN_STATUS_VALUES.has(opt.value));
-	}, [mergeOptionStrings, remoteFilterOptions, scopeLayerIds, filterTarget]);
+			.filter((opt) => {
+				if (!isLoggedIn && PUBLIC_RESTRICTED_STATUSES.has(opt.value)) return false;
+				return true;
+			});
+	}, [mergeOptionStrings, remoteFilterOptions, scopeLayerIds, filterTarget, isLoggedIn]);
 	const [seaAreaSearch, setSeaAreaSearch] = useState('');
 
 	useEffect(() => {
@@ -392,9 +412,24 @@ const FilterPanel = () => {
 
 	const dynamicEmptyMessage = (fallback: string) => {
 		if (filterOptionsLoading) return t('filter.loadingOptions');
-		if (filterOptionsError) return t('filter.loadOptionsFailed');
+		if (filterOptionsError) return undefined; // handled inline with retry button
 		return fallback;
 	};
+
+	/** Shown in place of chip list when remote options failed to load. */
+	const RetryChip = () => (
+		<button
+			type="button"
+			onClick={() => setFilterOptionsRetry((n) => n + 1)}
+			disabled={filterOptionsLoading}
+			className="mt-0.5 inline-flex items-center gap-1 rounded-full border border-dashed border-slate-300 px-2.5 py-1 text-[11px] text-slate-400 transition-colors hover:border-slate-400 hover:text-slate-600 disabled:opacity-50"
+		>
+			<svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
+				<path d="M1 5a4 4 0 0 1 7.5-1.9M9 5a4 4 0 0 1-7.5 1.9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+			</svg>
+			{filterOptionsLoading ? 'Memuat...' : 'Coba lagi'}
+		</button>
+	);
 
 	const activeCount = useMemo(
 		() => activeFilterCount(simpleFilter, filterTarget),
@@ -552,22 +587,26 @@ const FilterPanel = () => {
 				</Section>
 
 				<Section code='02' title={t('filter.sectionStatus')}>
-					<ChipGrid
-						options={statusOptions}
-						selected={statusSelected}
-						onToggle={(v) =>
-							setSimpleFilter(
-								isLimitMode
-									? { statusLimit: toggleSet(sf.statusLimit, v) }
-									: { statusPoint: toggleSet(sf.statusPoint, v) },
-							)
-						}
-						emptyMessage={dynamicEmptyMessage(
-							isLimitMode ? t('filter.emptyStatusLimit') : t('filter.emptyStatusPoint'),
-						)}
-						showLessLabel={t('common.showLess')}
-						showAllLabel={(count) => t('common.showAll', { count })}
-					/>
+					{filterOptionsError && !filterOptionsLoading ? (
+						<RetryChip />
+					) : (
+						<ChipGrid
+							options={statusOptions}
+							selected={statusSelected}
+							onToggle={(v) =>
+								setSimpleFilter(
+									isLimitMode
+										? { statusLimit: toggleSet(sf.statusLimit, v) }
+										: { statusPoint: toggleSet(sf.statusPoint, v) },
+								)
+							}
+							emptyMessage={dynamicEmptyMessage(
+								isLimitMode ? t('filter.emptyStatusLimit') : t('filter.emptyStatusPoint'),
+							)}
+							showLessLabel={t('common.showLess')}
+							showAllLabel={(count) => t('common.showAll', { count })}
+						/>
+					)}
 				</Section>
 
 				<Section code='02.b' title={t('filter.sectionValidityStatus')}>
@@ -618,15 +657,19 @@ const FilterPanel = () => {
 				)}
 
 				<Section code={isLimitMode ? '03' : '04'} title={t('filter.sectionDatum')}>
-					<ChipGrid
-						options={horizontalDatumOptions}
-						selected={sf.horizontalDatum}
-						onToggle={(v) => setSimpleFilter({ horizontalDatum: toggleSet(sf.horizontalDatum, v) })}
-						defaultShowCount={6}
-						emptyMessage={dynamicEmptyMessage(t('filter.emptyData'))}
-						showLessLabel={t('common.showLess')}
-						showAllLabel={(count) => t('common.showAll', { count })}
-					/>
+					{filterOptionsError && !filterOptionsLoading ? (
+						<RetryChip />
+					) : (
+						<ChipGrid
+							options={horizontalDatumOptions}
+							selected={sf.horizontalDatum}
+							onToggle={(v) => setSimpleFilter({ horizontalDatum: toggleSet(sf.horizontalDatum, v) })}
+							defaultShowCount={6}
+							emptyMessage={dynamicEmptyMessage(t('filter.emptyData'))}
+							showLessLabel={t('common.showLess')}
+							showAllLabel={(count) => t('common.showAll', { count })}
+						/>
+					)}
 				</Section>
 			</div>
 

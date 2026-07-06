@@ -13,6 +13,7 @@ import { registerIhoSymbolImages } from '@/components/map/ihoSymbology';
 import { bindLayerInteractions } from '@/components/map/layerInteractions';
 import { ensureCombinedMvtSources, ensureMapLayerStack } from '@/components/map/sourceBootstrap';
 import { getDisplayToken } from '@/lib/displaySession';
+import { getIdToken } from '@/store/useAuthStore';
 import { applySymbologyMode } from '@/components/map/applySymbology';
 import { createFeatureClickHandler } from '@/components/map/popupInteraction';
 import { syncGeoResultLayer } from '@/components/map/geoResultLayer';
@@ -26,6 +27,7 @@ import { useGeoResultStore } from '@/store/useGeoResult';
 import { useLayersStore } from '@/store/useLayersStore';
 import { useLocaleStore } from '@/store/useLocale';
 import { useUIStore } from '@/store/useUI';
+
 
 const MapView = () => {
 	const containerRef = useRef<HTMLDivElement | null>(null);
@@ -107,14 +109,20 @@ const MapView = () => {
 				if (!isMvtDisplayMode() || !url.includes('/api/tiles/')) {
 					return { url };
 				}
+				const headers: Record<string, string> = {};
 				const token = getDisplayToken();
-				if (!token) {
-					return { url };
-				}
-				return {
-					url,
-					headers: { 'X-Display-Token': token },
-				};
+				if (token) headers['X-Display-Token'] = token;
+				
+				const idToken = getIdToken();
+				const role = idToken ? 'authenticated' : 'public';
+				
+				// Append role for robust browser caching (bypasses URL caching collisions)
+				const separator = url.includes('?') ? '&' : '?';
+				const cacheSafeUrl = `${url}${separator}role=${role}`;
+				
+				if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
+				
+				return { url: cacheSafeUrl, headers };
 			},
 		});
 		mapRef.current = map;

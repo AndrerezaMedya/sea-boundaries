@@ -149,17 +149,8 @@ real_db_schema/handsoff.md
 SPEAKER_NOTES.md
 /Lembar Proposal*.txt
 
-# --- Draft Tugas Akhir (dokumen privat/lokal) ---
-docs/Laporan_TA/
-
-# --- Catatan diskusi AI sementara (bukan dokumentasi resmi) ---
-docs/temp_diskusiAI.md
-
-# --- Gambar/aset lokal dokumentasi ---
-docs/img/
-
-# --- File ERD SVG (generated/lokal) ---
-docs/svg_erd.md
+# --- Seluruh isi docs di-ignore dari repo utama ---
+docs/
 
 # --- Folder artifacts AI/editor lokal ---
 artifacts/

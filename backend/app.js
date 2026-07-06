@@ -22,6 +22,7 @@ const metaRouter = require('./routes/meta');
 const tilesRouter = require('./routes/tiles');
 const geoRouter = require('./routes/geo');
 const { requireDisplayToken } = require('./middleware/requireDisplayToken');
+const { resolveAccessLevel } = require('./middleware/resolveAccessLevel');
 
 /**
  * Build the Express app. Side-effect-free (does NOT call listen()).
@@ -42,6 +43,9 @@ function createApp(opts = {}) {
   if (enableHttpLogger) app.use(httpLogger);
   app.use(spatialAuditLogger);
   app.use(express.json());
+  // Resolve Firebase auth token (if present) for all routes.
+  // Non-blocking — sets req.accessLevel = 'authenticated' | 'public'.
+  app.use(resolveAccessLevel);
 
   app.use('/api', healthRouter);
   app.use('/api', displaySessionRouter);
