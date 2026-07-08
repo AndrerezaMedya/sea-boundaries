@@ -308,6 +308,44 @@ const UserGuidePage = () => {
                                         </div>
                                     </div>
                                 </motion.div>
+
+                                {/* 3.9 Autentikasi & Hak Akses */}
+                                <motion.div
+                                    initial={{ opacity: 0, y: 30 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true, margin: "-40px" }}
+                                    transition={{ duration: 0.6, ease: "easeOut" }}
+                                    className='pt-6 border-t border-dashed border-[#cfdcf8]'
+                                >
+                                    <div className='mb-8'>
+                                        <div className='flex items-center gap-3 mb-2'>
+                                            <div className='flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#4363d0] to-[#101f8f] shadow-sm'>
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                            </div>
+                                            <h3 className='text-2xl font-bold text-[#101f8f] flex items-center gap-2'>
+                                                {messages.sections.auth.title}
+                                            </h3>
+                                        </div>
+                                        <p className='mt-3 text-[15px] leading-relaxed text-slate-600 max-w-3xl ml-14'>
+                                            {messages.sections.auth.desc}
+                                        </p>
+                                    </div>
+                                    <div className='relative ml-14 before:absolute before:bottom-0 before:left-[15px] before:top-4 before:w-[2px] before:bg-blue-100'>
+                                        <div className='space-y-6'>
+                                            {messages.sections.auth.steps.map((step, i) => (
+                                                <div key={i} className='relative flex items-start gap-5 group'>
+                                                    <div className='relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-4 border-white bg-blue-50 text-xs font-bold text-[#4363d0] shadow-sm transition-transform duration-300 group-hover:scale-110 group-hover:bg-[#4363d0] group-hover:text-white'>
+                                                        {i + 1}
+                                                    </div>
+                                                    <div className='flex-1 rounded-xl border border-slate-100 bg-white p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:border-blue-200'>
+                                                        <h4 className='text-base font-bold text-slate-900'>{step.t}</h4>
+                                                        <p className='text-sm text-slate-600 mt-1.5 leading-relaxed'>{step.d}</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </motion.div>
                             </div>
                         </motion.section>
 
