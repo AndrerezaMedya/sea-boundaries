@@ -80,6 +80,16 @@ export const userGuideId = {
 				{ t: 'Kirim permintaan', d: 'Klik Kirim Permintaan Data dan tunggu konfirmasi dari sistem.' },
 			],
 		},
+		auth: {
+			title: 'Autentikasi & Hak Akses',
+			desc: 'Fitur login digunakan untuk memberikan akses ke data batas laut yang bersifat terbatas (seperti batas laut yang belum disepakati). Pengguna umum (tanpa login) hanya dapat melihat batas yang telah berstatus Agreement atau Unilateral.',
+			steps: [
+				{ t: 'Buka form login', d: 'Klik tombol login atau ikon profil pada navigation bar di halaman peta.' },
+				{ t: 'Masukkan kredensial', d: 'Isi email dan kata sandi yang telah didaftarkan dan dikonfirmasi oleh administrator.' },
+				{ t: 'Akses data lengkap', d: 'Setelah berhasil login, halaman akan dimuat ulang dan seluruh filter serta data batas laut yang sifatnya terbatas akan muncul di peta.' },
+				{ t: 'Logout', d: 'Untuk keluar dari sesi, klik ikon profil lalu pilih Logout.' },
+			],
+		},
 	},
 	cta: {
 		title: 'Panduan Pengguna',
@@ -168,6 +178,16 @@ export const userGuideEn = {
 				{ t: 'Upload supporting documents', d: 'Select documents that meet the specified format and size.' },
 				{ t: 'Review entries', d: 'Ensure all data and documents are correct.' },
 				{ t: 'Submit the request', d: 'Click Submit Data Request and wait for system confirmation.' },
+			],
+		},
+		auth: {
+			title: 'Authentication & Access Rights',
+			desc: 'The login feature is used to grant access to restricted sea boundary data (such as boundaries that have not been agreed upon). Public users (without logging in) can only view boundaries that are categorized as Agreement or Unilateral.',
+			steps: [
+				{ t: 'Open the login form', d: 'Click the login button or profile icon on the navigation bar in the map page.' },
+				{ t: 'Enter credentials', d: 'Enter the email and password that have been registered and confirmed by the administrator.' },
+				{ t: 'Access full data', d: 'Upon successful login, the page will reload and all restricted filters and sea boundary data will appear on the map.' },
+				{ t: 'Logout', d: 'To log out of the session, click the profile icon and select Logout.' },
 			],
 		},
 	},
