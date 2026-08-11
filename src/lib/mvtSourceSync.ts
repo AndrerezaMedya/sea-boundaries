@@ -71,8 +71,18 @@ export const syncMvtTileReload = (
 
 	const reload = (tileset: MvtTileset) => {
 		const sourceId = `source-mvt-${tileset}`;
-		if (map.getSource(sourceId) && typeof map.refreshTiles === 'function') {
-			map.refreshTiles(sourceId);
+		if (map.getSource(sourceId)) {
+			const sourceCache = (map as any).style?.sourceCaches?.[sourceId];
+			if (sourceCache && typeof sourceCache.clearTiles === 'function') {
+				sourceCache.clearTiles();
+				if (typeof sourceCache.update === 'function') {
+					sourceCache.update((map as any).transform);
+				}
+			}
+			// Fallback for future versions if they implement it
+			if (typeof (map as any).refreshTiles === 'function') {
+				(map as any).refreshTiles(sourceId);
+			}
 		}
 	};
 

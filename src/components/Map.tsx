@@ -13,14 +13,14 @@ import { registerIhoSymbolImages } from '@/components/map/ihoSymbology';
 import { bindLayerInteractions } from '@/components/map/layerInteractions';
 import { ensureCombinedMvtSources, ensureMapLayerStack } from '@/components/map/sourceBootstrap';
 import { getDisplayToken } from '@/lib/displaySession';
-import { getIdToken } from '@/store/useAuthStore';
+import { getIdToken, useAuthStore } from '@/store/useAuthStore';
 import { applySymbologyMode } from '@/components/map/applySymbology';
 import { createFeatureClickHandler } from '@/components/map/popupInteraction';
 import { syncGeoResultLayer } from '@/components/map/geoResultLayer';
 import { fitMapToFeatures, syncMapWithState } from '@/components/map/runtimeSync';
 import { syncMvtTileReload } from '@/lib/mvtSourceSync';
 import { MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM, getBaseMapStyle } from '@/lib/map';
-import { isMvtDisplayMode } from '@/lib/mapDisplay';
+import { isMvtDisplayMode, MVT_TILESETS } from '@/lib/mapDisplay';
 import type { FeatureWithProps, LayerId } from '@/lib/types';
 import { useViewportAttributes } from '@/hooks/useViewportAttributes';
 import { useGeoResultStore } from '@/store/useGeoResult';
@@ -42,6 +42,7 @@ const MapView = () => {
 	const [mapInstance, setMapInstance] = useState<MapLibreMap | null>(null);
 	const [mapReady, setMapReady] = useState(false);
 	const activeLayerId = useLayersStore((state) => state.activeLayerId);
+	const idToken = useAuthStore((state) => state.idToken);
 	const initialBasemapTheme: BasemapTheme = 'light';
 	const initialBasemapId = DEFAULT_BASEMAP_ID_BY_THEME[initialBasemapTheme];
 	const initialBasemapDefinition = getBasemapDefinition(initialBasemapTheme, initialBasemapId);
@@ -243,6 +244,32 @@ const MapView = () => {
 		applySymbologyMode(map, symbologyMode);
 		mvtVisibilityRef.current = syncMvtTileReload(map, layersState, mvtVisibilityRef.current);
 	}, [layersState, symbologyMode]);
+
+	useEffect(() => {
+		if (!mapReadyRef.current || !mapRef.current) {
+			return;
+		}
+		const map = mapRef.current;
+		// When idToken changes (login/logout), force map to reload tiles to pick up new role= authenticated/public cache bypassing
+		if (isMvtDisplayMode()) {
+			MVT_TILESETS.forEach((tileset) => {
+				const sourceId = `source-mvt-${tileset}`;
+				if (map.getSource(sourceId)) {
+					const sourceCache = (map as any).style?.sourceCaches?.[sourceId];
+					if (sourceCache && typeof sourceCache.clearTiles === 'function') {
+						sourceCache.clearTiles();
+						if (typeof sourceCache.update === 'function') {
+							sourceCache.update((map as any).transform);
+						}
+					}
+					if (typeof (map as any).refreshTiles === 'function') {
+						(map as any).refreshTiles(sourceId);
+					}
+				}
+			});
+			map.triggerRepaint();
+		}
+	}, [idToken]);
 
 	useEffect(() => {
 		if (!mapReadyRef.current || !mapRef.current || !attributeRefreshTargets?.length || !isMvtDisplayMode()) {
