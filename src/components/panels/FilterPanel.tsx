@@ -19,13 +19,9 @@ import { useAuthStore } from '@/store/useAuthStore';
 
 /**
  * Status values that public (non-authenticated) users may NOT see.
- * Matches backend PUBLIC_ALLOWED_STATUSES = ['Agreement', 'Unilateral'].
  */
 const PUBLIC_RESTRICTED_STATUSES = new Set([
 	'Need Agreement',
-	'Agreement Not Ratified',
-	'Agreement Not Ratified Yet',
-	'Not Ratified Yet',
 	'Proposed',
 	'Unilateral Proposed',
 	'Terminated',

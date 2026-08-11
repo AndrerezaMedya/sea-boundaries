@@ -43,8 +43,8 @@ echo TILE_CACHE_MAX_ENTRIES: "8000"
 echo TILE_CACHE_TTL_SECONDS: "3600"
 echo TILE_CACHE_HTTP_MAX_AGE: "3600"
 echo REQUEST_SUBMIT_MAX: "5"
-echo REQUEST_SUBMIT_WINDOW_MS: "3600000"
 echo LOG_LEVEL: info
+echo FIREBASE_PROJECT_ID: "project1-seaboundaries"
 ) > "%ENV_FILE%"
 
 REM Wajib: set secret DISPLAY_TOKEN_SECRET di Cloud Run, contoh:

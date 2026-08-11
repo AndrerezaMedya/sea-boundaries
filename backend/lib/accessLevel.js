@@ -15,7 +15,7 @@ const ACCESS_PUBLIC = 'public';
 const ACCESS_AUTH = 'authenticated';
 
 /** Statuses visible to everyone including public. */
-const PUBLIC_ALLOWED_STATUSES = ['Agreement', 'Unilateral'];
+const PUBLIC_ALLOWED_STATUSES = ['Agreement', 'Unilateral', 'Agreement Not Ratified', 'Agreement Not Ratified Yet', 'Not Ratified Yet'];
 
 /**
  * Build a SQL snippet that restricts rows to PUBLIC_ALLOWED_STATUSES

@@ -22,7 +22,7 @@ function tileCacheControlMaxAge() {
 
 /** Bump when tile SQL / classification changes (invalidates in-memory MVT cache). */
 function tileCacheSchemaVersion() {
-  return String(process.env.TILE_CACHE_SCHEMA_VERSION || '11').trim() || '11';
+  return String(process.env.TILE_CACHE_SCHEMA_VERSION || '12').trim() || '12';
 }
 
 function cacheKey(tileset, accessLevel, z, x, y) {
