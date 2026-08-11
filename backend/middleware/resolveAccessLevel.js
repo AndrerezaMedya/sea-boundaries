@@ -36,6 +36,9 @@ function getFirebaseAdmin() {
     if (getApps().length === 0) {
       initializeApp({
         projectId: process.env.FIREBASE_PROJECT_ID,
+        credential: {
+          getAccessToken: () => Promise.resolve({ access_token: 'dummy', expires_in: 3600 })
+        }
       });
     }
     
