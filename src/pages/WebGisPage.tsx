@@ -71,7 +71,7 @@ const WebGisPage = () => {
         <div className='app-theme flex h-screen flex-col overflow-hidden'>
             <Ribbon />
             <div className='relative flex-1 overflow-hidden'>
-                <MapView key={idToken ? 'auth' : 'guest'} />
+                <MapView />
                 {activePanel && <MapPanelBackdrop onClose={() => setActivePanel(null)} />}
                 <LayerPanel />
                 <FilterPanel />

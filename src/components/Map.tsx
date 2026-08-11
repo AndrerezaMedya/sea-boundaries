@@ -110,19 +110,24 @@ const MapView = () => {
 				if (!isMvtDisplayMode() || !url.includes('/api/tiles/')) {
 					return { url };
 				}
-				const headers: Record<string, string> = {};
-				const token = getDisplayToken();
-				if (token) headers['X-Display-Token'] = token;
-				
-				const idToken = getIdToken();
-				const role = idToken ? 'authenticated' : 'public';
-				
-				// Append role for robust browser caching (bypasses URL caching collisions)
+
+				const token = useAuthStore.getState().idToken;
+				const role = token ? 'authenticated' : 'public';
+
+				console.log('[MVT transformRequest]', {
+					url,
+					role,
+					hasToken: Boolean(token),
+				});
+
 				const separator = url.includes('?') ? '&' : '?';
 				const cacheSafeUrl = `${url}${separator}role=${role}`;
-				
-				if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
-				
+
+				const headers: Record<string, string> = {};
+				const displayToken = getDisplayToken();
+				if (displayToken) headers['X-Display-Token'] = displayToken;
+				if (token) headers['Authorization'] = `Bearer ${token}`;
+
 				return { url: cacheSafeUrl, headers };
 			},
 		});
