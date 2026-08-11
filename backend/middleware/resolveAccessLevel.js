@@ -20,6 +20,7 @@
 const { ACCESS_PUBLIC, ACCESS_AUTH } = require('../lib/accessLevel');
 
 let adminApp = null;
+let adminAppErr = null;
 
 function getFirebaseAdmin() {
   if (adminApp) return adminApp;
@@ -43,6 +44,7 @@ function getFirebaseAdmin() {
     };
     return adminApp;
   } catch (err) {
+    adminAppErr = err.message;
     console.warn('[resolveAccessLevel] firebase-admin not available:', err.message);
     return null;
   }
@@ -74,7 +76,7 @@ async function resolveAccessLevel(req, res, next) {
       }
     } else {
       req.accessLevel = ACCESS_PUBLIC;
-      res.set('X-Debug-Auth', 'FAIL_NO_ADMIN: admin=' + !!admin + ' token=' + !!idToken + ' proj=' + process.env.FIREBASE_PROJECT_ID);
+      res.set('X-Debug-Auth', 'FAIL_NO_ADMIN: err=' + adminAppErr + ' token=' + !!idToken + ' proj=' + process.env.FIREBASE_PROJECT_ID);
       return next();
     }
   }
