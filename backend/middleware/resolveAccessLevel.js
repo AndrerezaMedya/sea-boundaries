@@ -62,19 +62,25 @@ async function resolveAccessLevel(req, _res, next) {
     if (admin && idToken) {
       try {
         await admin.verifyIdToken(idToken);
-        console.log(`[resolveAccessLevel] token verified! access=authenticated for ${req.url}`);
         req.accessLevel = ACCESS_AUTH;
+        res.set('X-Debug-Auth', 'SUCCESS');
         return next();
       } catch (err) {
-        console.warn(`[resolveAccessLevel] invalid token for ${req.url}:`, err.message);
-        // Invalid / expired token — treat as public, do not reject
+        req.accessLevel = ACCESS_PUBLIC;
+        // Strip newlines to prevent res.set() from throwing an unhandled rejection in Express 4
+        const safeMsg = (err.message || 'Unknown error').replace(/\r?\n|\r/g, ' ');
+        res.set('X-Debug-Auth', 'FAIL_VERIFY: ' + safeMsg);
+        return next();
       }
     } else {
-      console.warn(`[resolveAccessLevel] missing admin (${!!admin}) or token (${!!idToken}) for ${req.url}`);
+      req.accessLevel = ACCESS_PUBLIC;
+      res.set('X-Debug-Auth', 'FAIL_NO_ADMIN: admin=' + !!admin + ' token=' + !!idToken + ' proj=' + process.env.FIREBASE_PROJECT_ID);
+      return next();
     }
   }
 
   req.accessLevel = ACCESS_PUBLIC;
+  res.set('X-Debug-Auth', 'NO_AUTH_HEADER');
   return next();
 }
 

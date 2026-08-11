@@ -60,7 +60,7 @@ export const getMvtSourceId = (layerId: LayerId): string => {
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 
 /** Bump when point-tile SQL changes (invalidates browser/CDN tile cache). */
-export const MVT_TILE_CACHE_VERSION = '13';
+export const MVT_TILE_CACHE_VERSION = '14';
 
 export const getTileUrlTemplate = (tileset: MvtTileset): string =>
 	`${API_BASE}/api/tiles/${tileset}/{z}/{x}/{y}.mvt?v=${MVT_TILE_CACHE_VERSION}`;
