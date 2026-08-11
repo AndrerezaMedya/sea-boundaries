@@ -52,7 +52,7 @@ function getFirebaseAdmin() {
  * Express middleware. Always calls next().
  * Sets req.accessLevel = 'authenticated' | 'public'.
  */
-async function resolveAccessLevel(req, _res, next) {
+async function resolveAccessLevel(req, res, next) {
   const authHeader = req.headers['authorization'];
 
   if (authHeader && authHeader.startsWith('Bearer ')) {
