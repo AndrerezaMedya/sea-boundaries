@@ -20,6 +20,11 @@ if (process.env.INSTANCE_UNIX_SOCKET) {
   if (process.env.DB_PORT) {
     dbConfig.port = Number(process.env.DB_PORT);
   }
+  
+  // Wajib untuk Supabase: SSL harus aktif jika terhubung lewat internet
+  if (process.env.DB_HOST && !process.env.DB_HOST.includes('127.0.0.1')) {
+    dbConfig.ssl = { rejectUnauthorized: false };
+  }
 }
 
 const pool = new Pool(dbConfig);
