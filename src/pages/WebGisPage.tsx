@@ -11,6 +11,7 @@ import MapPanelBackdrop from '@/components/map/MapPanelBackdrop';
 import { useWebGisT } from '@/i18n/useWebGisT';
 import { useUIStore } from '@/store/useUI';
 import { useLayersStore, initializeLayersStore } from '@/store/useLayersStore';
+import { useAuthStore } from '@/store/useAuthStore';
 
 const WebGisPage = () => {
     const { t } = useWebGisT();
@@ -20,6 +21,7 @@ const WebGisPage = () => {
     const activePanel = useUIStore((s) => s.activePanel);
     const setActivePanel = useUIStore((s) => s.setActivePanel);
     const [initialized, setInitialized] = useState(false);
+    const idToken = useAuthStore((state) => state.idToken);
 
     useEffect(() => {
         let mounted = true;
@@ -69,7 +71,7 @@ const WebGisPage = () => {
         <div className='app-theme flex h-screen flex-col overflow-hidden'>
             <Ribbon />
             <div className='relative flex-1 overflow-hidden'>
-                <MapView />
+                <MapView key={idToken ? 'auth' : 'guest'} />
                 {activePanel && <MapPanelBackdrop onClose={() => setActivePanel(null)} />}
                 <LayerPanel />
                 <FilterPanel />

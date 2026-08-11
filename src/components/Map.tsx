@@ -245,31 +245,6 @@ const MapView = () => {
 		mvtVisibilityRef.current = syncMvtTileReload(map, layersState, mvtVisibilityRef.current);
 	}, [layersState, symbologyMode]);
 
-	useEffect(() => {
-		if (!mapReadyRef.current || !mapRef.current) {
-			return;
-		}
-		const map = mapRef.current;
-		// When idToken changes (login/logout), force map to reload tiles to pick up new role= authenticated/public cache bypassing
-		if (isMvtDisplayMode()) {
-			MVT_TILESETS.forEach((tileset) => {
-				const sourceId = `source-mvt-${tileset}`;
-				if (map.getSource(sourceId)) {
-					const sourceCache = (map as any).style?.sourceCaches?.[sourceId];
-					if (sourceCache && typeof sourceCache.clearTiles === 'function') {
-						sourceCache.clearTiles();
-						if (typeof sourceCache.update === 'function') {
-							sourceCache.update((map as any).transform);
-						}
-					}
-					if (typeof (map as any).refreshTiles === 'function') {
-						(map as any).refreshTiles(sourceId);
-					}
-				}
-			});
-			map.triggerRepaint();
-		}
-	}, [idToken]);
 
 	useEffect(() => {
 		if (!mapReadyRef.current || !mapRef.current || !attributeRefreshTargets?.length || !isMvtDisplayMode()) {
